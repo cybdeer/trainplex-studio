@@ -610,5 +610,17 @@
     "group_audit": "Audit Logs",
     "group_tasks": "Tasks",
     "shortcut_hint": "Press Cmd+K to search anywhere"
+  },
+  "pwa": {
+    "install_title": "Install TrainPlex app",
+    "install_body": "Add to your home screen for faster access",
+    "install_button": "Install",
+    "install_dismiss": "Not now",
+    "ios_instructions": "Tap the Share button below, then tap Add to Home Screen",
+    "update_available": "New version available — reload to update",
+    "update_button": "Reload",
+    "offline_banner": "Offline · {{count}} task queued",
+    "online_synced": "Synced {{count}} pending tasks",
+    "queue_failed": "Sync failed — will retry"
   }
 }

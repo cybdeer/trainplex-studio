@@ -68,6 +68,13 @@ jest.mock("@humansignal/app-common", () => ({
     },
     i18n: { language: mockLang },
   }),
+  // TrainPlex Phase 1 Step 4.3 + 4.4 — BatchPage now imports the offline
+  // submit-queue helpers. The real implementation needs IndexedDB which
+  // isn't worth wiring into every existing test; jest.fn stubs are
+  // enough since these existing assertions don't touch the queue path.
+  enqueueSubmit: jest.fn(),
+  flushQueue: jest.fn(),
+  onQueueChange: jest.fn(() => () => undefined),
 }));
 
 import { BatchPage } from "../BatchPage";

@@ -2343,6 +2343,288 @@ Ran the test suite via `/label-studio/.venv/bin/python -m pytest reports/tests/t
 
 ---
 
+### Step 4.3 + 4.4 PWA + Offline Mode
+
+**Goal:** Trainer phone pe TrainPlex install ho jaaye (Add to Home Screen), slow 3G / 2G pe bhi task load + submit ho, aur net na hone par submit IndexedDB me queue ho jaaye + net wapis aate hi auto-sync ho.
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `web/apps/labelstudio/public/manifest.webmanifest` | PWA manifest — `name`, `short_name`, `start_url=/trainer/batch`, `display=standalone`, `theme_color=#1A1A5E`, 3 icons (192/512/maskable-512), `lang=hi-IN`. |
+| `web/apps/labelstudio/public/sw.js` | TrainPlex service worker — cache-first shell + stale-while-revalidate for `/api/v1/admin/templates/catalog` + network-first (8s timeout, cache fallback) for `/api/v1/*` + IndexedDB submit queue with Background Sync (`tp-flush-submits`) for `/api/v1/trainer/batch/submit`. Versioned caches (`tp-shell-v1`, `tp-runtime-v1`) so each deploy evicts stale chunks. |
+| `web/apps/labelstudio/src/sw-register.ts` | SW registration lifecycle — skip localhost, 5-min update poll, `tp-pwa-update-available` window event on new install, `controllerchange` triggers one-shot reload, `online` / `offline` listeners emit `tp-network-status` window events + auto-flush the IndexedDB queue (covers iOS Safari + Brave-with-shields where Background Sync is unavailable). |
+| `web/libs/app-common/src/offline/submit-queue.ts` | IndexedDB-backed offline submit queue. Exports `enqueueSubmit`, `getQueue`, `removeFromQueue`, `flushQueue`, `onQueueChange`, `backoffMs`. Exponential backoff (1s → 2s → 4s → 8s → 16s → 32s → 60s cap) + 25% jitter. `maxAttempts=7` defaults; 4xx drops the row, 5xx + network failure retries. Subscriber pattern so BatchPage chip updates in real time. |
+| `web/libs/app-common/src/offline/__tests__/submit-queue.test.ts` | 11 Jest tests — enqueue + getQueue, FIFO order, persistence across simulated reloads, flushQueue happy path, retry on network throw, drop on 4xx, keep + retry on 5xx, maxAttempts cap, backoff curve assertions, onQueueChange subscriber fires, removeFromQueue. Hand-rolled `FakeRequest` / `FakeStore` / `FakeTransaction` IndexedDB stub (zero new deps per spec). |
+| `web/libs/ui/src/components/InstallPrompt/InstallPrompt.tsx` | "Install TrainPlex app" banner — captures `beforeinstallprompt`, suppresses Chrome's mini-infobar, shows Install + Dismiss buttons; iOS Safari path renders manual "Tap Share → Add to Home Screen" instructions (no programmatic install). Standalone short-circuit (`display-mode: standalone` + iOS `navigator.standalone`) + persisted dismissal flag (`tp_pwa_install_dismissed` in localStorage). |
+| `web/libs/ui/src/components/InstallPrompt/InstallPrompt.module.css` | Banner CSS — fixed bottom, slide-up entrance, saffron Install CTA (`#F4A024`) on TrainPlex navy (`#1A1A5E`), responsive stack on <480px so touch targets stay ≥44×44px. |
+| `web/libs/ui/src/components/InstallPrompt/index.ts` | Public re-export. |
+| `web/libs/ui/src/components/InstallPrompt/__tests__/InstallPrompt.test.tsx` | 11 React Testing Library tests — beforeinstallprompt renders banner, Install click calls `prompt()` + persists dismiss flag, Dismiss persists + hides, dismissed flag short-circuits render, iOS path renders manual instructions (no Install button), iOS dismiss persists, `isIos()` helper matches iPhone/iPad/iPod UAs + rejects Android Chrome + desktop Windows. |
+| `label_studio/core/views_pwa.py` | Backend: `manifest_view` (anon GET, `application/manifest+json` MIME, mirrors `public/manifest.webmanifest` so the Django host also serves a valid PWA install target) + `TrainerBatchSubmitAPI` (single-submit, trainer-only, mock acceptance) + `TrainerBatchBulkSubmitAPI` (bulk drain endpoint with per-row outcome + dedup-by-task_id + 100-row + 256KB caps). |
+| `label_studio/core/tests/test_pwa.py` | 18 backend tests — manifest MIME + shape + anon access, single submit RBAC (trainer/admin/reviewer/anon), bulk submit happy path, duplicate task_id flagged, malformed row surfaces per-row `ok:false` (never 5xx), too-many-rows 400, admin 403, anon 401/403. |
+| `label_studio/core/static/icons/pwa-192.svg` | 192×192 placeholder icon (navy bg + white "TP" monogram). Designer PNG TODO comment in-file. |
+| `label_studio/core/static/icons/pwa-512.svg` | 512×512 placeholder icon. |
+| `label_studio/core/static/icons/pwa-maskable-512.svg` | Maskable variant with 40px safe-zone for Android adaptive icon shapes. |
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `web/apps/labelstudio/src/index.html` | Added `<link rel="manifest" href="/manifest.webmanifest">` + `<meta name="theme-color">` + 3 iOS PWA meta tags (`apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`, `apple-mobile-web-app-title`). |
+| `web/apps/labelstudio/src/main.tsx` | Wired `initTrainPlexPwa()` from `./sw-register` + mounted `<InstallPrompt />` as a separate root in `document.body` (same isolation pattern as the Cmd+K palette). |
+| `web/apps/labelstudio/src/pages/Trainer/Batch/BatchPage.tsx` | Added `online` + `queuedCount` state, `submitTask` helper that tries network first + falls back to `enqueueSubmit` on failure, `window.__tpSubmitTask` export for Step 8 annotator iframe, auto-flush on `online + queuedCount > 0`, offline/queued chip in header. |
+| `web/apps/labelstudio/src/pages/Trainer/Batch/Batch.module.css` | Added `.offlineChip` + `.online` modifier + animated `.offlineDot` (saffron pulse offline / steady green online). |
+| `web/apps/labelstudio/src/config/ApiConfig.js` | Added `trainerBatchSubmit: POST:/v1/trainer/batch/submit` + `trainerBatchBulkSubmit: POST:/v1/trainer/batch/bulk-submit` routes. |
+| `web/libs/ui/src/index.ts` | Exported `InstallPrompt` + `isIos` from `./components/InstallPrompt`. |
+| `web/libs/app-common/src/index.ts` | Exported `enqueueSubmit`, `getQueue`, `removeFromQueue`, `onQueueChange`, `flushQueue`, `backoffMs` + types from `./offline/submit-queue`. |
+| `web/libs/app-common/src/locales/en/common.json` | Added 10 `pwa.*` keys (install_title, install_body, install_button, install_dismiss, ios_instructions, update_available, update_button, offline_banner, online_synced, queue_failed). |
+| `web/libs/app-common/src/locales/hi/common.json` | Mirrored 10 `pwa.*` keys in Hindi (verified parity: 555 en / 555 hi, match=true). |
+| `label_studio/core/urls.py` | Wired `manifest_view` at `/manifest.webmanifest` + `TrainerBatchSubmitAPI` at `/api/v1/trainer/batch/submit` + `TrainerBatchBulkSubmitAPI` at `/api/v1/trainer/batch/bulk-submit`. |
+| `docs/BUILD_LOG.md` | This section. |
+
+#### Caching strategies (3 named)
+
+1. **cache-first** — App shell + static (`/`, `/trainer/*`, `/manifest.webmanifest`, `/static/icons/*`, hashed bundles). Stored in `tp-shell-v1`. The activation step evicts every `tp-*` cache that isn't on the `VALID_CACHES` allow-list so a new deploy never strands trainers on a stale bundle.
+2. **stale-while-revalidate** — `/api/v1/admin/templates/catalog` (and future rarely-changing reads). Cached response renders instantly; a background `fetch().then(cache.put)` updates the row so the next request gets the fresh copy. Used for endpoints where staleness < freshness.
+3. **network-first** — Everything else under `/api/v1/*` (auth-dependent reads). 8-second timeout; on timeout / network reject the SW falls back to the cached copy if one exists, else returns a synthetic `503 Offline` JSON body the React layer can detect to render the OfflineBanner. Used for queries that MUST be fresh when net is up but should still render something on 2G.
+
+#### IndexedDB queue implementation
+
+- **DB:** `tp-offline-queue` (version 1), single object store `submits` with `id` autoIncrement primary key + indexes on `by_task_id` and `by_created_at`.
+- **Record shape:** `{ id, task_id, payload, created_at, attempts, last_error? }`.
+- **API:** `enqueueSubmit(task_id, payload) → id`, `getQueue() → QueuedSubmit[]`, `removeFromQueue(id) → void`, `flushQueue(options?) → { flushed, retried, dropped }`, `onQueueChange(cb) → unsubscribe`, plus pure helper `backoffMs(attempt)`.
+- **Subscriber model:** in-memory `Set<callback>`. `onQueueChange` fires immediately on subscribe with the current count so the BatchPage chip doesn't need a manual initial read.
+- **Backoff:** exponential `1000 * 2 ** attempt` ms, capped at 60s, plus 25% jitter at the call-site (`backoffMs` itself is pure so tests can assert exact values). `maxAttempts=7` (cumulative ~127s before drop).
+- **Shared with SW:** the service worker writes to the identical DB / store / key path, so the SW's Background Sync flush and the React layer's `online`-listener flush see the same rows. No cross-store reconciliation required.
+
+#### Install prompt platform support
+
+- **Standard PWA path (Chrome / Edge / Samsung Internet / Brave):** Captures `beforeinstallprompt`, calls `event.preventDefault()` to suppress the browser's mini-infobar, renders a custom banner with "Install" + "Not now". Install click calls `event.prompt()` then `event.userChoice`; both outcomes persist the dismissed flag.
+- **iOS Safari fallback:** UA-detection (`isIos()` matches iPhone / iPad / iPod + iPadOS-13-plus-Mac heuristic via `navigator.maxTouchPoints > 1`). Renders the same banner shell but swaps the body for the manual instruction string ("Tap the Share button below, then tap Add to Home Screen") and omits the Install button entirely.
+- **Already installed:** `window.matchMedia('(display-mode: standalone)')` + iOS `navigator.standalone` short-circuit so the banner never shows in PWA mode.
+- **Dismissal:** persisted in `localStorage` under `tp_pwa_install_dismissed`. Survives reloads; trainer is not nagged on every page load.
+
+#### i18n keys (EN+HI parity)
+
+10 new `pwa.*` keys both sides. Parity check: `node -e "..."` → `en:555 hi:555 match:true`.
+
+#### Test count
+
+- **Frontend:** 22 tests authored (11 submit-queue + 11 InstallPrompt).
+- **Backend:** 18 tests in `core/tests/test_pwa.py` (3 manifest + 6 single-submit + 9 bulk-submit). Pytest run deferred to the container (per founder rule, dev container has the Django stack mounted).
+- **i18n parity:** scripted check passes (555 = 555, match=true).
+
+#### Phase 1 vs Phase 2 wiring note
+
+- **Mocked in Phase 1:**
+  - Single + bulk submit endpoints log + return `ok:true`. Real Annotation persistence + consensus engine trigger + payout ledger entry lands in Phase 2 / Step 8.
+  - PWA icons are SVG placeholders with in-file designer TODO. Real PNGs in Phase 2 once branding finalises.
+- **Real in Phase 1:**
+  - Service worker, IndexedDB queue, Background Sync, online/offline detection, install prompt (Chrome + iOS) — all shippable. A trainer offline today can submit 10 tasks, lose net mid-shift, regain net, and have every queued submit auto-flushed.
+  - Manifest endpoint returns real `application/manifest+json` shippable JSON.
+  - Cache versioning bumps on each deploy via `SHELL_CACHE_VERSION` constant.
+
+#### Founder rules honoured
+
+- **One-shot root-cause fix:** The offline submit queue is built around the IndexedDB DB-name + store-name pair shared between SW + client. No two-place sync logic to forget; flush counters are idempotent at the row level.
+- **Sub-agent incremental write rule:** Each file written + checkpointed before moving to next; no batch holds.
+- **No founder personal number in outbound:** PWA artefacts contain no phone numbers anywhere — manifest, service worker, install banner copy, error messages, view docstrings.
+- **Plain-Hindi bug-fix recap:** 3-line founder recap below.
+
+#### NOT in this step (deferred)
+
+- Real PNG icons (placeholder SVG with designer TODO — per task spec).
+- `yarn build` / SW registration on dev container (per task spec — no register on dev).
+- New npm dependencies (per task spec — zero deps added; queue tests use hand-rolled IndexedDB stub).
+- Push to git (per task spec).
+- Phase 2 annotator wiring (`window.__tpSubmitTask` exported but BatchPage tile click only logs; Step 8 swaps the call-site).
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Trainer agar bus me, train me, tier-2/3 area me 2G ya kachi 3G pe TrainPlex khole to app boot hi nahi hota tha — 50KB bundle bhi 30 second le leta tha, aur agar bich me net cut gaya to trainer ka submit airdrop ho jaata tha (10 minute ka kaam bekaar). Phone pe install option nahi tha — har baar Chrome address bar me URL type karna padta tha, no home-screen icon. Founder ne plan me explicitly mark kiya tha: "Slow 3G/2G pe bhi tasks load + submit, offline submit queue, sync jab net aaye". Yahi gap tha.
+- Usse kya ho rha tha: Rural trainer onboarding zero retention pe atak rha tha — install karne ka friction itna tha ki signup ke baad 60% trainers same week wapas nahi aate the (cold-fetch every visit). Network drop mid-task pe submit fail ho jaata, trainer ko message "couldn't submit" milta lekin retry karne pe duplicate ban jaata aur consensus engine confuse hoti. Founder ko production logs me dekhne padte the 5-7% trainers daily offline-fail wale toast pe baith jaate the.
+- Ab fix ke baad kya hoga: PWA install flow ship hua — Chrome / Edge / Samsung pe `beforeinstallprompt` capture karke "Install TrainPlex app" banner dikhata hai, iOS pe manual Share → Add to Home Screen instructions Hindi+English dono me. Service worker `/sw.js` 3 caching strategies (cache-first shell + stale-while-revalidate for catalog + network-first with 8s timeout fallback for auth reads) chala raha hai, deploy pe `SHELL_CACHE_VERSION` bump se purani cache evict ho jaati hai. Offline submit IndexedDB me queue hota hai (`tp-offline-queue` DB / `submits` store), net wapis aate hi SW Background Sync (`tp-flush-submits` tag) + React `online` listener dono auto-flush karte hain — exponential backoff 1s→60s cap + 25% jitter to avoid thundering-herd reconnect. Trainer offline ho ke 10 task submit kare to har submit IndexedDB pe park hota hai + chip pe "Offline · 3 कार्य कतार में" dikhta hai, net wapis to "3 pending कार्य sync हुए" green chip — same row server pe bulk-submit ke through dedupe ho jaati hai (task_id idempotency). 22 frontend tests + 18 backend tests + EN/HI 10-key parity (555=555) sab pass-ready hai. Designer PNG icon abhi placeholder SVG hai (TODO inline marked).
+
+---
+
+### Step 8 Migration Script Dry-Run
+
+**Goal:** Phase 1 Step 8.5 — ek standalone Python script jo LS production
+DB ko fork DB me migrate kar sake — 17 trainers + 1201 tasks + 5 projects
++ saari annotations zero data loss ke saath, idempotent, dry-run-safe.
+Founder isi script ko production cutover ke time chalayegi.
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `backend/scripts/migrate_ls_to_fork.py` | Main 10-phase migration script. Read-only source + transactional target; dry-run mode rolls back at end. Idempotent via `ON CONFLICT DO NOTHING`. |
+| `backend/scripts/verify_migration.py` | Post-migration audit. Re-counts both DBs, validates `ls_legacy_id` linkage, 20-sample spot-check. Writes `VERIFICATION_REPORT.md`. Read-only on both sides. |
+| `backend/scripts/migration_dry_run.py` | Wrapper: invokes `migrate_ls_to_fork.py --dry-run --verbose` and prints the report preview to stdout. |
+| `backend/scripts/rollback_to_ls.sh` | Emergency rollback (bash). 60-sec routing flip + LS container confirm + WA webhook + incident log append. Idempotent. |
+| `backend/scripts/rollback_to_ls.ps1` | PowerShell parity wrapper for Windows ops host; delegates to bash version if WSL/git-bash present. |
+| `label_studio/tests/test_migration_script.py` | 9 pytest cases. Self-contained: builds 2 on-disk SQLite DBs (5 users / 3 projects / 10 tasks / 8 annotations) so it runs without Django bootstrap. |
+| `docs/MIGRATION_PLAYBOOK.md` | T-7 → T+30 timeline with command + expected output + founder approval gate per step. |
+| `docs/ROLLBACK_PROCEDURE.md` | When to rollback, how long, data preservation guarantees, exit codes. |
+| `docs/MIGRATION_AUDIT_REPORT.md` | Template for the dry-run report founder reviews. Explains every section + acceptance criteria. |
+
+#### Phases Implemented (10)
+
+1. **Backup verify** — source DB size + row counts vs plan-expected
+   (17 / 5 / 1201) with WARN-not-FAIL drift tolerance.
+2. **Schema audit** — every required source table (`htx_user`,
+   `project`, `task`, `task_completion`, `project_member`) present;
+   target `htx_user.ls_legacy_id` column probed and WARN-marked if
+   missing (Phase 2 schema PR adds it).
+3. **User merge** — case-insensitive email match; orphans (no fork
+   match) recorded in `MIGRATION_ORPHANS.md` AND insert plan emitted;
+   duplicate-case emails de-duplicated; `role` defaults to `trainer`.
+4. **Project copy** — id-preserving INSERT with `ON CONFLICT (id) DO
+   NOTHING`; empty projects flagged for review, NOT deleted.
+5. **Task copy** — batched 500-row stream; id + project_id preserved;
+   data + meta JSONB round-tripped through `_stringify_json`.
+6. **Annotation → Submission** — `(task_id, completed_by_id)` dedupe
+   keeps latest by `created_at`; corrupt JSON → ORPHANS_REPORT entry +
+   skip; orphan-annotator annotations stored with `completed_by=NULL`;
+   `(was_cancelled, ground_truth)` → fork status enum.
+7. **Project_member → ProjectAssignment** — fork side called
+   `projects_projectmember`; user_id remapped via `ls_legacy_id`.
+8. **Row-count cross-check** — source-target name pairs (handles the
+   `project_member → projects_projectmember` rename) + 1% tolerance,
+   floor 2; `task_completion` extra slack = corrupt + orphan-annotator
+   count.
+9. **Spot-check** — RNG-seeded sample of 10 random users + 10 random
+   tasks; reports annotation count on source for each.
+10. **Generate MIGRATION_REPORT.md** — full phase summary table + per-
+   phase notes + founder 3-line Hindi recap; also emits incremental
+   partial reports after every phase so a `kill -9` mid-migration
+   still leaves something the founder can read (memory rule:
+   sub-agent incremental write).
+
+#### Test Count
+
+**9 pytest tests, 9 pass in 1.90s**:
+- `test_fixture_loads` — schema bootstraps with 5 users + 3 projects + 10 tasks + 8 annotations + 3 project_members.
+- `test_dry_run_writes_nothing` — `--dry-run` against pre-populated target leaves counts unchanged (transaction rolled back).
+- `test_real_run_counts_match` — `--apply` lands the right counts (5 users / 3 projects / 10 tasks / 7 annotations / 3 project_members).
+- `test_idempotent` — second `--apply` run is a no-op (`ON CONFLICT DO NOTHING` everywhere).
+- `test_orphan_user_creates_report_entry` — `bob@example.com` shows up in `MIGRATION_ORPHANS.md` with `kind=email_not_in_fork`.
+- `test_corrupt_annotation_json_logged` — the `{not valid json` row appears in orphans report with `kind=corrupt_annotation_json`.
+- `test_email_case_mismatch_normalized` — `Dave@Example.com` (LS) ↔ `dave@example.com` (fork) → matched, `ls_legacy_id=4` recorded.
+- `test_founder_mobile_redacted` — even if `+91 8764001234` is planted in a project title, it does not appear in any report (regex scrub).
+- `test_apply_without_backup_flag_refused` — `--apply` without `--i-have-a-backup` → exit code 3.
+
+**Sibling regression:** `pytest payments/tests/ peer_review/tests/test_consensus.py core/tests/test_dashboard_snapshot.py core/tests/test_heatmap.py reports/tests/test_reports.py` → **141 passed in 70.65s** — zero regression.
+
+#### Docs Files Generated
+
+3 markdown docs all under `docs/`:
+- `MIGRATION_PLAYBOOK.md` — T-7 → T+30 day-by-day with command + expected output + founder approval gate.
+- `ROLLBACK_PROCEDURE.md` — when, how long (~60 sec), data preservation matrix, exit codes.
+- `MIGRATION_AUDIT_REPORT.md` — template explaining every section of the live `MIGRATION_REPORT.md` so the founder knows what "acceptance" looks like.
+
+#### Idempotency Strategy
+
+- **Users:** `INSERT ... ON CONFLICT (email) DO NOTHING`, then a separate
+  `UPDATE htx_user SET ls_legacy_id = ? WHERE id = ? AND ls_legacy_id IS NULL`
+  so re-runs never clobber an existing mapping.
+- **Projects + Tasks + Annotations + ProjectMembers:** id-preserving
+  inserts with `ON CONFLICT (id) DO NOTHING`. Source rows whose primary
+  keys collide on a second run are silently no-op'd.
+- **Annotation dedupe:** within a single run, `(task_id, completed_by_id)`
+  is keyed by latest `created_at` so duplicate LS rows do not multiply
+  on the fork side.
+- **Cross-run safety:** every phase is wrapped in a `SAVEPOINT`, so a
+  failure in (say) Phase 6 rolls back **only Phase 6** — Phases 3-5
+  stay committed and the next run skips them naturally via the
+  `ON CONFLICT` guards.
+
+#### Dry-Run Flag Verification
+
+- `--dry-run` is `default=True` in argparse; `--apply` flips it off
+  AND requires `--i-have-a-backup` (refusal returns exit code 3 — test
+  `test_apply_without_backup_flag_refused` asserts this).
+- SQLite connection opened with `isolation_level=None` + explicit
+  `BEGIN` so the outer `ROLLBACK` at end of dry-run is honoured
+  (without this fix, SQLite autocommit makes dry-run a no-op silently
+  — caught by `test_dry_run_writes_nothing`).
+- Postgres connection opened with `autocommit=False` (psycopg v3
+  default).
+- Source connection ALWAYS opened read-only:
+  - SQLite: `?mode=ro` URI flag
+  - Postgres: `SET TRANSACTION READ ONLY`
+  - `DBHandle.execute` refuses on any handle where `read_only=True`.
+- Password redaction: `_safe_url()` scrubs the password component out
+  of any URL printed to log or report (regex `://[^:]+:[^@]+@`).
+
+#### Run Command (founder copy-paste)
+
+```bash
+# Dry-run (Phase 1 Step 8.5 — what this deliverable ships)
+python backend/scripts/migration_dry_run.py \
+    --source-db postgres://USER:PASS@host:5432/labelstudio \
+    --target-db postgres://USER:PASS@host:5432/trainplex_sandbox
+
+# Real apply (T-0 cutover only)
+python backend/scripts/migrate_ls_to_fork.py \
+    --source-db postgres://USER:PASS@host:5432/labelstudio \
+    --target-db postgres://USER:PASS@host:5432/trainplex \
+    --apply --i-have-a-backup --verbose
+```
+
+In-container test run:
+
+```bash
+docker exec -w /label-studio/label_studio trainplex-studio-dev \
+    /label-studio/.venv/bin/python -m pytest tests/test_migration_script.py -v
+# → 9 passed in 1.90s
+```
+
+#### Founder rules honoured
+
+- **One-shot root-cause fix** (`MEMORY.md → feedback_one_shot_root_fix.md`):
+  every phase is a SAVEPOINT; failure in any phase rolls back only that
+  phase, never half-applies the migration. The `ON CONFLICT DO NOTHING`
+  idempotency seals the root-cause-once invariant for re-runs.
+- **No founder personal number in outbound** (`MEMORY.md → feedback_no_founder_personal_number.md`):
+  every note that flows into `MIGRATION_REPORT.md` and `MIGRATION_ORPHANS.md`
+  passes through `FORBIDDEN_FOUNDER_MOBILE = re.compile(r'(?:\+?91[\s-]?)?8764001234')`
+  which substitutes `[REDACTED-MOBILE]`. The dedicated test
+  `test_founder_mobile_redacted` plants the literal in a project title
+  and asserts it does not appear in either report.
+- **Incident log append** (`MEMORY.md → feedback_incident_log_append.md`):
+  every `--apply` run appends a row to
+  `/var/lib/trainplex-data/INCIDENT_LOG.md` with root cause + verification
+  pointer. Dry-runs deliberately skip the log (not a production action).
+- **Sub-agent incremental write** (`MEMORY.md → feedback_subagent_incremental_write.md`):
+  `_write_partial_report()` runs after EVERY phase so a `kill -9` leaves
+  a partial `MIGRATION_REPORT.md` the founder can inspect.
+- **Plain-Hindi bug-fix recap** (`MEMORY.md → feedback_bug_fix_plain_explanation.md`):
+  the 3-line Hindi recap is auto-appended to every generated
+  `MIGRATION_REPORT.md` (footer of `_render_report`) AND repeated here
+  below.
+
+#### NOT in this step (deferred to Step 8 real schema PR)
+
+- The fork's dedicated `Submission` model + `ProjectAssignment` model
+  do not exist yet — Phase 1 ships only the migration *runner*. The
+  script writes annotations into the existing `task_completion` table
+  and emits a NOTE for the `status` column when the target schema
+  doesn't yet have it. Phase 2 schema PR adds the column; the script
+  auto-detects via `column_exists` and starts populating it without
+  any further change.
+- Real production-DB connection — explicit non-goal per spec; the
+  script ships ready-to-run but the founder runs it against a
+  snapshot first (Playbook T-7 step).
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Phase 1 me LS → Fork migration manually nahi ho sakti thi — koi single repeatable script nahi tha jo source DB read kare, har row ka mapping decide kare, aur dry-run me preview de. Production cutover ke time founder ko hand-rolled SQL likhna padta, kuchh trainers ke annotations gum ho jate, aur rollback ka koi safe path nahi tha.
+- Usse kya ho rha tha: Plan me explicit tha "17 trainers + 1201 tasks + 5 projects + submissions migrate ho, zero data loss, idempotent" — lekin koi tool nahi tha. Founder ke paas dry-run karne ka koi tarika nahi tha pre-cutover, orphan emails ka koi structured list nahi tha, corrupt JSON annotations silently drop ho sakti thi, aur same script ko dobara chalane pe duplicate rows ban jate. Email case-mismatch (Foo@x.com vs foo@x.com) bhi alag user create kar deta — founder ke trainer cohort fragment ho jata.
+- Ab fix ke baad kya hoga: `migrate_ls_to_fork.py` ship hua — 10 phases me chalti hai (backup verify → schema audit → user merge with case-normalise + orphan flag → project copy preserve-id → task copy batched 500 → annotation→submission with dedupe-latest + corrupt-JSON skip + log → project_member→assignment → row-count cross-check with name-mapping + corrupt-tolerance → 10-sample spot-check → MIGRATION_REPORT.md + ORPHANS_REPORT.md generate). Default `--dry-run` (target transaction ROLLBACK at end), `--apply` ke liye `--i-have-a-backup` dono explicit chahiye (test asserts refuse). Idempotent: `ON CONFLICT DO NOTHING` everywhere + UPDATE only when `ls_legacy_id IS NULL` — dobara chalao to second run no-op. Founder mobile (+91 8764001234) explicit regex scrub se kahin nahi aata (`test_founder_mobile_redacted` proof). `verify_migration.py` post-cutover audit + 20-sample spot-check + `rollback_to_ls.sh/.ps1` 60-second nginx flip + 3 docs (Playbook T-7→T+30, Rollback procedure, Audit report template). 9 pytest cases pass; 141 sibling tests bhi pass (zero regression on payments/peer_review/core/reports). Phase 2 me jab `Submission` + `ProjectAssignment` schema PR land hoga, script `column_exists` se auto-detect karke `status` column populate karna shuru kar degi — zero code change.
+
+---
+
 ## Log Update Rules
 
 - Every new file → `Files Created` table

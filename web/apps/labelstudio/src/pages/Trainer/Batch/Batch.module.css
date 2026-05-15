@@ -306,3 +306,44 @@
   border-radius: 12px;
   border: 1px solid #fecaca;
 }
+
+/* TrainPlex Phase 1 Step 4.3 + 4.4 — offline + queued submits chip.
+   Renders inside .batchHeader next to the progress pill. Saffron #F4A024
+   so the founder palette stays consistent with the InstallPrompt CTA. */
+
+.offlineChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #FFF7E6;
+  color: #8A5400;
+  border: 1px solid #F4A024;
+}
+
+.offlineChip.online {
+  background: #ECFDF5;
+  color: #065F46;
+  border-color: #34D399;
+}
+
+.offlineDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #F4A024;
+  animation: tp-offline-pulse 1.5s ease-in-out infinite;
+}
+
+.offlineChip.online .offlineDot {
+  background: #34D399;
+  animation: none;
+}
+
+@keyframes tp-offline-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}

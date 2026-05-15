@@ -159,6 +159,13 @@ export const API_CONFIG = {
     // Trainer-only GET; admin-only POST refresh. Mock data Phase 1.
     trainerBatch: "GET:/v1/trainer/batch",
     trainerBatchRefresh: "POST:/v1/trainer/batch/refresh",
+    // TrainPlex — Phase 1 Step 4.3 + 4.4: Submit a single completed task
+    // answer. The frontend tries this endpoint; on failure (offline / 5xx /
+    // timeout) the offline submit-queue in @humansignal/app-common parks
+    // the payload in IndexedDB so the SW + the `online` listener can
+    // bulk-flush via `trainerBatchBulkSubmit` once connectivity returns.
+    trainerBatchSubmit: "POST:/v1/trainer/batch/submit",
+    trainerBatchBulkSubmit: "POST:/v1/trainer/batch/bulk-submit",
 
     // TrainPlex — Phase 1 Step 13: Trainer self-service Profile + Settings.
     // role + email are READ-ONLY on PATCH (silent ignore on the backend).

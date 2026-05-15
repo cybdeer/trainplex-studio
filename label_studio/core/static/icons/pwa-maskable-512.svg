@@ -1,0 +1,21 @@
+<!--
+  TrainPlex PWA maskable icon — 512×512 placeholder.
+
+  Phase 1 Step 4.3 / 4.4 (PWA + Offline). Maskable variant has a 40px safe
+  zone on each side so Android adaptive icons (circular / squircle / teardrop
+  shapes) don't clip the TP monogram. The inner 80% (~410×410) is the safe
+  region; the outer 10% on each side is bleed background.
+
+  DESIGNER TODO: Export as `pwa-maskable-512.png` keeping the same safe-zone
+  ratio. The TP letterforms must stay within the inner 410×410 box.
+
+  Why a separate maskable variant: Chrome on Android masks the icon to the OS
+  shape, so a non-maskable icon ends up with a halo of "transparent" cropped
+  to whatever circle Android chose. Maskable icons bleed background to all 4
+  edges so the cropped result is always clean.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#1A1A5E"/>
+  <text x="256" y="310" font-family="Inter, system-ui, sans-serif" font-size="180"
+        font-weight="700" text-anchor="middle" fill="#FFFFFF">TP</text>
+</svg>

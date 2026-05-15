@@ -9,6 +9,15 @@
   <!-- TrainPlex Studio favicon (Phase 1 Step 1.4-D). SVG primary, .ico kept as fallback for older browsers. -->
   <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg" />
   <link rel="alternate icon" type="image/x-icon" href="favicon.ico" />
+  <!-- TrainPlex PWA (Phase 1 Step 4.3 + 4.4). Manifest + theme colour so
+       Add to Home Screen works on Android + iOS. Real PNG icons land in
+       Phase 2 via the designer; the static dir already serves the SVG
+       placeholder under /static/icons/pwa-*.svg. -->
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#1A1A5E" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="TrainPlex" />
 </head>
 <body>
 <div id="root"></div>

@@ -1,0 +1,149 @@
+/*
+ * InstallPrompt — TrainPlex PWA "Add to home screen" banner.
+ *
+ * Phase 1 Step 4.3. Renders a slim non-modal banner anchored to the
+ * bottom of the viewport. The trainer can tap "Install" or "Not now";
+ * iOS users see a static instruction string instead because Safari has no
+ * programmatic install prompt.
+ *
+ * Why CSS Modules
+ * ---------------
+ * Same reason as CommandPalette — this lives outside the Tailwind prefix
+ * scope and may be portaled to <body>. A scoped class survives the
+ * `styles.prefix.css` rewrite without leaking globals.
+ */
+
+.banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #1A1A5E;
+  color: #FFFFFF;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 14px;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.18);
+  /* Slide-up entrance so the banner doesn't pop in jarringly. */
+  animation: tp-pwa-install-in 200ms ease-out;
+}
+
+@keyframes tp-pwa-install-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.icon {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #FFFFFF;
+  color: #1A1A5E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.copy {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.3;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.body {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+}
+
+.installBtn {
+  background: #F4A024;
+  color: #1A1A5E;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.installBtn:hover {
+  background: #FFB840;
+}
+
+.dismissBtn {
+  background: transparent;
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.dismissBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* iOS variant — non-actionable, instructional. */
+.iosCopy {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  line-height: 1.3;
+}
+
+.iosInstructions {
+  font-size: 12px;
+  opacity: 0.92;
+}
+
+/* Responsive — on phones, stack the actions below the copy so the touch
+   targets keep their 44px minimum without crowding the title. */
+@media (max-width: 480px) {
+  .banner {
+    flex-wrap: wrap;
+  }
+
+  .copy,
+  .iosCopy {
+    flex: 1 1 100%;
+    order: 1;
+  }
+
+  .icon {
+    order: 0;
+  }
+
+  .actions {
+    order: 2;
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+}

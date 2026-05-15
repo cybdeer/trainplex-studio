@@ -1,0 +1,23 @@
+<!--
+  TrainPlex PWA icon — 192×192 placeholder.
+
+  Phase 1 Step 4.3 / 4.4 (PWA + Offline). Real PNGs come from the designer in
+  Phase 2; the manifest references `/static/icons/pwa-192.png` (and 512 + maskable).
+  Until those PNGs land, this SVG is the visual proxy so the install flow
+  doesn't 404. The Django collectstatic step ships both files; browsers that
+  require PNG fall back to nothing visible but the manifest still validates.
+
+  DESIGNER TODO (Phase 2):
+    1. Export pwa-192.png  (192×192 PNG, "any" purpose, ~25KB target)
+    2. Export pwa-512.png  (512×512 PNG, "any" purpose, ~120KB target)
+    3. Export pwa-maskable-512.png (512×512 with safe zone — 40px padding on each side)
+    4. Drop them in this directory; SVGs can stay as long as PNG masters exist.
+
+  Visual: TrainPlex deep-navy (#1A1A5E) background, white "TP" monogram.
+  The same color matches `theme_color` in `manifest.webmanifest`.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="40" fill="#1A1A5E"/>
+  <text x="96" y="120" font-family="Inter, system-ui, sans-serif" font-size="72"
+        font-weight="700" text-anchor="middle" fill="#FFFFFF">TP</text>
+</svg>

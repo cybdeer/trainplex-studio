@@ -26,6 +26,14 @@ import "./app/App";
 import "./utils/service-worker";
 import "./utils/state-registry-lso";
 
+// TrainPlex Phase 1 Step 4.3 + 4.4 — PWA lifecycle. Registers `/sw.js`,
+// binds online/offline + update-available listeners, and triggers the
+// client-side submit-queue flush on reconnect. Skips localhost so dev
+// HMR doesn't fight the service worker. See `./sw-register.ts` for the
+// full lifecycle (5-min update poll, controllerchange reload, etc).
+import { initTrainPlexPwa } from "./sw-register";
+initTrainPlexPwa();
+
 // TrainPlex Phase 1 Step 14 — Global Search (Cmd+K) command palette.
 // Mounted as a SEPARATE React root in document.body so the overlay sits on
 // top of the main app tree and survives in-app navigations. The component
@@ -35,6 +43,10 @@ import "./utils/state-registry-lso";
 // and `APP_SETTINGS.user` for the role).
 import { createRoot } from "react-dom/client";
 import { CommandPaletteMount } from "./CommandPaletteMount";
+// TrainPlex Phase 1 Step 4.3 — PWA install banner. Same separate-root
+// pattern as the command palette so the banner survives in-app navigation
+// and never interferes with the main React tree's reconciliation.
+import { InstallPrompt } from "@humansignal/ui";
 
 function mountCommandPalette() {
   // Idempotent — if HMR re-runs this module, reuse the existing host node.
@@ -47,8 +59,23 @@ function mountCommandPalette() {
   createRoot(host).render(<CommandPaletteMount />);
 }
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", mountCommandPalette, { once: true });
-} else {
+function mountInstallPrompt() {
+  let host = document.getElementById("tp-install-prompt-root");
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "tp-install-prompt-root";
+    document.body.appendChild(host);
+  }
+  createRoot(host).render(<InstallPrompt />);
+}
+
+function mountPwaSurfaces() {
   mountCommandPalette();
+  mountInstallPrompt();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", mountPwaSurfaces, { once: true });
+} else {
+  mountPwaSurfaces();
 }

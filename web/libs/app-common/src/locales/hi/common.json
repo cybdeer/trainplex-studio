@@ -610,5 +610,17 @@
     "group_audit": "ऑडिट लॉग",
     "group_tasks": "कार्य",
     "shortcut_hint": "कहीं भी खोजने के लिए Cmd+K दबाएँ"
+  },
+  "pwa": {
+    "install_title": "TrainPlex ऐप install करें",
+    "install_body": "तेज़ access के लिए होम स्क्रीन पर जोड़ें",
+    "install_button": "Install करें",
+    "install_dismiss": "अभी नहीं",
+    "ios_instructions": "नीचे Share बटन दबाएँ, फिर होम स्क्रीन में जोड़ें",
+    "update_available": "नया अपडेट आया — रीलोड करें",
+    "update_button": "रीलोड करें",
+    "offline_banner": "Offline · {{count}} कार्य कतार में",
+    "online_synced": "{{count}} pending कार्य sync हुए",
+    "queue_failed": "Sync विफल — फिर कोशिश होगी"
   }
 }

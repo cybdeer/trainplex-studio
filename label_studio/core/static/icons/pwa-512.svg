@@ -1,0 +1,12 @@
+<!--
+  TrainPlex PWA icon — 512×512 placeholder.
+
+  Phase 1 Step 4.3 / 4.4 (PWA + Offline). See pwa-192.svg for the designer
+  hand-off checklist. This SVG is the visual proxy until the real PNG ships.
+  Matches manifest.webmanifest icon entry { sizes: "512x512", purpose: "any" }.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="100" fill="#1A1A5E"/>
+  <text x="256" y="320" font-family="Inter, system-ui, sans-serif" font-size="200"
+        font-weight="700" text-anchor="middle" fill="#FFFFFF">TP</text>
+</svg>

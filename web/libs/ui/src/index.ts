@@ -10,6 +10,10 @@ export * from "./components/ConsensusBadge";
 // TrainPlex Phase 1 Step 14 — Global Search (Cmd+K) command palette + the
 // hook that owns its open state + recent-searches history.
 export * from "./components/CommandPalette";
+// TrainPlex Phase 1 Step 4.3 — PWA install prompt banner (Chrome
+// beforeinstallprompt + iOS manual-instructions fallback). Dismissed
+// choice persists in localStorage.
+export * from "./components/InstallPrompt";
 export * from "./lib/Tooltip/Tooltip";
 export * from "./lib/Userpic/Userpic";
 export * from "./lib/badge/badge";

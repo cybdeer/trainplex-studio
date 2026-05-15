@@ -24,6 +24,11 @@ from core.views_alerts import (
     AdminQualityAlertsStatsAPI,
 )
 from core.views_audit import AdminAuditLogAPI
+from core.views_pwa import (
+    TrainerBatchBulkSubmitAPI,
+    TrainerBatchSubmitAPI,
+    manifest_view,
+)
 from core.views_search import AdminGlobalSearchAPI
 from core.views_broadcast import (
     AdminWhatsAppBroadcastAPI,
@@ -238,6 +243,23 @@ urlpatterns = [
         'api/v1/trainer/batch/refresh',
         TrainerBatchRefreshAPI.as_view(),
         name='trainer-batch-refresh',
+    ),
+    # TrainPlex — Phase 1 Step 4.3 + 4.4: PWA + Offline submit queue.
+    # `/manifest.webmanifest` is a Django backstop (the SPA dist already
+    # serves a copy). `/submit` is the network-first path; `/bulk-submit`
+    # is the SW + client-side flush target after reconnect. Both POSTs
+    # are trainer-only (@require_role) and ship mock acceptance in
+    # Phase 1; the real annotation + payout write-path lands in Phase 2.
+    re_path(r'^manifest\.webmanifest$', manifest_view, name='pwa-manifest'),
+    path(
+        'api/v1/trainer/batch/submit',
+        TrainerBatchSubmitAPI.as_view(),
+        name='trainer-batch-submit',
+    ),
+    path(
+        'api/v1/trainer/batch/bulk-submit',
+        TrainerBatchBulkSubmitAPI.as_view(),
+        name='trainer-batch-bulk-submit',
     ),
     # TrainPlex — Phase 1 Step 13: Trainer self-service Profile + Settings.
     # GET/PATCH /me/profile + sessions + login-history + password change.
