@@ -1,0 +1,29 @@
+<View style="display:flex;flex-direction:column;gap:10px">
+  <Header value="Hindi-English Code-Switching Tagger"/>
+  <Text name="instructions" value="$instructions"/>
+  <Labels name="tokens" toName="text_block">
+    <Label value="Hindi token" background="#FF6F00"/>
+    <Label value="English token" background="#1565C0"/>
+    <Label value="Code-switched word" background="#AD1457"/>
+    <Label value="Number" background="#2E7D32"/>
+    <Label value="Punctuation" background="#616161"/>
+    <Label value="Named entity" background="#6A1B9A"/>
+  </Labels>
+  <Text name="text_block" value="$text"/>
+  <Header value="Sentence-level classification:"/>
+  <Choices name="sentence_type" toName="text_block" choice="single-radio" showInLine="true">
+    <Choice value="Pure Hindi"/>
+    <Choice value="Pure English"/>
+    <Choice value="Mixed (Hinglish)"/>
+    <Choice value="Mostly Hindi with English borrowings"/>
+    <Choice value="Mostly English with Hindi borrowings"/>
+  </Choices>
+  <Header value="Script used:"/>
+  <Choices name="script" toName="text_block" choice="multiple" showInLine="true">
+    <Choice value="Devanagari"/>
+    <Choice value="Latin"/>
+    <Choice value="Mixed scripts"/>
+  </Choices>
+  <Header value="Notes (optional):"/>
+  <TextArea name="notes" toName="text_block" rows="2" maxSubmissions="1" placeholder="Anything ambiguous about token boundary?"/>
+</View>

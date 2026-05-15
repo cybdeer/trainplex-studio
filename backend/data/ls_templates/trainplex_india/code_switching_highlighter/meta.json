@@ -1,0 +1,13 @@
+{
+  "id": "code_switching_highlighter",
+  "title": "Hindi-English Code-Switching Highlighter",
+  "title_hi": "हिंदी-अंग्रेज़ी मिश्रित भाषा टैगर",
+  "description": "Tag every token in a sentence as Hindi, English, code-switched, number, or punctuation. Capture sentence-level mixing pattern.",
+  "description_hi": "हर शब्द पर tag लगाओ — हिंदी / अंग्रेज़ी / मिश्रित / संख्या / विराम चिह्न। पूरे वाक्य का मिश्रण भी choose करो।",
+  "category": "NLP & Linguistics",
+  "india_relevance": "Hinglish है India का सबसे common spoken/typed pattern — WhatsApp, social media, customer support chats, ad copy सब Hinglish में हैं।",
+  "trainplex_custom": true,
+  "estimated_time_per_task_min": 3,
+  "tier": "silver",
+  "languages": ["en", "hi"]
+}

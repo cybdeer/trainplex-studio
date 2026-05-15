@@ -1,0 +1,37 @@
+# TrainPlex Studio backend coverage config (Phase 1 Step 9.1).
+#
+# Backend target: 80% line coverage (per Phase 1 build plan).
+# Run inside the dev container:
+#   docker exec -w /label-studio/label_studio trainplex-studio-dev \
+#     /label-studio/.venv/bin/python -m pytest \
+#     --cov=. --cov-report=term-missing -m "not integration_tests"
+#
+# Note: `label_studio/.coveragerc` (legacy) is also kept for back-compat with
+# the upstream HumanSignal CI; this root file is what TrainPlex's own tooling
+# loads when coverage runs from the repo root.
+
+[run]
+source = label_studio
+branch = False
+omit =
+    */tests/*
+    */migrations/*
+    */__init__.py
+    */apps.py
+    label_studio/manage.py
+    label_studio/server.py
+    label_studio/sitecustomize.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if TYPE_CHECKING:
+    if __name__ == .__main__.:
+precision = 1
+show_missing = True
+skip_empty = True
+
+[html]
+directory = coverage_html

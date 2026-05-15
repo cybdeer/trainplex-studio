@@ -1,0 +1,6 @@
+{
+  "data": {
+    "code": "# yeh function user ka KYC verify karta hai, agar aadhaar valid ho toh True return kare\ndef verify_kyc(user_id):\n    # DB se aadhaar fetch karo\n    aadhaar = db.fetch(user_id)\n    # phir UIDAI API call maaro for validation\n    if aadhaar and uidai.validate(aadhaar):\n        return True\n    # warna False — TODO: edge case handle karna hai\n    return False",
+    "instructions": "Highlight each Hinglish/English token type in the comments. Classify each comment block. Suggest cleaned English version. Rate code-quality impact."
+  }
+}

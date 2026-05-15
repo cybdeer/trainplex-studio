@@ -1,0 +1,41 @@
+<View style="display:flex;flex-direction:column;gap:10px">
+  <Header value="Cultural / Sensitive Reference Flagger (India context)"/>
+  <Text name="instructions" value="$instructions"/>
+  <Labels name="references" toName="content_text">
+    <Label value="Regional reference" background="#1565C0"/>
+    <Label value="Religious mention" background="#6A1B9A"/>
+    <Label value="Caste reference" background="#C62828"/>
+    <Label value="Political reference" background="#EF6C00"/>
+    <Label value="Gender / sexuality reference" background="#AD1457"/>
+    <Label value="Sensitive history (e.g. partition, riots)" background="#4527A0"/>
+    <Label value="Stereotype / slur" background="#B71C1C"/>
+    <Label value="Festival / tradition" background="#2E7D32"/>
+  </Labels>
+  <Text name="content_text" value="$text"/>
+  <View visibleWhen="region-selected">
+    <Header value="Severity of this specific mention:"/>
+    <Choices name="region_severity" toName="content_text" choice="single-radio" perRegion="true" showInLine="true">
+      <Choice value="Harmless (factual)"/>
+      <Choice value="Context-needed (could be misread)"/>
+      <Choice value="Problematic (likely offensive)"/>
+      <Choice value="Hate / illegal"/>
+    </Choices>
+    <Header value="Why? (one line)"/>
+    <TextArea name="region_reason" toName="content_text" perRegion="true" rows="1" maxSubmissions="1" placeholder="e.g. uses caste name as insult"/>
+  </View>
+  <Header value="Overall content severity:"/>
+  <Choices name="overall_severity" toName="content_text" choice="single-radio" showInLine="true">
+    <Choice value="Harmless"/>
+    <Choice value="Context-needed"/>
+    <Choice value="Problematic"/>
+    <Choice value="Should not be published"/>
+  </Choices>
+  <Header value="Recommended action:"/>
+  <Choices name="action" toName="content_text" choice="single-radio" showInLine="true">
+    <Choice value="Publish as-is"/>
+    <Choice value="Publish with disclaimer"/>
+    <Choice value="Edit before publishing"/>
+    <Choice value="Reject"/>
+    <Choice value="Escalate to senior reviewer"/>
+  </Choices>
+</View>

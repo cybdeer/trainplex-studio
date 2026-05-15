@@ -1,0 +1,13 @@
+{
+  "id": "voice_quality_indian_accents",
+  "title": "Voice Quality and Indian Accent Rating",
+  "title_hi": "भारतीय उच्चारण एवं ध्वनि गुणवत्ता रेटिंग",
+  "description": "Rate audio clip — accent region (14 Indian options), clarity (1-5), accent identifiability (1-5), gender, age band, noise.",
+  "description_hi": "ऑडियो clip सुनो — किस region का accent है, कितनी साफ है (1-5), कितना पहचान में आता है (1-5), gender, age, noise सब रेट करो।",
+  "category": "Audio & Speech",
+  "india_relevance": "Voice-tech (Alexa-India, JioVoice, ASR) के लिए regional accent coverage critical है — हर state का pronunciation pattern अलग है।",
+  "trainplex_custom": true,
+  "estimated_time_per_task_min": 3,
+  "tier": "silver",
+  "languages": ["en", "hi"]
+}

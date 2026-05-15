@@ -1,0 +1,45 @@
+<View style="display:flex;flex-direction:column;gap:10px">
+  <Header value="Multi-Script Regional Language Identification"/>
+  <Text name="instructions" value="$instructions"/>
+  <Labels name="lang_regions" toName="multi_text">
+    <Label value="Hindi (Devanagari)" background="#FF6F00"/>
+    <Label value="Tamil" background="#1565C0"/>
+    <Label value="Telugu" background="#2E7D32"/>
+    <Label value="Bengali" background="#6A1B9A"/>
+    <Label value="Marathi" background="#C62828"/>
+    <Label value="Gujarati" background="#EF6C00"/>
+    <Label value="Punjabi (Gurmukhi)" background="#AD1457"/>
+    <Label value="Kannada" background="#00838F"/>
+    <Label value="Malayalam" background="#5D4037"/>
+    <Label value="Odia" background="#558B2F"/>
+    <Label value="Assamese" background="#4527A0"/>
+    <Label value="Urdu (Nastaliq)" background="#37474F"/>
+    <Label value="English" background="#1976D2"/>
+    <Label value="Roman-script Indic" background="#F4511E"/>
+  </Labels>
+  <Text name="multi_text" value="$text"/>
+  <Header value="Primary language of this passage:"/>
+  <Choices name="primary_language" toName="multi_text" choice="single-radio" showInLine="true">
+    <Choice value="Hindi"/>
+    <Choice value="Tamil"/>
+    <Choice value="Telugu"/>
+    <Choice value="Bengali"/>
+    <Choice value="Marathi"/>
+    <Choice value="Gujarati"/>
+    <Choice value="Punjabi"/>
+    <Choice value="Kannada"/>
+    <Choice value="Malayalam"/>
+    <Choice value="Urdu"/>
+    <Choice value="English"/>
+    <Choice value="Mixed (no single dominant)"/>
+  </Choices>
+  <Header value="Number of distinct scripts detected:"/>
+  <Choices name="script_count" toName="multi_text" choice="single-radio" showInLine="true">
+    <Choice value="1"/>
+    <Choice value="2"/>
+    <Choice value="3"/>
+    <Choice value="4+"/>
+  </Choices>
+  <Header value="Translation / clean version (optional):"/>
+  <TextArea name="translation" toName="multi_text" rows="3" maxSubmissions="1" placeholder="If passage is multilingual, write English/Hindi unified version"/>
+</View>

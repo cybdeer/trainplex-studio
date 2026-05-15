@@ -1,0 +1,13 @@
+{
+  "id": "regional_language_switcher",
+  "title": "Multi-Script Regional Language Identification",
+  "title_hi": "बहु-लिपि क्षेत्रीय भाषा पहचान",
+  "description": "Identify and segment language regions in mixed-script Indian text (Hindi, Tamil, Telugu, Bengali, Marathi, Gujarati, Punjabi, Kannada, Malayalam, Urdu, English, Roman Indic).",
+  "description_hi": "मिश्रित-लिपि वाले Indian text में हर हिस्से की भाषा पहचानो — 12 official + Roman-script options में से choose करो।",
+  "category": "NLP & Linguistics",
+  "india_relevance": "India में 22 official languages + 10+ major scripts हैं। Social media, govt notices, ads सब multilingual हैं — ML pipeline को language segmenter चाहिए।",
+  "trainplex_custom": true,
+  "estimated_time_per_task_min": 3,
+  "tier": "gold",
+  "languages": ["en", "hi"]
+}

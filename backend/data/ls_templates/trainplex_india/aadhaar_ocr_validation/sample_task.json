@@ -1,0 +1,6 @@
+{
+  "data": {
+    "image": "https://trainplex-samples.s3.ap-south-1.amazonaws.com/templates/aadhaar_sample_redacted.jpg",
+    "instructions": "Verify each field on this Aadhaar card. Draw a bounding box on every visible field, label it, then type the exact text you see. Mark photo + QR with their respective labels (no transcription needed)."
+  }
+}

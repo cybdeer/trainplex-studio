@@ -1,0 +1,46 @@
+<View style="display:flex;flex-direction:column;gap:10px">
+  <Header value="Hindi Medical Report — Named Entity Recognition"/>
+  <Text name="instructions" value="$instructions"/>
+  <Labels name="medical_entities" toName="report_text">
+    <Label value="Disease / Diagnosis" background="#C62828"/>
+    <Label value="Medicine / Drug" background="#1565C0"/>
+    <Label value="Dose / Frequency" background="#2E7D32"/>
+    <Label value="Body part / Organ" background="#6A1B9A"/>
+    <Label value="Symptom" background="#EF6C00"/>
+    <Label value="Test / Scan" background="#00838F"/>
+    <Label value="Doctor name" background="#5D4037"/>
+    <Label value="Hospital / Clinic" background="#37474F"/>
+    <Label value="Patient name" background="#AD1457"/>
+    <Label value="Patient age" background="#558B2F"/>
+    <Label value="Date" background="#7B1FA2"/>
+    <Label value="Vital sign / Measurement" background="#F4511E"/>
+    <Label value="Allergy" background="#B71C1C"/>
+  </Labels>
+  <Text name="report_text" value="$text"/>
+  <Header value="Report type:"/>
+  <Choices name="report_type" toName="report_text" choice="single-radio" showInLine="true">
+    <Choice value="Prescription (दवा पर्ची)"/>
+    <Choice value="Lab report (जाँच रिपोर्ट)"/>
+    <Choice value="Discharge summary (डिस्चार्ज सारांश)"/>
+    <Choice value="Consultation note (परामर्श नोट)"/>
+    <Choice value="Radiology report (विकिरण रिपोर्ट)"/>
+    <Choice value="Operation note (शल्य नोट)"/>
+    <Choice value="Referral letter (रेफरल पत्र)"/>
+  </Choices>
+  <Header value="Primary language of report:"/>
+  <Choices name="report_lang" toName="report_text" choice="single-radio" showInLine="true">
+    <Choice value="Hindi (Devanagari)"/>
+    <Choice value="Hindi (Roman)"/>
+    <Choice value="English"/>
+    <Choice value="Hinglish"/>
+    <Choice value="Other regional"/>
+  </Choices>
+  <Header value="PII present?"/>
+  <Choices name="pii_present" toName="report_text" choice="single-radio" showInLine="true">
+    <Choice value="Yes — needs redaction"/>
+    <Choice value="No"/>
+    <Choice value="Already redacted"/>
+  </Choices>
+  <Header value="Notes:"/>
+  <TextArea name="notes" toName="report_text" rows="2" maxSubmissions="1" placeholder="Any ambiguous abbreviation or dose? Local medicine brand names?"/>
+</View>

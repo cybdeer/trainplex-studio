@@ -1,0 +1,39 @@
+<View style="display:flex;flex-direction:column;gap:10px">
+  <Header value="Hindi Text — Tone Classification"/>
+  <Text name="instructions" value="$instructions"/>
+  <Text name="hindi_text" value="$text"/>
+  <Header value="Primary tone:"/>
+  <Choices name="tone" toName="hindi_text" choice="single-radio" showInLine="true">
+    <Choice value="Formal (औपचारिक)"/>
+    <Choice value="Informal (अनौपचारिक)"/>
+    <Choice value="Sarcastic (व्यंग्यात्मक)"/>
+    <Choice value="Humorous (हास्यपूर्ण)"/>
+    <Choice value="Respectful (आदरसूचक)"/>
+    <Choice value="Aggressive (आक्रामक)"/>
+    <Choice value="Polite-but-firm (विनम्र दृढ़)"/>
+    <Choice value="Emotional (भावुक)"/>
+    <Choice value="Neutral (तटस्थ)"/>
+  </Choices>
+  <Header value="Secondary tone (if any):"/>
+  <Choices name="tone_secondary" toName="hindi_text" choice="multiple" showInLine="true">
+    <Choice value="Sarcasm undertone"/>
+    <Choice value="Humour undertone"/>
+    <Choice value="Anger undertone"/>
+    <Choice value="Sadness undertone"/>
+    <Choice value="Pride undertone"/>
+    <Choice value="None"/>
+  </Choices>
+  <Header value="Confidence (1 = unsure / 5 = certain):"/>
+  <Rating name="confidence" toName="hindi_text" maxRating="5" icon="star" size="medium"/>
+  <Header value="Formality level (1 = very casual / 5 = very formal):"/>
+  <Rating name="formality" toName="hindi_text" maxRating="5" icon="star" size="medium"/>
+  <Header value="Sentence structure:"/>
+  <Choices name="structure" toName="hindi_text" choice="single-radio" showInLine="true">
+    <Choice value="Pure Hindi"/>
+    <Choice value="Hinglish"/>
+    <Choice value="Hindi with English borrowings"/>
+    <Choice value="Roman Hindi"/>
+  </Choices>
+  <Header value="Notes:"/>
+  <TextArea name="notes" toName="hindi_text" rows="2" maxSubmissions="1" placeholder="Any tone-shifting word or phrase that triggered the choice?"/>
+</View>

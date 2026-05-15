@@ -1,0 +1,6 @@
+{
+  "data": {
+    "text": "दिवाली के मौके पर हमारे North Indian friends ने पूरे neighbourhood में पटाखे चलाए। South वालों ने tradition के हिसाब से सिर्फ़ दिये जलाए। बाद में सब साथ बैठ कर खाना खाया।",
+    "instructions": "Highlight any cultural / religious / regional reference. Per-region: pick severity + one-line reason. Then choose overall severity + recommended action."
+  }
+}

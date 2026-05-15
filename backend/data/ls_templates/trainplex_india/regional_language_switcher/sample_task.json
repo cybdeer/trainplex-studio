@@ -1,0 +1,6 @@
+{
+  "data": {
+    "text": "मेरा नाम Rajesh है। நான் சென்னையில் வாழ்கிறேன். I work at TCS Mumbai. ਮੇਰਾ ਪਰਿਵਾਰ ਪੰਜਾਬ ਵਿੱਚ ਰਹਿੰਦਾ ਹੈ।",
+    "instructions": "Highlight each language segment with the appropriate label. Then choose the passage's primary language and count of distinct scripts. Optional: provide unified translation."
+  }
+}

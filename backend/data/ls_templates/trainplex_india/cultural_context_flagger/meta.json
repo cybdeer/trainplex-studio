@@ -1,0 +1,13 @@
+{
+  "id": "cultural_context_flagger",
+  "title": "Cultural / Sensitive Reference Flagger",
+  "title_hi": "सांस्कृतिक / संवेदनशील संदर्भ चिह्नक",
+  "description": "Detect region, religion, caste, political, or hate references in text; rate severity and recommended action.",
+  "description_hi": "Text में क्षेत्र, धर्म, जाति, राजनीति या stereotype के references पकड़ो — हर एक की severity और action choose करो।",
+  "category": "Content Moderation",
+  "india_relevance": "India में हर content (ad, news, AI output) पर community sensitivity check लगता है — caste/religion misuse कानूनन भी गंभीर है।",
+  "trainplex_custom": true,
+  "estimated_time_per_task_min": 5,
+  "tier": "gold",
+  "languages": ["en", "hi"]
+}

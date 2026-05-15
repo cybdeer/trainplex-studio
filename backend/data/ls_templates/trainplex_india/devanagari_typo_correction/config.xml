@@ -1,0 +1,29 @@
+<View style="display:flex;flex-direction:column;gap:10px">
+  <Header value="Hindi (Devanagari) Spelling and Matra Correction"/>
+  <Text name="instructions" value="$instructions"/>
+  <Labels name="errors" toName="hindi_text">
+    <Label value="Wrong matra" background="#D32F2F"/>
+    <Label value="Missing matra" background="#F57C00"/>
+    <Label value="Extra matra" background="#FBC02D"/>
+    <Label value="Missing halant" background="#7B1FA2"/>
+    <Label value="Wrong consonant" background="#388E3C"/>
+    <Label value="Wrong nukta" background="#1976D2"/>
+    <Label value="Wrong spelling" background="#C2185B"/>
+    <Label value="Word boundary error" background="#5D4037"/>
+    <Label value="Punctuation error" background="#455A64"/>
+  </Labels>
+  <Text name="hindi_text" value="$text"/>
+  <View visibleWhen="region-selected">
+    <Header value="Suggested correction for this region:"/>
+    <TextArea name="region_fix" toName="hindi_text" editable="true" perRegion="true" rows="1" maxSubmissions="1" placeholder="सही रूप यहाँ लिखो (e.g. कमरा not कमरा)"/>
+  </View>
+  <Header value="Full corrected version of the entire text:"/>
+  <TextArea name="corrected_full" toName="hindi_text" rows="4" maxSubmissions="1" placeholder="पूरा सही पाठ यहाँ टाइप करो — सभी matras + halants सहित।"/>
+  <Header value="Severity:"/>
+  <Choices name="severity" toName="hindi_text" choice="single-radio" showInLine="true">
+    <Choice value="Minor (1-2 errors)"/>
+    <Choice value="Moderate (3-5 errors)"/>
+    <Choice value="Major (rewrite needed)"/>
+    <Choice value="No errors"/>
+  </Choices>
+</View>

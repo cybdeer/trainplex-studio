@@ -1,0 +1,13 @@
+{
+  "id": "tone_slider_hindi",
+  "title": "Hindi Tone Classification",
+  "title_hi": "हिंदी टेक्स्ट — स्वर वर्गीकरण",
+  "description": "Classify Hindi text by primary tone (9 options), secondary tone, formality (1-5), confidence (1-5), and Hinglish-ness.",
+  "description_hi": "हिंदी text का मुख्य tone choose करो (औपचारिक/अनौपचारिक/व्यंग्य/हास्य आदि), confidence rate करो, और Hinglish level mark करो।",
+  "category": "NLP & Linguistics",
+  "india_relevance": "Hindi LLMs को tone-aware बनाने के लिए — customer support, marketing, voice-bot, content moderation सब tone पर depend करते हैं।",
+  "trainplex_custom": true,
+  "estimated_time_per_task_min": 2,
+  "tier": "silver",
+  "languages": ["hi"]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "hinglish_code_review",
+  "title": "Hinglish Code Comment Review",
+  "title_hi": "हिंग्लिश कोड कमेंट समीक्षा",
+  "description": "Tag tokens in Hinglish source-code comments; classify review type; suggest cleaned English version. Useful for IT-services code-base cleanup.",
+  "description_hi": "Indian dev द्वारा लिखे Hinglish code comments में हर token tag करो — फिर clean English version सुझाओ।",
+  "category": "Software / Code",
+  "india_relevance": "India का IT-services market $250B — code-base में Hinglish comments बहुत आम हैं। Cleanup ML datasets banane mein useful है।",
+  "trainplex_custom": true,
+  "estimated_time_per_task_min": 4,
+  "tier": "silver",
+  "languages": ["en", "hi"]
+}

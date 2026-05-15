@@ -1,0 +1,13 @@
+{
+  "id": "indian_script_handwriting_ocr",
+  "title": "Indic Handwriting Transcription",
+  "title_hi": "भारतीय लिपि — हस्तलेख प्रतिलेखन",
+  "description": "Draw boxes around handwritten lines/words in Indian scripts; transcribe each, mark script + quality.",
+  "description_hi": "हस्तलेख की image में हर line/word पर box खींचो — exact text type करो, script + quality choose करो।",
+  "category": "OCR & Document",
+  "india_relevance": "Govt forms, school answer sheets, prescription pads, land records — सब Indian scripts में handwritten हैं। Digitisation बहुत बड़ा opportunity है।",
+  "trainplex_custom": true,
+  "estimated_time_per_task_min": 6,
+  "tier": "gold",
+  "languages": ["en", "hi"]
+}

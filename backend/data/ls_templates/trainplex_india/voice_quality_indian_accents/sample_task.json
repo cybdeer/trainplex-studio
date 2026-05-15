@@ -1,0 +1,6 @@
+{
+  "data": {
+    "url": "https://trainplex-samples.s3.ap-south-1.amazonaws.com/templates/accent_sample_chennai_english.mp3",
+    "instructions": "Listen to the full audio clip. Identify the speaker's accent region, rate clarity, accent strength, gender, age, and background noise. Add notes for anything unusual."
+  }
+}

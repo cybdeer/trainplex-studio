@@ -1,0 +1,13 @@
+{
+  "id": "aadhaar_ocr_validation",
+  "title": "Aadhaar/PAN OCR Validation",
+  "title_hi": "आधार/पैन OCR सत्यापन",
+  "description": "Verify Aadhaar/PAN card field-by-field OCR extraction with bounding boxes and per-field text transcription.",
+  "description_hi": "आधार/पैन कार्ड के field-by-field OCR detail verify करें — हर field पर box खींचो, exact text type करो।",
+  "category": "OCR & Document",
+  "india_relevance": "Most-used Indian govt documents; KYC processes for fintech, telco, gas, e-commerce verification flows.",
+  "trainplex_custom": true,
+  "estimated_time_per_task_min": 2,
+  "tier": "bronze",
+  "languages": ["en", "hi"]
+}

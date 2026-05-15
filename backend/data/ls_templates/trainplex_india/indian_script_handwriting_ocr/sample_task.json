@@ -1,0 +1,6 @@
+{
+  "data": {
+    "image": "https://trainplex-samples.s3.ap-south-1.amazonaws.com/templates/devanagari_handwriting_sample.jpg",
+    "instructions": "Draw a bounding box around each handwritten line. For each, type the exact transcribed text. Then choose the script, quality, and rate clarity 1-5."
+  }
+}

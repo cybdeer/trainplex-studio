@@ -1,0 +1,51 @@
+<View style="display:flex;flex-direction:column;gap:10px">
+  <Header value="Audio Quality and Accent Identification (Indian English / Hindi)"/>
+  <Text name="instructions" value="$instructions"/>
+  <Audio name="audio" value="$url" cursorcolor="#FF6F00" cursorwidth="3"/>
+  <Header value="Speaker accent region:"/>
+  <Choices name="accent_region" toName="audio" choice="single-radio" showInLine="true">
+    <Choice value="UP / Bihar (Awadhi-Bhojpuri belt)"/>
+    <Choice value="Punjab / Haryana"/>
+    <Choice value="Hindi belt — neutral / Delhi"/>
+    <Choice value="South — Tamil-influenced"/>
+    <Choice value="South — Telugu-influenced"/>
+    <Choice value="South — Kannada-influenced"/>
+    <Choice value="South — Malayalam-influenced"/>
+    <Choice value="Bengali"/>
+    <Choice value="Marathi"/>
+    <Choice value="Gujarati"/>
+    <Choice value="North-East"/>
+    <Choice value="Kashmiri / Himachali"/>
+    <Choice value="Odia"/>
+    <Choice value="Cannot identify"/>
+  </Choices>
+  <Header value="Audio clarity (1 = noisy / 5 = crystal clear):"/>
+  <Rating name="clarity" toName="audio" maxRating="5" icon="star" size="medium"/>
+  <Header value="Accent identifiability (1 = generic / 5 = unmistakable):"/>
+  <Rating name="accent_strength" toName="audio" maxRating="5" icon="star" size="medium"/>
+  <Header value="Speaker gender:"/>
+  <Choices name="gender" toName="audio" choice="single-radio" showInLine="true">
+    <Choice value="Male"/>
+    <Choice value="Female"/>
+    <Choice value="Other / unclear"/>
+  </Choices>
+  <Header value="Approximate speaker age:"/>
+  <Choices name="age_band" toName="audio" choice="single-radio" showInLine="true">
+    <Choice value="Child (under 13)"/>
+    <Choice value="Teen (13-19)"/>
+    <Choice value="Adult (20-45)"/>
+    <Choice value="Older adult (46-65)"/>
+    <Choice value="Senior (65+)"/>
+  </Choices>
+  <Header value="Background noise issues (if any):"/>
+  <Choices name="noise" toName="audio" choice="multiple" showInLine="true">
+    <Choice value="Clean"/>
+    <Choice value="Traffic / outdoor"/>
+    <Choice value="Crowd / chatter"/>
+    <Choice value="Music"/>
+    <Choice value="Wind / mic distortion"/>
+    <Choice value="Echo / reverb"/>
+  </Choices>
+  <Header value="Notes:"/>
+  <TextArea name="notes" toName="audio" rows="2" maxSubmissions="1" placeholder="Any pronunciation quirk, code-switching, regional slang noticed?"/>
+</View>

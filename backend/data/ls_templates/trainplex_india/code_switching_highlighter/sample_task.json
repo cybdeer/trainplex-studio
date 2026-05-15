@@ -1,0 +1,6 @@
+{
+  "data": {
+    "text": "Boss ne kaha hai ki next week tak presentation ready होनी चाहिए, otherwise client meeting cancel हो जाएगी. Please prioritize करो ASAP!",
+    "instructions": "Select each token (word) and label it. Hindi words in Devanagari OR Roman script both count as Hindi tokens. Then classify the overall sentence pattern below."
+  }
+}

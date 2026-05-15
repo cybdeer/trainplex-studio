@@ -1,0 +1,41 @@
+<View style="display:flex;flex-direction:column;gap:10px">
+  <Header value="Indic Handwriting Transcription (Devanagari / Tamil / Bengali / Others)"/>
+  <Text name="instructions" value="$instructions"/>
+  <Image name="handwriting_image" value="$image" zoom="true" zoomControl="true" rotateControl="true"/>
+  <Labels name="text_regions" toName="handwriting_image">
+    <Label value="Line" background="#1565C0"/>
+    <Label value="Word" background="#2E7D32"/>
+    <Label value="Heading" background="#C62828"/>
+    <Label value="Signature" background="#6A1B9A"/>
+    <Label value="Number" background="#EF6C00"/>
+    <Label value="Strikethrough" background="#616161"/>
+  </Labels>
+  <Rectangle name="bbox" toName="handwriting_image" strokeWidth="3"/>
+  <TextArea name="transcription" toName="handwriting_image" editable="true" perRegion="true" required="true" maxSubmissions="1" rows="2" placeholder="Type the recognised text exactly as written" displayMode="region-list"/>
+  <Header value="Script of the handwriting:"/>
+  <Choices name="script" toName="handwriting_image" choice="single-radio" showInLine="true">
+    <Choice value="Devanagari (Hindi/Marathi/Sanskrit)"/>
+    <Choice value="Tamil"/>
+    <Choice value="Bengali / Assamese"/>
+    <Choice value="Telugu"/>
+    <Choice value="Kannada"/>
+    <Choice value="Malayalam"/>
+    <Choice value="Gurmukhi (Punjabi)"/>
+    <Choice value="Gujarati"/>
+    <Choice value="Odia"/>
+    <Choice value="Urdu (Nastaliq)"/>
+    <Choice value="Latin (English)"/>
+    <Choice value="Other Indic"/>
+    <Choice value="Mixed scripts"/>
+  </Choices>
+  <Header value="Handwriting quality:"/>
+  <Choices name="quality" toName="handwriting_image" choice="single-radio" showInLine="true">
+    <Choice value="Clear (easy to read)"/>
+    <Choice value="Partial (some words unclear)"/>
+    <Choice value="Illegible (mostly unreadable)"/>
+  </Choices>
+  <Header value="Quality rating (1 = illegible / 5 = print-quality):"/>
+  <Rating name="quality_rating" toName="handwriting_image" maxRating="5" icon="star" size="medium"/>
+  <Header value="Notes:"/>
+  <TextArea name="notes" toName="handwriting_image" rows="2" maxSubmissions="1" placeholder="Any unusual character, overwrite, or context that helped reading?"/>
+</View>

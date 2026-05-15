@@ -1,0 +1,13 @@
+{
+  "id": "devanagari_typo_correction",
+  "title": "Devanagari Typo and Matra Correction",
+  "title_hi": "देवनागरी मात्रा एवं वर्तनी सुधार",
+  "description": "Label matra/halant/spelling errors in Devanagari Hindi text and provide corrected version. Per-region fix + full rewrite.",
+  "description_hi": "देवनागरी हिंदी text में गलत मात्रा, हलंत, या वर्तनी की गलती highlight करो — फिर सही रूप type करो।",
+  "category": "NLP & Linguistics",
+  "india_relevance": "Hindi typing पर matra errors सबसे common हैं — InScript / Remington / phonetic keyboards सब अलग behave करते हैं। News, govt portals, edtech सब को correction चाहिए।",
+  "trainplex_custom": true,
+  "estimated_time_per_task_min": 4,
+  "tier": "gold",
+  "languages": ["hi"]
+}

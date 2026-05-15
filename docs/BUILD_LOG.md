@@ -286,6 +286,90 @@ Both cookie and localStorage caches are updated on every `changeLanguage` so the
 
 ---
 
+### Step 16 — TrainPlex India template gallery seed (Step 2.2)
+
+**10 India-specific Label Studio XML labeling templates shipped on disk.** Foundation for Step 2.3 (admin gallery wiring, Week 3). Phase 1 Week 2 Step 2.2 delivered.
+
+#### Templates Created (10)
+
+| # | ID | Title (EN) | Title (HI) | Category | Tier |
+|---|----|-----------|------------|----------|------|
+| 1 | `aadhaar_ocr_validation` | Aadhaar/PAN OCR Validation | आधार/पैन OCR सत्यापन | OCR & Document | bronze |
+| 2 | `code_switching_highlighter` | Hindi-English Code-Switching Highlighter | हिंदी-अंग्रेज़ी मिश्रित भाषा टैगर | NLP & Linguistics | silver |
+| 3 | `devanagari_typo_correction` | Devanagari Typo and Matra Correction | देवनागरी मात्रा एवं वर्तनी सुधार | NLP & Linguistics | gold |
+| 4 | `cultural_context_flagger` | Cultural / Sensitive Reference Flagger | सांस्कृतिक / संवेदनशील संदर्भ चिह्नक | Content Moderation | gold |
+| 5 | `voice_quality_indian_accents` | Voice Quality and Indian Accent Rating | भारतीय उच्चारण एवं ध्वनि गुणवत्ता रेटिंग | Audio & Speech | silver |
+| 6 | `tone_slider_hindi` | Hindi Tone Classification | हिंदी टेक्स्ट — स्वर वर्गीकरण | NLP & Linguistics | silver |
+| 7 | `regional_language_switcher` | Multi-Script Regional Language Identification | बहु-लिपि क्षेत्रीय भाषा पहचान | NLP & Linguistics | gold |
+| 8 | `indian_script_handwriting_ocr` | Indic Handwriting Transcription | भारतीय लिपि — हस्तलेख प्रतिलेखन | OCR & Document | gold |
+| 9 | `hinglish_code_review` | Hinglish Code Comment Review | हिंग्लिश कोड कमेंट समीक्षा | Software / Code | silver |
+| 10 | `indian_medical_ner` | Hindi Medical Report NER | हिंदी चिकित्सा रिपोर्ट — नामांकित इकाई पहचान | Medical / Healthcare | gold |
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `backend/data/ls_templates/trainplex_india/README.md` | Gallery index + meta schema + loading-strategy note (Step 2.3 ka pre-doc) |
+| `backend/data/ls_templates/trainplex_india/<id>/config.xml` (×10) | LS labeling XML config; root `<View>` with `<Labels>`/`<Choices>`/`<RectangleLabels>`/`<Rating>`/`<TextArea>` tags as needed per template |
+| `backend/data/ls_templates/trainplex_india/<id>/meta.json` (×10) | Gallery metadata (id, title, title_hi, description, description_hi, category, india_relevance, trainplex_custom, estimated_time_per_task_min, tier, languages) |
+| `backend/data/ls_templates/trainplex_india/<id>/sample_task.json` (×10) | One example task with placeholder URLs + real-looking Hindi/English data that renders against the config |
+| `label_studio/tests/test_trainplex_templates.py` | Pure-disk pytest smoke test — discovers all templates, parametrises 4 checks × 10 templates + 3 sanity asserts = 43 test cases |
+
+Total new files: 32 (10 × 3 per template + 1 README + 1 test).
+
+#### Smoke Test
+
+- Command: `docker exec trainplex-studio-dev sh -c 'cd /label-studio/label_studio && /label-studio/.venv/bin/python -m pytest tests/test_trainplex_templates.py -v'`
+- **Status: 43 passed in 5.68s** (all 10 templates × 4 per-template checks + 3 sanity asserts = 43).
+- Coverage per template:
+  1. `config.xml` is well-formed XML rooted at `<View>`
+  2. `config.xml` contains at least one labeling element (`Labels`, `Choices`, `RectangleLabels`, …)
+  3. `meta.json` parses, has all required keys (`id`, `title`, `title_hi`, `category`, `description`, `trainplex_custom`), `id` matches folder, `title_hi` contains Devanagari
+  4. `sample_task.json` parses + has `data` dict
+- Plus 3 global: dir exists, count == 10, no duplicate ids.
+
+#### Validation Reference
+
+Upstream LS XML conventions verified by reading `web/libs/editor/src/examples/{image_bbox,named_entity,audio_classification,classification_mixed,image_ocr,transcribe_audio,sentiment_analysis,audio_regions,dialogue_analysis}/config.xml`. Conventions adopted:
+
+- Root `<View>` with optional `style` attr for layout
+- `name`/`toName` pairing for every annotation tag
+- `value="$key"` to bind to task data
+- `Rating` tag uses `maxRating`/`icon`/`size` attrs (per `web/libs/editor/src/tags/control/Rating.jsx`)
+- `Choices` uses `choice="single-radio"|"multiple"`, `showInLine="true"`
+- `TextArea` uses `editable="true"`, `perRegion="true"`, `maxSubmissions="1"`, `rows`, `placeholder`
+- `View visibleWhen="region-selected"` wraps per-region inputs
+
+#### Container File Layout
+
+Templates live in `backend/data/ls_templates/trainplex_india/` at the repo root, NOT under `label_studio/projects/templates/`. Reason: upstream LS's `annotation_templates/` directory is deeply tied to its own loader; isolating TrainPlex additions in `backend/data/` keeps future upstream merges conflict-free. The Step 2.3 loader will read from this path explicitly.
+
+Container does not bind-mount the source (only `mydata/` is mounted). Files were copied with `docker cp` before running pytest:
+
+```
+docker cp label_studio/tests/test_trainplex_templates.py trainplex-studio-dev:/label-studio/label_studio/tests/
+docker cp backend trainplex-studio-dev:/label-studio/backend
+```
+
+This will go away once Step 11 (proper dev-image with source bind-mount) lands.
+
+#### Issues + Resolutions
+
+| Issue | Resolution |
+|-------|------------|
+| Task brief said template location could be `label_studio/projects/templates/` or `web/libs/editor/src/examples/` — only the latter exists in this fork | Confirmed via Glob; only `web/libs/editor/src/examples/` has 46 upstream examples. Followed brief's primary directive: created NEW `backend/data/ls_templates/trainplex_india/` dir, did NOT touch upstream examples. |
+| Container has no bind-mount for repo source (only `mydata/`) | Used `docker cp` to copy test file + templates into container before running pytest. Documented in BUILD_LOG so next dev knows. |
+| `docker exec -w /label-studio/label_studio …` failed with "Cwd must be an absolute path" on Windows | Switched to `sh -c 'cd /label-studio/label_studio && pytest …'`. Same effect, no path-mangling. |
+| Initial XML validation needed before writing tests | Ran ad-hoc Python `ET.parse()` over all 10 configs; 0 errors → wrote pytest test confidently. |
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: LS के built-in templates में सब English/US-centric हैं — Aadhaar, Hindi tone, Devanagari typo, Indian accents जैसी India-specific labeling task setup करने के लिए हर बार scratch से XML लिखना पड़ता था।
+- Usse kya ho rha tha: Indian customer onboard करते वक्त project setup में 30-45 min jaate the; labeler को सही label-set नहीं मिलता था; quality consistent नहीं रहती थी।
+- Ab fix ke baad kya hoga: 10 ready-made India templates `backend/data/ls_templates/trainplex_india/` में disk पर हैं (Aadhaar OCR, Hinglish tagger, Devanagari typo, cultural flagger, Indian-accent audio, Hindi tone, regional-language switcher, Indic handwriting, Hinglish code-review, Hindi medical NER). हर एक का meta.json (gallery info, Hindi title, tier, time/task) + sample_task.json (example data) + smoke test (`pytest tests/test_trainplex_templates.py` → 43/43 pass) ready है। Week 3 (Step 2.3) में admin gallery में यह 10 templates load हो जाएँगे — customer एक click में Indian project spin-up कर पाएगा।
+
+---
+
 ## Log Update Rules
 
 - Every new file → `Files Created` table

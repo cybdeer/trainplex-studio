@@ -1,0 +1,6 @@
+{
+  "data": {
+    "text": "रोगी: श्री राम कुमार, उम्र 54 वर्ष। शिकायत: 3 दिन से छाती में दर्द, साँस फूलना। BP 150/95, pulse 92. डॉ. सुरेश शर्मा (कार्डियोलॉजी) ने ECG और Troponin-I करवाने को कहा। दवाएँ: Telmisartan 40mg एक बार सुबह, Aspirin 75mg रात को, Atorvastatin 10mg रात को। फॉलो-अप 1 हफ़्ते बाद। AIIMS दिल्ली।",
+    "instructions": "Highlight every medical entity — disease, medicine, dose, body part, symptom, test, doctor, hospital, patient name/age, vital signs, dates. Then classify report type, primary language, and PII status."
+  }
+}

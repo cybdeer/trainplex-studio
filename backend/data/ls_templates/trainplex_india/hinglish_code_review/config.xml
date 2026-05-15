@@ -1,0 +1,34 @@
+<View style="display:flex;flex-direction:column;gap:10px">
+  <Header value="Hinglish Comments in Code — Review and Translation"/>
+  <Text name="instructions" value="$instructions"/>
+  <Labels name="code_tokens" toName="code_block">
+    <Label value="Tech term" background="#1976D2"/>
+    <Label value="Hindi instruction" background="#FF6F00"/>
+    <Label value="English instruction" background="#2E7D32"/>
+    <Label value="Mixed phrase" background="#AD1457"/>
+    <Label value="Acronym" background="#6A1B9A"/>
+    <Label value="Identifier (var / fn name)" background="#5D4037"/>
+    <Label value="String literal" background="#00838F"/>
+    <Label value="Profanity / slang" background="#B71C1C"/>
+  </Labels>
+  <Text name="code_block" value="$code"/>
+  <Header value="Comment review type:"/>
+  <Choices name="review_type" toName="code_block" choice="single-radio" showInLine="true">
+    <Choice value="Good comment (clear, useful)"/>
+    <Choice value="Unclear (ambiguous)"/>
+    <Choice value="Needs English translation"/>
+    <Choice value="Needs Hindi translation"/>
+    <Choice value="Should be removed (junk / TODO / profanity)"/>
+    <Choice value="Should become docstring"/>
+  </Choices>
+  <Header value="Suggested cleaned comment:"/>
+  <TextArea name="clean_comment" toName="code_block" rows="3" maxSubmissions="1" placeholder="Re-write the comment in clean English (or Hindi if marked as such)."/>
+  <Header value="Code quality impact:"/>
+  <Choices name="impact" toName="code_block" choice="single-radio" showInLine="true">
+    <Choice value="Improves readability"/>
+    <Choice value="Confuses non-Hindi readers"/>
+    <Choice value="Confuses Hindi readers"/>
+    <Choice value="Adds context only Indian devs need"/>
+    <Choice value="Should be replaced with code, not comment"/>
+  </Choices>
+</View>

@@ -1,0 +1,13 @@
+{
+  "id": "indian_medical_ner",
+  "title": "Hindi Medical Report NER",
+  "title_hi": "हिंदी चिकित्सा रिपोर्ट — नामांकित इकाई पहचान",
+  "description": "Extract diseases, medicines, doses, body parts, symptoms, tests, doctor names from Hindi/Hinglish medical reports.",
+  "description_hi": "Hindi/Hinglish medical reports में हर तरह की चिकित्सा entity highlight करो — रोग, दवा, खुराक, अंग, लक्षण, जाँच, डॉक्टर का नाम।",
+  "category": "Medical / Healthcare",
+  "india_relevance": "AIIMS, govt PHCs, छोटे clinics सब Hindi-Hinglish मिश्रित prescriptions लिखते हैं। India का healthcare AI Hindi medical NER के बिना useless है।",
+  "trainplex_custom": true,
+  "estimated_time_per_task_min": 5,
+  "tier": "gold",
+  "languages": ["en", "hi"]
+}

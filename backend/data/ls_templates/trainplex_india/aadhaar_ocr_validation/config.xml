@@ -1,0 +1,33 @@
+<View style="display:flex;flex-direction:column;gap:12px">
+  <Header value="Aadhaar / PAN Card — OCR Field Verification"/>
+  <Text name="instructions" value="$instructions"/>
+  <Image name="card_image" value="$image" zoom="true" zoomControl="true" rotateControl="true"/>
+  <RectangleLabels name="fields" toName="card_image" fillOpacity="0.3" strokeWidth="3">
+    <Label value="Name" background="#1E88E5"/>
+    <Label value="DOB" background="#43A047"/>
+    <Label value="Aadhaar Number" background="#E53935"/>
+    <Label value="PAN Number" background="#FB8C00"/>
+    <Label value="Address" background="#8E24AA"/>
+    <Label value="Photo" background="#00897B"/>
+    <Label value="QR Code" background="#3949AB"/>
+    <Label value="Gender" background="#6D4C41"/>
+    <Label value="Father Name" background="#7CB342"/>
+  </RectangleLabels>
+  <View visibleWhen="region-selected">
+    <Header value="Transcribed value for this field:"/>
+    <TextArea name="field_text" toName="card_image" editable="true" perRegion="true" rows="2" maxSubmissions="1" placeholder="Type exact characters as they appear on card"/>
+  </View>
+  <Header value="Overall card validation:"/>
+  <Choices name="card_validity" toName="card_image" choice="single-radio" showInLine="true">
+    <Choice value="Valid — all fields readable"/>
+    <Choice value="Partially valid — some fields blurred"/>
+    <Choice value="Invalid — tampered or fake"/>
+    <Choice value="Cannot verify — poor image quality"/>
+  </Choices>
+  <Header value="Card type:"/>
+  <Choices name="card_type" toName="card_image" choice="single-radio" showInLine="true">
+    <Choice value="Aadhaar"/>
+    <Choice value="PAN"/>
+    <Choice value="Other"/>
+  </Choices>
+</View>
