@@ -4,6 +4,9 @@ export * from "./lib/MultiStateToggle/MultiStateToggle";
 export * from "./lib/ThemeToggle/ThemeToggle";
 export * from "./components/HindiToggle";
 export * from "./components/RoleGate";
+// TrainPlex Phase 1 Step 6 — 3-dot consensus status indicator used by the
+// reviewer queue, QA dispute list, and admin submissions preview drawer.
+export * from "./components/ConsensusBadge";
 export * from "./lib/Tooltip/Tooltip";
 export * from "./lib/Userpic/Userpic";
 export * from "./lib/badge/badge";

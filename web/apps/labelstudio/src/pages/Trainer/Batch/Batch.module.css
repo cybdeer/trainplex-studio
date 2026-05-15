@@ -1,0 +1,308 @@
+/* Trainer Batch View — Phase 1 Step 1.4-E.
+
+   Sticky earnings ticker bottom-pins to the viewport; the tile grid scrolls
+   above it. Mobile-first: tile grid is one column under 640px, two columns
+   under 960px, three above. Indigo accent for tier-gold tiles so the
+   highest-value tasks pop without harming colour-blind users (paired with
+   a leading icon, not colour alone). */
+
+.batchRoot {
+  min-height: 100vh;
+  /* Leave room for the sticky ticker so the last tile is never covered. */
+  padding-bottom: 120px;
+}
+
+.batchHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.batchTitle {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  color: #1f2937;
+}
+
+.batchProgress {
+  font-size: 14px;
+  color: #4b5563;
+  background: #eef2ff;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+/* ---- Tile grid ---- */
+
+.tileGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .tileGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 960px) {
+  .tileGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.taskCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.taskCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+}
+
+.taskCardDone {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.taskCardInProgress {
+  border-color: #818cf8;
+  background: linear-gradient(180deg, #ffffff 0%, #eef2ff 100%);
+}
+
+.taskType {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.taskPreview {
+  font-size: 14px;
+  color: #1f2937;
+  line-height: 1.4;
+  min-height: 42px;
+}
+
+.taskFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #f3f4f6;
+  padding-top: 12px;
+}
+
+.taskEarnings {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+/* ---- Tier badges ---- */
+
+.tierBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+}
+
+.tierBronze {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.tierSilver {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.tierGold {
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  color: #1f2937;
+}
+
+/* ---- Status pill ---- */
+
+.statusPill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #ffffff;
+}
+
+.statusPending {
+  background: #9ca3af;
+}
+
+.statusInProgress {
+  background: #4f46e5;
+}
+
+.statusDone {
+  background: #16a34a;
+}
+
+/* ---- Sticky earnings ticker ---- */
+
+.ticker {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #4338ca;
+  color: #ffffff;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.15);
+  z-index: 50;
+}
+
+.tickerEarnings {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.tickerLabel {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+  margin-bottom: 2px;
+}
+
+.progressDots {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.progressDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  transition: background 0.2s ease;
+}
+
+.progressDotDone {
+  background: #34d399;
+}
+
+.progressDotInProgress {
+  background: #fbbf24;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ---- Completion modal ---- */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modalCard {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 420px;
+  width: calc(100% - 32px);
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.4);
+}
+
+.celebrationEmoji {
+  font-size: 64px;
+  margin-bottom: 8px;
+}
+
+.celebrationTitle {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 8px 0;
+  color: #1f2937;
+}
+
+.celebrationStats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin: 16px 0;
+}
+
+.celebrationStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.celebrationStatValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+.celebrationStatLabel {
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.celebrationCTA {
+  margin-top: 20px;
+  width: 100%;
+}
+
+/* ---- Loading / error skeletons ---- */
+
+.loadingBox,
+.errorBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 16px;
+  font-size: 14px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.errorBox {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-radius: 12px;
+  border: 1px solid #fecaca;
+}

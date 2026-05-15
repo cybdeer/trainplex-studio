@@ -9,8 +9,27 @@ import { HeatmapPage } from "./Admin/Heatmap";
 import { ProjectWizard } from "./Admin/ProjectWizard";
 import { QualityAlertsPage } from "./Admin/QualityAlerts";
 import { WhatsAppBroadcastPage } from "./Admin/WhatsAppBroadcast";
+// TrainPlex Phase 1 Step 6 — Reviewer (queue + split-screen review form +
+// self-service stats) and QA-lead (dispute queue + three-way resolution)
+// surfaces. RoleGate inside each component scopes access; backend mirrors
+// via @require_role(['reviewer']) / @require_role(['qa_lead']).
+import {
+  MyStats as ReviewerMyStats,
+  ReviewerDashboard,
+  ReviewQueue,
+  ReviewSplitScreen,
+} from "./Reviewer";
+import { DisputeQueue, DisputeResolution } from "./QA";
 import { TwoFactorSetup } from "./Settings/TwoFactor/TwoFactorSetup";
 import { TwoFactorDisable } from "./Settings/TwoFactor/TwoFactorDisable";
+import { BatchPage } from "./Trainer/Batch";
+import {
+  NotificationsPage,
+  PayoutPage,
+  PreferencesPage,
+  ProfilePage,
+  SecurityPage,
+} from "./Trainer/Settings";
 import { FF_HOMEPAGE, isFF } from "../utils/feature-flags";
 import { pages } from "@humansignal/app-common";
 
@@ -61,5 +80,34 @@ export const Pages = [
   // route entry needed because it lives in the unauthenticated flow.
   TwoFactorSetup,
   TwoFactorDisable,
+  // TrainPlex Phase 1 Step 1.4-E — trainer 10-task Batch view at
+  // /trainer/batch. RoleGate restricts to ``trainer``; backend
+  // @require_role(['trainer']) on GET /api/v1/trainer/batch enforces
+  // the same. Mock data Phase 1; real assignment engine Phase 2.
+  BatchPage,
+  // TrainPlex Phase 1 Step 13 — trainer self-service settings.
+  // 5 pages share a sidebar (SettingsLayout): /trainer/settings/{profile,
+  // security, notifications, payout, preferences}. Each component gates
+  // with <RoleGate allow={['trainer']}>. The profile endpoint silently
+  // drops role + email so a trainer cannot self-promote via the form.
+  ProfilePage,
+  SecurityPage,
+  NotificationsPage,
+  PayoutPage,
+  PreferencesPage,
+  // TrainPlex Phase 1 Step 6 — Reviewer surfaces.
+  // /reviewer/dashboard, /reviewer/queue, /reviewer/review/:task_id, /reviewer/stats.
+  // Each wraps with <RoleGate allow={['reviewer']}>. Backend enforces via
+  // @require_role(['reviewer']) on every endpoint. Payment release wiring
+  // (off ConsensusResult.status) is Step 6.4 — next agent's job.
+  ReviewerDashboard,
+  ReviewQueue,
+  ReviewSplitScreen,
+  ReviewerMyStats,
+  // TrainPlex Phase 1 Step 6 — QA-lead surfaces.
+  // /qa/disputes (list) and /qa/disputes/:dispute_id (three-way + resolve).
+  // RoleGate('qa_lead') + backend @require_role(['qa_lead']) enforced.
+  DisputeQueue,
+  DisputeResolution,
   pages.AccountSettingsPage,
 ].filter(Boolean);

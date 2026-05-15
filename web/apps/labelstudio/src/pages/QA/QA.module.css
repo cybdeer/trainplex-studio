@@ -1,0 +1,337 @@
+/*
+ * QA-side styles — TrainPlex Phase 1 Step 6.
+ *
+ * Shares the visual language with Reviewer.module.css (Indigo header,
+ * status chips, Saffron CTA). The DisputeResolution three-way comparison
+ * uses a 3-column grid that collapses to a single column on narrow screens.
+ */
+
+.qaRoot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-4, 16px);
+  font-family: var(--tp-font-ui, 'Inter', system-ui, sans-serif);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--tp-space-4, 16px) var(--tp-space-6, 24px);
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: var(--tp-font-display, 'Inter Tight', 'Inter', system-ui, sans-serif);
+}
+
+.totalCount {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-variant-numeric: tabular-nums;
+}
+
+.sectionHeading {
+  margin: 0 0 var(--tp-space-2, 8px);
+  font-size: 1rem;
+  font-weight: 600;
+  color: #121242;
+}
+
+/* ── Filter bar ─────────────────────────────────────────────────── */
+
+.filterBar {
+  display: flex;
+  gap: var(--tp-space-3, 12px);
+  align-items: center;
+  flex-wrap: wrap;
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  background: #FFFFFF;
+  border: 1px solid #E8E8F0;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.filterLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4A4A6A;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filterSelect {
+  padding: 6px 10px;
+  border: 1px solid #C7C9D9;
+  border-radius: var(--tp-radius-sm, 2px);
+  font-size: 0.875rem;
+}
+
+/* ── Dispute list table ─────────────────────────────────────────── */
+
+.tableWrap {
+  background: #FFFFFF;
+  border: 1px solid #E8E8F0;
+  border-radius: var(--tp-radius-sm, 2px);
+  overflow-x: auto;
+}
+
+.disputesTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.disputesTable thead {
+  position: sticky;
+  top: 0;
+  background: #F5F5FA;
+}
+
+.disputesTable th {
+  text-align: left;
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4A4A6A;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #E8E8F0;
+}
+
+.disputesTable td {
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  border-bottom: 1px solid #F0F0F5;
+  vertical-align: top;
+}
+
+.taskLink,
+.openLink {
+  font-weight: 600;
+  color: #1A1A5E;
+  text-decoration: none;
+}
+
+.taskLink:hover,
+.openLink:hover {
+  text-decoration: underline;
+}
+
+.metaLine {
+  font-size: 0.75rem;
+  color: #8A8A9E;
+}
+
+.statusOpen {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #FEE2E2;
+  color: #B91C1C;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.statusResolved {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #DCFCE7;
+  color: #166534;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.emptyRow {
+  text-align: center;
+  padding: var(--tp-space-6, 24px);
+  color: #8A8A9E;
+  font-style: italic;
+}
+
+/* ── Pagination ─────────────────────────────────────────────────── */
+
+.paginationBar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-2, 8px) 0;
+  font-size: 0.875rem;
+}
+
+.pageButton {
+  padding: 6px 12px;
+  background: #FFFFFF;
+  border: 1px solid #C7C9D9;
+  border-radius: var(--tp-radius-sm, 2px);
+  cursor: pointer;
+}
+
+.pageButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Three-way comparison ───────────────────────────────────────── */
+
+.threeWay {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--tp-space-4, 16px);
+}
+
+@media (max-width: 960px) {
+  .threeWay {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-2, 8px);
+  padding: var(--tp-space-4, 16px) var(--tp-space-5, 20px);
+  background: #FFFFFF;
+  border: 1px solid #E8E8F0;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.reviewerSummaryRow {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-3, 12px);
+}
+
+.placeholderText {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #4A4A6A;
+}
+
+/* ── Resolution form ────────────────────────────────────────────── */
+
+.resolutionForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-4, 16px) var(--tp-space-5, 20px);
+  background: #FFFFFF;
+  border: 1px solid #E8E8F0;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-2, 8px);
+}
+
+.legend {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4A4A6A;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.decisionList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.decisionChip,
+.decisionChipActive {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #C7C9D9;
+  background: #FFFFFF;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.decisionChipActive {
+  background: #1A1A5E;
+  color: #FFFFFF;
+  border-color: #1A1A5E;
+}
+
+.notesLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4A4A6A;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.notesInput {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #C7C9D9;
+  border-radius: var(--tp-radius-sm, 2px);
+  font-family: inherit;
+  font-size: 0.875rem;
+}
+
+.ctaPrimary {
+  align-self: flex-start;
+  background: #FF6B35;
+  color: #FFFFFF;
+  border: 1px solid #FF6B35;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Banners ────────────────────────────────────────────────────── */
+
+.errorBox {
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  background: #FEE2E2;
+  color: #B91C1C;
+  border: 1px solid #FCA5A5;
+  border-radius: var(--tp-radius-sm, 2px);
+  font-size: 0.875rem;
+}
+
+.successBox {
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  background: #DCFCE7;
+  color: #166534;
+  border: 1px solid #86EFAC;
+  border-radius: var(--tp-radius-sm, 2px);
+  font-size: 0.875rem;
+}
+
+.loadingBox {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-2, 8px);
+  padding: var(--tp-space-4, 16px);
+  color: #4A4A6A;
+}

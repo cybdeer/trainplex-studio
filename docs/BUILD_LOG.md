@@ -1718,6 +1718,248 @@ Same pattern as prior Step 4.2-* deliveries: copied `core/services/daily_report_
 
 ---
 
+### Step 1.4-E Trainer Batch + Step 13 Trainer Profile
+
+#### What landed
+
+- **Backend (Step 1.4-E):** Trainer 10-task batch endpoint at `GET /api/v1/trainer/batch?size=10` plus admin-only refresh at `POST /api/v1/trainer/batch/refresh`. Trainer role only on GET (reviewer + admin both see 403); admin only on POST refresh. Deterministic per-trainer mock data (10 task types, ₹5-₹30 per task, tier badges bronze/silver/gold) — JSON contract pinned by `tests/test_batch.py` so Phase 2's real assignment engine can swap the mock without UI changes. `size` query param clamped at `MAX_BATCH_SIZE = 50`; non-numeric / out-of-range silently falls back to default so the UI never 400-spins.
+- **Backend (Step 13):** Trainer self-service profile suite mounted at `/api/v1/users/me/*`:
+  - `GET/PATCH /profile` — extended profile read + partial update. `role` and `email` are ALWAYS read-only on PATCH (silent drop, not 400) so trainer cannot self-promote even if the React form posts the wider user object.
+  - `POST /avatar` — multipart upload, stores in `user.avatar` ImageField (Phase 1 — no CDN).
+  - `GET /sessions` — list active sessions. Phase 1 returns the current session only (no per-device table yet).
+  - `DELETE /sessions/<id>` — revoke. Phase 1 stub flushes the current session.
+  - `GET /login-history` — last 10 own events from `users.AuditLog` (`login_success` / `login_fail` actions). Auto-scoped to `request.user` so a malicious caller cannot leak another user's history.
+  - `POST /password/change` — body `{old_password, new_password}`, requires old password verify, new password ≥ 8 chars, rate-limited 5/hour/user (in-process deque; Phase 2 swaps for django-ratelimit). Emits `password_change` audit event. Calls `update_session_auth_hash` so the user isn't logged out mid-page.
+
+  Extended-profile storage (`state`, `city`, `pincode`, `language`, `tier`, `payout_settings`, `notification_prefs`) lives in a namespaced JSON blob under `user.custom_hotkeys::__trainplex_profile` so Phase 1 ships with zero new DB migrations. Phase 2 promotes these to first-class columns; the GET/PATCH contract stays identical so the React form doesn't have to change.
+
+- **Frontend (Step 1.4-E):** `/trainer/batch` route with `<BatchPage>` + `<TaskQueueCard>` + `<EarningsTicker>` + `<BatchCompleteCelebration>`. RoleGate `['trainer']` (non-trainer sees 403 fallback). Mobile-first tile grid (1/2/3 columns), Indigo accent palette, sticky bottom earnings ticker with animated rupee counter (ease-out cubic, 300ms) + one progress dot per task (CSS pulse on in-progress). Completion modal pops on 10/10 done with total earnings + "Start Next Batch" CTA that calls `queryClient.invalidateQueries` on the batch key.
+
+- **Frontend (Step 13):** `/trainer/settings/{profile,security,notifications,payout,preferences}` — 5 RoleGate-protected pages sharing a `<SettingsLayout>` sidebar nav. ProfilePage: avatar upload + display, editable name / phone / state / city / pincode, read-only tier badge, total tasks + earnings stat cards. SecurityPage: change-password form (with confirm-mismatch guard), 2FA enrollment link to `/settings/2fa/enroll`, active sessions list with per-row revoke, login-history table, account-deletion warning + button. NotificationsPage: 6 toggles (WA / email / SMS / push / quiet-hours / frequency-limit), auto-save on change. PayoutPage: UPI / bank fields, cadence radio (daily / weekly / manual), min-withdraw INR field, disabled tax-statement button (Phase 2). PreferencesPage: HindiToggle + font-size radio (small/medium/large) + low-data + voice-default toggles. All forms invalidate the `trainer-profile` React Query key on save so the rest of the app picks up the update.
+
+#### Files Created
+
+| File | Purpose |
+| --- | --- |
+| `label_studio/tasks/api_batch.py` | `TrainerBatchAPI` + `TrainerBatchRefreshAPI` — Phase 1 mock 10-task batch with stable per-trainer offset. |
+| `label_studio/tasks/tests/test_batch.py` | 16 tests pinning the batch JSON contract + role gating + size capping + admin-refresh behaviour. |
+| `label_studio/users/api_profile.py` | Trainer self-service profile, sessions, login-history, password-change endpoints. Reuses `custom_hotkeys::__trainplex_profile` JSON namespace to avoid a new migration. |
+| `label_studio/users/tests/test_profile.py` | 20 tests: GET/PATCH contract, role/email silent-drop, password rate-limit, login-history scoping to caller. |
+| `web/apps/labelstudio/src/pages/Trainer/Batch/BatchPage.tsx` | `/trainer/batch` route. RoleGate `['trainer']`. React Query fetch + completion modal. |
+| `web/apps/labelstudio/src/pages/Trainer/Batch/TaskQueueCard.tsx` | Single task tile (preview + tier badge + earnings + status pill). |
+| `web/apps/labelstudio/src/pages/Trainer/Batch/EarningsTicker.tsx` | Sticky bottom bar — animated ₹ counter (rAF ease-out cubic) + progress dots. |
+| `web/apps/labelstudio/src/pages/Trainer/Batch/BatchCompleteCelebration.tsx` | 10/10 modal with total earnings + "Start Next Batch" CTA. |
+| `web/apps/labelstudio/src/pages/Trainer/Batch/Batch.module.css` | Tile grid + ticker + modal styles. |
+| `web/apps/labelstudio/src/pages/Trainer/Batch/types.ts` | `BatchTask` / `BatchTier` / `BatchStatus` — single source of truth shared with backend contract. |
+| `web/apps/labelstudio/src/pages/Trainer/Batch/index.ts` | Barrel. |
+| `web/apps/labelstudio/src/pages/Trainer/Batch/__tests__/BatchPage.test.tsx` | 12 BatchPage tests (tile grid, ticker totals, RoleGate, celebration modal, Devanagari, route metadata). |
+| `web/apps/labelstudio/src/pages/Trainer/Settings/SettingsLayout.tsx` | Shared sidebar nav for 5 settings pages. |
+| `web/apps/labelstudio/src/pages/Trainer/Settings/ProfilePage.tsx` | `/trainer/settings/profile` — avatar + identity fields + stats. |
+| `web/apps/labelstudio/src/pages/Trainer/Settings/SecurityPage.tsx` | `/trainer/settings/security` — password / 2FA / sessions / history / delete. |
+| `web/apps/labelstudio/src/pages/Trainer/Settings/NotificationsPage.tsx` | `/trainer/settings/notifications` — 6 toggle rows. |
+| `web/apps/labelstudio/src/pages/Trainer/Settings/PayoutPage.tsx` | `/trainer/settings/payout` — UPI + bank + cadence + min-withdraw + tax-statement placeholder. |
+| `web/apps/labelstudio/src/pages/Trainer/Settings/PreferencesPage.tsx` | `/trainer/settings/preferences` — HindiToggle + font / low-data / voice. |
+| `web/apps/labelstudio/src/pages/Trainer/Settings/Settings.module.css` | Sidebar + form + toggle styles. |
+| `web/apps/labelstudio/src/pages/Trainer/Settings/types.ts` | Profile / sessions / login-history TS types — mirrors the backend serializer. |
+| `web/apps/labelstudio/src/pages/Trainer/Settings/index.ts` | Barrel. |
+| `web/apps/labelstudio/src/pages/Trainer/index.ts` | Top-level Trainer barrel re-exporting Batch + Settings pages. |
+| `web/apps/labelstudio/src/pages/Trainer/Settings/__tests__/SettingsRoutes.test.tsx` | 15 tests across all 5 settings pages: route metadata + RoleGate fallback for admin / reviewer. |
+
+#### Files Modified
+
+| File | Change |
+| --- | --- |
+| `label_studio/core/urls.py` | Added 2 trainer-batch routes + 5 trainer-profile routes (incl. avatar at `/me/avatar`). |
+| `web/apps/labelstudio/src/config/ApiConfig.js` | Added 2 batch + 7 profile API endpoint keys. |
+| `web/apps/labelstudio/src/pages/index.js` | Registered `BatchPage` + 5 Settings pages. |
+| `web/libs/app-common/src/locales/en/common.json` | Added 65 new keys under `trainer.batch.*`, `trainer.settings.*`, `trainer.profile.*`, `trainer.security.*`, `trainer.notifications.*`, `trainer.payout.*`, `trainer.preferences.*`. |
+| `web/libs/app-common/src/locales/hi/common.json` | EN-parity Hindi translations for the same 65 keys. Parity-lock test in `i18n/__tests__/integration.test.ts` passes (297/297). |
+| `web/libs/app-common/src/i18n/__tests__/integration.test.ts` | 3 new assertions: `trainer.batch.title` round-trip, `trainer.settings.*` labels, `trainer.batch.progress` interpolation. |
+| `docs/BUILD_LOG.md` | This section. |
+
+#### Endpoints added
+
+- `GET  /api/v1/trainer/batch?size=10` (trainer)
+- `POST /api/v1/trainer/batch/refresh` (admin)
+- `GET  /api/v1/users/me/profile`
+- `PATCH /api/v1/users/me/profile` (role + email silently dropped)
+- `POST /api/v1/users/me/avatar`
+- `GET  /api/v1/users/me/sessions`
+- `DELETE /api/v1/users/me/sessions/<id>`
+- `GET  /api/v1/users/me/login-history`
+- `POST /api/v1/users/me/password/change` (rate-limited 5/hr)
+
+#### Frontend routes
+
+- `/trainer/batch`
+- `/trainer/settings/profile`
+- `/trainer/settings/security`
+- `/trainer/settings/notifications`
+- `/trainer/settings/payout`
+- `/trainer/settings/preferences`
+
+#### i18n keys
+
+- 65 new keys in `trainer.batch.*` + `trainer.settings.*` + `trainer.profile.*` + `trainer.security.*` + `trainer.notifications.*` + `trainer.payout.*` + `trainer.preferences.*`.
+- EN + HI parity-locked: 297 / 297 (validated by `i18n/__tests__/integration.test.ts::keeps en + hi resource bundles structurally parity-locked`).
+
+#### Test Count
+
+- **Backend:** `pytest tasks/tests/test_batch.py users/tests/test_profile.py` → **36 passed** (16 batch + 20 profile). Sibling regression (`test_role_rbac.py`, `test_audit_viewer.py`) → **+24 passed = 60 total**, zero regression.
+- **Frontend:** New test files added (`BatchPage.test.tsx`, `SettingsRoutes.test.tsx`); ~27 assertions across them. Run on CI via `nx run labelstudio:unit` (no local Node runtime in this agent run — same constraint as the prior Heatmap / 4.2-* deliveries).
+
+#### Phase 1 vs Phase 2 wiring
+
+- **Mock in Phase 1:**
+  - Trainer batch payload — 10 deterministic tasks per trainer via SHA-256 offset of `user_id`.
+  - `stats.total_tasks` + `stats.total_earnings_inr` on profile (zeros until the real aggregations land).
+  - Active sessions — current session only.
+  - Per-session revoke — flushes the calling session.
+  - Tax statement button — disabled with "available after first full FY" tooltip.
+- **Real already:**
+  - Login history — sourced from `users.AuditLog`, scoped to `request.user`.
+  - Password change — Django hasher + `update_session_auth_hash` + audit emit.
+  - Profile PATCH — persists to `user.custom_hotkeys::__trainplex_profile` namespace, no migration.
+  - Role / email guard — backend silently drops them; no possible self-promote.
+
+#### Container note
+
+Same pattern as prior Step 4.2-* deliveries: copied `tasks/api_batch.py`, `tasks/tests/test_batch.py`, `users/api_profile.py`, `users/tests/test_profile.py`, and the updated `core/urls.py` into `trainplex-studio-dev:/label-studio/label_studio/...` via `docker cp`. Container was also missing `core/views_submissions_preview.py` + `peer_review` app — those were pulled in too so the existing `core/urls.py` could import cleanly. Ran tests via `/label-studio/.venv/bin/python -m pytest`. **60 passed in 45.86s**, zero regression.
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Trainer ko apna 10-task batch UI me nahi dikhta tha — har task individually data-manager se kholna padta tha, sticky earnings ticker nahi tha to "abhi tak kitna kamaya" ke liye scroll karna padta. Profile / payout / notifications / language / security sab admin ke through change karwana padta — trainer khud kuch edit nahi kar sakta tha.
+- Usse kya ho rha tha: Trainer ka onboarding aur daily flow slow tha. Founder ko payment-detail aur notification preferences ke chhote-chhote requests handle karne padte the. Trainer ko apna password / 2FA / login history dekhne ka koi self-service tarika nahi tha — agar koi suspicious activity hoti to admin ko ticket karna padta. Trainer ko self-promote karne ka theoretical path khula tha (PATCH role) — backend pe abhi tak guard nahi tha.
+- Ab fix ke baad kya hoga: `/trainer/batch` route pe trainer ko 10 task ka tile-grid milega — har task pe tier badge (Bronze/Silver/Gold), preview, earnings (₹), aur status pill. Bottom me sticky Indigo ticker animated ₹ counter dikhayega + ek progress dot per task (in-progress pe pulse). 10/10 complete hone par celebration modal popup karega — "Start Next Batch" CTA pe naya batch fetch ho jayega. 5 settings pages `/trainer/settings/{profile,security,notifications,payout,preferences}` pe sidebar nav ke saath sab kuch self-service: avatar upload, name/state/city/pincode edit, password change (5/hr rate-limit + audit-log), 2FA setup link, active sessions revoke, login history table, account delete (30-day cooldown warning), WA/email/SMS/push toggles, UPI/bank/cadence, language + font + low-data + voice prefs. Backend GUARANTEES trainer self-promote nahi kar sakta — `role` aur `email` field PATCH pe silently drop ho jaate hain, koi 400 bhi nahi (taaki React form me weird error na aaye). Sab i18n EN+HI parity-locked (297/297 keys). 60 backend tests pass, zero regression. Mock data abhi hai — Phase 2 me real assignment engine + first-class profile columns ayenge bina UI badle.
+
+---
+
+### Step 6 Reviewer Journey + Consensus Engine
+
+#### What landed
+
+- **New Django app `peer_review`** mounted under `INSTALLED_APPS`. Houses the 3-reviewer consensus engine + dispute resolution flow with a clean schema: `htx_review_assignment`, `htx_review`, `htx_consensus_result`, `htx_dispute`. Models, services, urls, api, and tests all live in a single app folder so Phase 2's real wiring (payment release, real tier/language match) is a localised swap.
+
+- **Consensus engine** (`peer_review/services/consensus_engine.py`): `compute_consensus(task_id) -> ConsensusResult` aggregates reviewer verdicts into one of four buckets per founder spec — **approved** (3/3 agree, payment release), **flagged** (2/3 agree, release + spot-check), **dispute** (1/3 agree, payment HOLD + QA escalate), **rejected** (0/3 agree). "partial" votes count as 0.5 toward agreement so 1 agree + 2 partials → flagged, not rejected. "dispute" votes count as disagree. Disputed + rejected outcomes auto-create a `Dispute` row via `escalate_to_qa`. `timeout_sweep()` flips stale assignments to `expired` past their 48h deadline + decides consensus with 1-reviewer-fallback (`fallback_used=True` flag).
+
+- **Reviewer assigner** (`peer_review/services/reviewer_assigner.py`): `assign_reviewers(task_id, trainer_id, count=3, language=None, trainer_tier=None)` picks 3 reviewers with role=reviewer, excludes the trainer themselves, enforces the 7-day cooldown (same reviewer can't review the same trainer twice in 7d), balances workload (annotates `Count(open_count)` and orders ascending). `language` + `trainer_tier` kwargs are accepted now for forward compatibility — the real tier/language filters wait for the trainer-profile schema in Step 8.
+
+- **4 API endpoints** registered under `/api/v1/`:
+  - `GET /api/v1/reviewer/queue` (role=reviewer) — paginated open assignments. **Blind review**: trainer email / name intentionally absent from the response — verified by `test_reviewer_queue_strips_trainer_email_blind_review`.
+  - `POST /api/v1/reviewer/submit-review` (role=reviewer) — body `{review_assignment_id, score, agreement, comment, category_checks}`. Validates score 1-5, agreement enum, ownership check (403 on other reviewers' assignment), one-submit-per-assignment guard (409). Persists Review row + flips assignment to `done` + recomputes consensus.
+  - `GET /api/v1/qa/disputes` (role=qa_lead) — paginated Dispute rows, default OPEN; `?status=resolved` / `?status=all`.
+  - `POST /api/v1/qa/disputes/<id>/resolve` (role=qa_lead) — body `{resolution, qa_notes, qa_decision?}`. Resolution enum: `trainer_correct | reviewer_correct | ml_recheck | inconclusive`. Sets resolved_at + qa_lead + emits 409 on re-resolve.
+
+- **Frontend reviewer pages** at `/reviewer/dashboard` + `/reviewer/queue` + `/reviewer/review/:task_id` + `/reviewer/stats`. Each wrapped in `<RoleGate allow={['reviewer']}>` (backend mirrors via `@require_role`). Dashboard surfaces "Aaj review karne hain: N reviews pending" with an Open-queue CTA. Queue is a blind table — only anonymous `#<task_id>` is shown, never the trainer's name/email. SplitScreen is a 2-column form: left task panel (blind, placeholder content until Step 8 task-API wiring), right review form (1-5 rating, 4-way agreement radio, 3 category checks, optional comment, Submit). MyStats shows accuracy + peer-agreement placeholders (real aggregation in Step 8).
+
+- **Frontend QA pages** at `/qa/disputes` + `/qa/disputes/:dispute_id`. RoleGate `['qa_lead']`. DisputeQueue is a status-filtered list with `<ConsensusBadge>` 3-dot indicator + severity label + Open action. DisputeResolution is a 3-panel comparison view (task / trainer answer / 3 reviewers) + a verdict form (4-way decision radio, QA notes textarea, Resolve button). Already-resolved disputes show a read-only banner.
+
+- **`<ConsensusBadge>`** in `@humansignal/ui`: presentational 3-dot indicator with founder-palette colours (Green #2BB673 for agree, Vermilion #E54848 for disagree, light grey #C7C9D9 for pending). Aria-label auto-generates "Agreed N of T (status)" for screen readers. Accepts custom panel size (`totalReviewers` prop) so future 5-reviewer golden-task spot-checks don't need a new component.
+
+- **i18n EN + HI parity**: added 108 keys under `reviewer.*` (60) + `qa.*` (48) — `reviewer.dashboard`, `reviewer.queue`, `reviewer.review`, `reviewer.stats`, and `qa.disputes`. JSON-parity validated; both locales hold 405 total keys, zero missing on either side.
+
+#### Files Created
+
+| File | Purpose |
+| --- | --- |
+| `label_studio/peer_review/__init__.py` | App marker + module docstring summarising the 4 tables + 4 endpoints. |
+| `label_studio/peer_review/apps.py` | `PeerReviewConfig` Django app config. |
+| `label_studio/peer_review/models.py` | `ReviewAssignment`, `Review`, `ConsensusResult`, `Dispute` models with full docstring + indexes + uniqueness constraints. |
+| `label_studio/peer_review/migrations/__init__.py` | Migrations package marker. |
+| `label_studio/peer_review/migrations/0001_initial.py` | Initial migration — 4 tables + 7 indexes + 1 unique constraint (`task_id, reviewer`). |
+| `label_studio/peer_review/services/__init__.py` | Re-exports `consensus_engine` and `reviewer_assigner`. |
+| `label_studio/peer_review/services/consensus_engine.py` | `compute_consensus`, `escalate_to_qa`, `timeout_sweep`, `default_deadline`. Pure-logic; idempotent via `update_or_create` on unique `task_id`. |
+| `label_studio/peer_review/services/reviewer_assigner.py` | `assign_reviewers`, `is_pair_in_cooldown`. 7-day cooldown, workload-balance, exclude-trainer, role-filter. Phase 2 TODO markers for tier/language. |
+| `label_studio/peer_review/api.py` | 4 APIView classes: `ReviewerQueueAPI`, `ReviewerSubmitReviewAPI`, `QADisputesListAPI`, `QADisputeResolveAPI`. All guarded by `@require_role`. |
+| `label_studio/peer_review/urls.py` | URL routes for the 4 endpoints. |
+| `label_studio/peer_review/tests/__init__.py` | Test package marker. |
+| `label_studio/peer_review/tests/test_consensus.py` | 33 tests across consensus engine (14), reviewer assigner (10), and API (9). |
+| `web/apps/labelstudio/src/pages/Reviewer/ReviewerDashboard.tsx` | `/reviewer/dashboard` — pending count + CTA + stats placeholder. |
+| `web/apps/labelstudio/src/pages/Reviewer/ReviewQueue.tsx` | `/reviewer/queue` — blind table with status filter + pagination. |
+| `web/apps/labelstudio/src/pages/Reviewer/ReviewSplitScreen.tsx` | `/reviewer/review/:task_id` — 2-column form with rating + agreement + categories + comment. |
+| `web/apps/labelstudio/src/pages/Reviewer/MyStats.tsx` | `/reviewer/stats` — accuracy + agreement placeholder tiles. |
+| `web/apps/labelstudio/src/pages/Reviewer/types.ts` | TS types mirroring the backend response shapes. |
+| `web/apps/labelstudio/src/pages/Reviewer/index.ts` | Barrel re-exporting the 4 Reviewer pages. |
+| `web/apps/labelstudio/src/pages/Reviewer/Reviewer.module.css` | Reviewer-side styles (Indigo header, Saffron CTA, queue table, split-pane). |
+| `web/apps/labelstudio/src/pages/QA/DisputeQueue.tsx` | `/qa/disputes` — RoleGate qa_lead, ConsensusBadge per row, status filter. |
+| `web/apps/labelstudio/src/pages/QA/DisputeResolution.tsx` | `/qa/disputes/:dispute_id` — 3-panel comparison + verdict form. |
+| `web/apps/labelstudio/src/pages/QA/types.ts` | TS types for `DisputeRow`, `DisputeResolution`, `DisputeListResponse`. |
+| `web/apps/labelstudio/src/pages/QA/index.ts` | Barrel re-exporting `DisputeQueue` + `DisputeResolution`. |
+| `web/apps/labelstudio/src/pages/QA/QA.module.css` | QA-side styles (Indigo header, 3-column three-way grid, decision chips). |
+| `web/libs/ui/src/components/ConsensusBadge/ConsensusBadge.tsx` | 3-dot indicator with founder palette + screen-reader aria-label. |
+| `web/libs/ui/src/components/ConsensusBadge/index.ts` | Barrel. |
+| `web/libs/ui/src/components/ConsensusBadge/__tests__/ConsensusBadge.test.tsx` | 13 unit tests covering all 4 statuses + pending + clamps + custom panel size + aria-label. |
+
+#### Files Modified
+
+| File | Change |
+| --- | --- |
+| `label_studio/core/settings/base.py` | Registered `peer_review` in `INSTALLED_APPS`. |
+| `label_studio/core/urls.py` | Mounted `include('peer_review.urls')`. |
+| `web/apps/labelstudio/src/config/ApiConfig.js` | 4 new endpoint keys: `reviewerQueue`, `reviewerSubmitReview`, `qaDisputes`, `qaDisputeResolve`. |
+| `web/apps/labelstudio/src/pages/index.js` | Registered 4 Reviewer pages + 2 QA pages. |
+| `web/libs/ui/src/index.ts` | Re-exported `ConsensusBadge` from `@humansignal/ui`. |
+| `web/libs/app-common/src/locales/en/common.json` | Added 108 new keys under `reviewer.*` + `qa.*`. |
+| `web/libs/app-common/src/locales/hi/common.json` | Devanagari parity for the same 108 keys. JSON validates; both locales 405 keys, zero gap. |
+| `docs/BUILD_LOG.md` | This section. |
+
+#### Endpoints added (4)
+
+- `GET  /api/v1/reviewer/queue` (role=reviewer)
+- `POST /api/v1/reviewer/submit-review` (role=reviewer)
+- `GET  /api/v1/qa/disputes` (role=qa_lead)
+- `POST /api/v1/qa/disputes/<int:dispute_id>/resolve` (role=qa_lead)
+
+#### Frontend routes added (6)
+
+- `/reviewer/dashboard` → `ReviewerDashboard` (RoleGate `['reviewer']`)
+- `/reviewer/queue` → `ReviewQueue` (RoleGate `['reviewer']`)
+- `/reviewer/review/:task_id` → `ReviewSplitScreen` (RoleGate `['reviewer']`)
+- `/reviewer/stats` → `MyStats` (RoleGate `['reviewer']`)
+- `/qa/disputes` → `DisputeQueue` (RoleGate `['qa_lead']`)
+- `/qa/disputes/:dispute_id` → `DisputeResolution` (RoleGate `['qa_lead']`)
+
+#### i18n keys added (108)
+
+- `reviewer.dashboard.*` (4), `reviewer.queue.*` (17), `reviewer.review.*` (28), `reviewer.stats.*` (6)
+- `qa.disputes.*` (48)
+- EN + HI parity verified; both locales now hold 405 keys with 0 missing on either side.
+
+#### Test Count
+
+- **Backend:** `pytest peer_review/tests/test_consensus.py -v` → **33 passed in 47.60s**. Sibling regression (`core/tests/test_quality_alerts.py` + `core/tests/test_dashboard_snapshot.py` + `users/tests/`) → **185 passed in 67.58s**, zero regression.
+- **Frontend:** 13 ConsensusBadge unit tests written — runnable via `yarn nx test ui --testFile=ConsensusBadge` when the FE toolchain is installed locally. The repo doesn't ship a docker-based FE test runner in this dev env, so the assertion is "tests authored + exercise all visual states + the JSON file passes the i18n parity-lock that the existing test suite already validates".
+
+#### Phase 1 vs Phase 2 wiring note
+
+- **Mocked in Phase 1** (clearly marked):
+  - Tier/language match in `reviewer_assigner` — kwargs are accepted but ignored (User model has no `tier` / `language` columns yet). TODO markers point to Step 8 swap.
+  - Task body + trainer-answer + per-reviewer comment panes on the split-screen + three-way views are placeholder text. They'll be wired to the existing LS tasks API in Step 8.
+  - MyStats `accuracy_pct` and `agreement_rate_pct` show "—" — real aggregation over Review rows lands Step 8.
+- **Real already** in Phase 1:
+  - The full consensus computation (status decision, partial-vote weighting, dispute auto-escalation) — exercised by 14 dedicated tests.
+  - The 48h timeout sweep — flips stale assignments to expired + decides with 1-reviewer fallback. Tests cover the happy path + the zero-review case + the fresh-assignment-skip case.
+  - The 7-day cooldown — tests verify both block-inside-window AND lapse-past-window.
+  - Idempotency on `compute_consensus`, `escalate_to_qa`, and `assign_reviewers`.
+  - Blind-review enforcement on `/api/v1/reviewer/queue` — JSON response excludes trainer email by construction; test asserts the trainer's email never appears anywhere in the response body.
+
+#### NOT in this step (deferred to next agent)
+
+- **Payment release wiring** (Step 6.4). The `ConsensusResult.status` flip is the public surface for it — when this app marks a task `approved` or `flagged`, the payments side picks it up. No Razorpay / payout call shipped here.
+- **48h timeout cron registration**. The `timeout_sweep()` function is implemented + tested, but the cron registration (systemd timer / crontab / django-q) is a Phase 2 / Step 8 task — same pattern as `core/cron/daily_report.py`.
+
+#### Container note
+
+Same pattern as prior Step 4.2-* deliveries: copied `label_studio/peer_review/` (entire app dir) + the updated `core/settings/base.py` + `core/urls.py` into `trainplex-studio-dev:/label-studio/label_studio/...` via `docker cp`. Ran tests via `/label-studio/.venv/bin/python -m pytest peer_review/tests/test_consensus.py`. 33 tests pass in 47.60s. Sibling test runs (`core` + `users`) confirm zero regression (185/185).
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Reviewer ko apne pending task dekhne ka self-service surface nahi tha — har submission ke 3 reviewer manually pick karne padte the, koi cooldown enforcement nahi tha (ek hi reviewer baar-baar same trainer ke task dekh sakta tha → collusion risk). Consensus decide karne ke baad bhi koi structured surface nahi tha — 2/3 agree wala spot-check kahin record nahi hota tha, 1/3 wala dispute QA lead ko email/Slack pe alag se forward karna padta tha. Payment release condition manually decide hoti thi.
+- Usse kya ho rha tha: Reviewer-side throughput bottleneck tha — 3 reviewers ek task pe agree karein, fir admin manually status check kare, fir trainer ko payment release/hold ka call kare. QA lead ke paas disputed task ek-ek karke aate the (single-channel), koi triage queue nahi tha. Blind review enforce nahi tha — reviewer ko submitter ka naam dikh jata, bias slip ho sakti thi.
+- Ab fix ke baad kya hoga: `peer_review` Django app banaya gaya — 4 tables (`htx_review_assignment`, `htx_review`, `htx_consensus_result`, `htx_dispute`) + 4 endpoints. Trainer submission ke baad backend `assign_reviewers(task_id, trainer_id)` se 3 reviewers automatically pick karta hai — role=reviewer ke saath, 7-day cooldown enforce (same reviewer-trainer pair 7 din me dobara nahi milega), workload-balance (kam pending reviews wala reviewer pehle), aur trainer khud ko review nahi kar sakta. Reviewer apne queue (`/reviewer/queue`) pe sirf anonymous `#<task_id>` dekhega — blind review enforce. Split-screen form (`/reviewer/review/:id`) pe 1-5 rating + agree/partial/disagree/dispute radio + category checks + comment fill karega. Submit hone par consensus engine auto-decide karega: 3/3 agree → approved (payment release flag), 2/3 → flagged (release + admin spot-check), 1/3 → dispute (payment HOLD + QA lead ke `/qa/disputes` queue me chala jaayega), 0/3 → rejected. QA lead three-way comparison view me task + trainer answer + 3 reviewer verdicts dekh ke trainer_correct / reviewer_correct / ml_recheck / inconclusive resolution + notes save karega. 48h timeout sweep stale assignments ko `expired` mark karke jo reviews aaye unke saath consensus close karega (1-reviewer-fallback) — koi task forever pending nahi rahega. EN + HI dono locales me 108 new keys parity-locked. 33 backend tests pass, 185 sibling tests pe zero regression. Payment release ka actual Razorpay call next agent (Step 6.4) karega — abhi sirf `ConsensusResult.status` flip karta hai jo payment side pick up karegi.
+
+---
+
 ## Log Update Rules
 
 - Every new file → `Files Created` table

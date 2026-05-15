@@ -60,6 +60,43 @@ describe("i18n integration (Step 1.4-C surface)", () => {
     expect(i18n.t("home.welcome")).toBe("स्वागत है");
   });
 
+  // Phase 1 Step 1.4-E + Step 13 — trainer Batch + Settings keys must
+  // land in both locales. Single-key spot-check is enough; the parity-
+  // lock test below already enforces structural equality.
+  it("resolves trainer.batch.title in both locales", async () => {
+    await i18n.changeLanguage("en");
+    expect(i18n.t("trainer.batch.title")).toBe("Today's Batch");
+    await i18n.changeLanguage("hi");
+    expect(i18n.t("trainer.batch.title")).toBe("आज का बैच");
+  });
+
+  it("resolves trainer.settings.* labels in both locales", async () => {
+    await i18n.changeLanguage("en");
+    expect(i18n.t("trainer.settings.profile")).toBe("Profile");
+    expect(i18n.t("trainer.settings.security")).toBe("Security");
+    expect(i18n.t("trainer.settings.notifications")).toBe("Notifications");
+    expect(i18n.t("trainer.settings.payout")).toBe("Payout");
+    expect(i18n.t("trainer.settings.preferences")).toBe("Preferences");
+
+    await i18n.changeLanguage("hi");
+    expect(i18n.t("trainer.settings.profile")).toBe("प्रोफ़ाइल");
+    expect(i18n.t("trainer.settings.security")).toBe("सुरक्षा");
+    expect(i18n.t("trainer.settings.notifications")).toBe("अधिसूचनाएँ");
+    expect(i18n.t("trainer.settings.payout")).toBe("भुगतान");
+    expect(i18n.t("trainer.settings.preferences")).toBe("प्राथमिकताएँ");
+  });
+
+  it("interpolates the trainer.batch.progress vars in both locales", async () => {
+    await i18n.changeLanguage("en");
+    expect(i18n.t("trainer.batch.progress", { done: 3, total: 10 })).toBe(
+      "3/10 done",
+    );
+    await i18n.changeLanguage("hi");
+    expect(i18n.t("trainer.batch.progress", { done: 3, total: 10 })).toBe(
+      "3/10 पूरे",
+    );
+  });
+
   it("keeps en + hi resource bundles structurally parity-locked", () => {
     const enBundle = i18n.getResourceBundle("en", "common");
     const hiBundle = i18n.getResourceBundle("hi", "common");

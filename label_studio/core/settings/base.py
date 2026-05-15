@@ -244,6 +244,11 @@ INSTALLED_APPS = [
     'ml_model_providers',
     'jwt_auth',
     'session_policy',
+    # TrainPlex Phase 1 Step 6 — reviewer queue + 3-reviewer consensus engine.
+    # Tables: htx_review_assignment, htx_review, htx_consensus_result, htx_dispute.
+    # Endpoints: /api/v1/reviewer/queue, /api/v1/reviewer/submit-review,
+    # /api/v1/qa/disputes, /api/v1/qa/disputes/<id>/resolve.
+    'peer_review',
 ]
 
 MIDDLEWARE = [

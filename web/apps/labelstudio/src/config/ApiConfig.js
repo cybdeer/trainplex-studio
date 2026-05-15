@@ -146,6 +146,29 @@ export const API_CONFIG = {
     twoFactorEnrollStart: "POST:/v1/users/me/2fa/enroll/start",
     twoFactorEnrollConfirm: "POST:/v1/users/me/2fa/enroll/confirm",
     twoFactorDisable: "POST:/v1/users/me/2fa/disable",
+
+    // TrainPlex — Phase 1 Step 6: Reviewer queue + 3-reviewer consensus + QA dispute.
+    // /reviewer/* enforced via @require_role(['reviewer']); /qa/* via @require_role(['qa_lead']).
+    // submit-review recomputes consensus; resolve flips Dispute.resolved_at.
+    reviewerQueue: "GET:/v1/reviewer/queue",
+    reviewerSubmitReview: "POST:/v1/reviewer/submit-review",
+    qaDisputes: "GET:/v1/qa/disputes",
+    qaDisputeResolve: "POST:/v1/qa/disputes/:dispute_id/resolve",
+
+    // TrainPlex — Phase 1 Step 1.4-E: Trainer 10-task Batch.
+    // Trainer-only GET; admin-only POST refresh. Mock data Phase 1.
+    trainerBatch: "GET:/v1/trainer/batch",
+    trainerBatchRefresh: "POST:/v1/trainer/batch/refresh",
+
+    // TrainPlex — Phase 1 Step 13: Trainer self-service Profile + Settings.
+    // role + email are READ-ONLY on PATCH (silent ignore on the backend).
+    trainerProfile: "GET:/v1/users/me/profile",
+    trainerProfileUpdate: "PATCH:/v1/users/me/profile",
+    trainerProfileAvatar: "POST:/v1/users/me/avatar",
+    trainerSessions: "GET:/v1/users/me/sessions",
+    trainerSessionRevoke: "DELETE:/v1/users/me/sessions/:session_id",
+    trainerLoginHistory: "GET:/v1/users/me/login-history",
+    trainerPasswordChange: "POST:/v1/users/me/password/change",
   },
   alwaysExpectJSON: false,
 };

@@ -40,6 +40,14 @@ from core.views_template_gallery import (
     AdminProjectWizardCreateAPI,
     AdminTemplateCatalogAPI,
 )
+from tasks.api_batch import TrainerBatchAPI, TrainerBatchRefreshAPI
+from users.api_profile import (
+    TrainerLoginHistoryAPI,
+    TrainerPasswordChangeAPI,
+    TrainerProfileAPI,
+    TrainerSessionRevokeAPI,
+    TrainerSessionsAPI,
+)
 from django.conf import settings
 from django.conf.urls import include
 from django.contrib import admin
@@ -90,6 +98,10 @@ urlpatterns = [
     re_path(r'^', include('webhooks.urls')),
     re_path(r'^', include('labels_manager.urls')),
     re_path(r'^', include('fsm.urls')),
+    # TrainPlex Phase 1 Step 6 — reviewer queue + consensus engine + QA dispute.
+    # Endpoints under /api/v1/reviewer/* (role=reviewer) and /api/v1/qa/*
+    # (role=qa_lead) enforced via @require_role. Models live in peer_review app.
+    re_path(r'^', include('peer_review.urls')),
     re_path(r'version/', views.version_page, name='version'),  # html page
     re_path(r'api/version/', views.version_page, name='api-version'),  # json response
     # TrainPlex — Phase 1 Step 4.2-1: Admin dashboard snapshot (mock data, real wiring in Phase 2)
@@ -188,6 +200,55 @@ urlpatterns = [
         'api/v1/admin/submissions/preview',
         AdminSubmissionsPreviewAPI.as_view(),
         name='admin-submissions-preview',
+    ),
+    # TrainPlex — Phase 1 Step 1.4-E: Trainer 10-task Batch.
+    # Trainer-only GET of the current batch; admin-only POST to refresh.
+    # Phase 1: deterministic mock data (10 tasks per trainer); real
+    # assignment engine lands in Phase 2 / Step 8.
+    path(
+        'api/v1/trainer/batch',
+        TrainerBatchAPI.as_view(),
+        name='trainer-batch',
+    ),
+    path(
+        'api/v1/trainer/batch/refresh',
+        TrainerBatchRefreshAPI.as_view(),
+        name='trainer-batch-refresh',
+    ),
+    # TrainPlex — Phase 1 Step 13: Trainer self-service Profile + Settings.
+    # GET/PATCH /me/profile + sessions + login-history + password change.
+    # Role is intentionally read-only on PATCH so trainers can't self-promote.
+    path(
+        'api/v1/users/me/profile',
+        TrainerProfileAPI.as_view(),
+        name='users-me-profile',
+    ),
+    # Avatar upload mounts the same APIView; routing on URL keeps the
+    # multipart parser narrow to one endpoint without a separate class.
+    path(
+        'api/v1/users/me/avatar',
+        TrainerProfileAPI.as_view(),
+        name='users-me-avatar',
+    ),
+    path(
+        'api/v1/users/me/sessions',
+        TrainerSessionsAPI.as_view(),
+        name='users-me-sessions',
+    ),
+    path(
+        'api/v1/users/me/sessions/<int:session_id>',
+        TrainerSessionRevokeAPI.as_view(),
+        name='users-me-sessions-revoke',
+    ),
+    path(
+        'api/v1/users/me/login-history',
+        TrainerLoginHistoryAPI.as_view(),
+        name='users-me-login-history',
+    ),
+    path(
+        'api/v1/users/me/password/change',
+        TrainerPasswordChangeAPI.as_view(),
+        name='users-me-password-change',
     ),
     re_path(r'health/', views.health, name='health'),
     re_path(r'metrics/', views.metrics, name='metrics'),
