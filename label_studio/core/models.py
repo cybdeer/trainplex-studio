@@ -100,3 +100,12 @@ from core.models_broadcast import WhatsAppBroadcastLog  # noqa: E402,F401
 # ---------------------------------------------------------------------------
 
 from core.models_alerts import QualityAlert  # noqa: E402,F401
+
+# ---------------------------------------------------------------------------
+# TrainPlex Week 8 Step 17 — In-house feature flag system.
+# Replaces the upstream LaunchDarkly dependency. Service-layer entry point
+# is `core/services/feature_flags.py`; this import only registers the
+# Django model so migrations + admin can see the `htx_feature_flag` table.
+# ---------------------------------------------------------------------------
+
+from core.models_feature_flags import FeatureFlag  # noqa: E402,F401

@@ -40,6 +40,7 @@ from core.views_bulk_assign import (
     AdminTrainerFilterAPI,
 )
 from core.views_dashboard import AdminDashboardSnapshotAPI
+from core.views_health import HealthDeepAPI, HealthShallowAPI
 from core.views_heatmap import AdminHeatmapStateActivityAPI
 from core.views_submissions_preview import AdminSubmissionsPreviewAPI
 from core.views_template_gallery import (
@@ -297,6 +298,20 @@ urlpatterns = [
         name='users-me-password-change',
     ),
     re_path(r'health/', views.health, name='health'),
+    # TrainPlex — Week 8 Step 11: Health-check endpoints for monitoring +
+    # cutover verification + DR drill.
+    # /api/v1/health is public (no auth, fast, used by nginx + blackbox);
+    # /api/v1/health/deep is admin-only with full component stats.
+    path(
+        'api/v1/health',
+        HealthShallowAPI.as_view(),
+        name='api-v1-health',
+    ),
+    path(
+        'api/v1/health/deep',
+        HealthDeepAPI.as_view(),
+        name='api-v1-health-deep',
+    ),
     re_path(r'metrics/', views.metrics, name='metrics'),
     re_path(r'trigger500/', views.TriggerAPIError.as_view(), name='metrics'),
     re_path(r'samples/time-series.csv', views.samples_time_series, name='static_time_series'),

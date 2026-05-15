@@ -1,0 +1,101 @@
+# TrainPlex Studio — Prometheus scrape configuration.
+#
+# Week 8 Step 11 (Monitoring). This config is consumed by the prometheus
+# container on the ops VPS. It scrapes the fork's Django app (`/metrics`),
+# the Postgres exporter, the Redis exporter, and the node exporter on
+# every app server.
+#
+# Why explicit static_configs and not service discovery: in Phase 1 the
+# host roster is fixed (1 app server + 1 DB + 1 Redis). Service discovery
+# becomes useful once we auto-scale (Step 17 / `scripts/scale_up.sh`).
+# When that lands, swap `static_configs` to `file_sd_configs` whose JSON
+# is rewritten by the ansible playbook on each scale event.
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: trainplex-prod
+    region: ap-south-1
+
+# Alertmanager — Sentry is the primary error channel; Prometheus alerts
+# fall through to a separate WA webhook (defined in alertmanager.yml,
+# out of scope for this commit).
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+rule_files:
+  - 'rules/*.yml'
+
+scrape_configs:
+  # ── TrainPlex Django app ──────────────────────────────────────────
+  - job_name: 'trainplex_app'
+    metrics_path: /metrics
+    scheme: https
+    tls_config:
+      insecure_skip_verify: false
+    static_configs:
+      - targets:
+          - 'app-01.trainplex.in:443'
+        labels:
+          service: trainplex
+          tier: app
+          version: '0.1.0'
+
+  # ── Postgres exporter ────────────────────────────────────────────
+  - job_name: 'postgres'
+    static_configs:
+      - targets:
+          - 'db-01.trainplex.in:9187'
+        labels:
+          service: postgres
+          tier: db
+
+  # ── Redis exporter ───────────────────────────────────────────────
+  - job_name: 'redis'
+    static_configs:
+      - targets:
+          - 'redis-01.trainplex.in:9121'
+        labels:
+          service: redis
+          tier: cache
+
+  # ── Node exporter (host metrics on every VPS) ────────────────────
+  - job_name: 'node'
+    static_configs:
+      - targets:
+          - 'app-01.trainplex.in:9100'
+          - 'db-01.trainplex.in:9100'
+          - 'redis-01.trainplex.in:9100'
+
+  # ── Blackbox probe (synthetic health check from outside) ─────────
+  # Lives in the same data center but a different VLAN so we catch
+  # nginx / firewall problems the app-internal /metrics misses.
+  - job_name: 'blackbox_http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - 'https://trainplex.in/api/v1/health'
+          - 'https://trainplex.in/user/login/'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # ── k6 cloud / push gateway (load test telemetry) ────────────────
+  # Only scraped during load test windows. Outside those windows the
+  # gateway returns empty samples.
+  - job_name: 'k6_pushgateway'
+    honor_labels: true
+    static_configs:
+      - targets:
+          - 'pushgateway:9091'

@@ -1,0 +1,153 @@
+{
+  "title": "TrainPlex — Trainer Experience",
+  "uid": "trainplex-trainer-ux",
+  "schemaVersion": 39,
+  "timezone": "Asia/Kolkata",
+  "tags": ["trainplex", "trainer", "ux", "rum"],
+  "refresh": "30s",
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "title": "Page load time (p75) — trainer batch view",
+      "type": "timeseries",
+      "id": 1,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.75, sum by (le)(rate(trainplex_rum_page_load_ms_bucket{page=\"trainer_batch\"}[5m])))",
+          "legendFormat": "p75 ms"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 2000 },
+              { "color": "red", "value": 4000 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Submit latency (p95) by network type",
+      "type": "timeseries",
+      "id": 2,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, network) (rate(trainplex_submit_client_latency_ms_bucket[5m])))",
+          "legendFormat": "{{network}}"
+        }
+      ]
+    },
+    {
+      "title": "JS errors / minute",
+      "type": "timeseries",
+      "id": 3,
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(trainplex_js_errors_total[1m])) * 60",
+          "legendFormat": "errors/min"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 20 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Offline queue drain time (p95 sec)",
+      "type": "timeseries",
+      "id": 4,
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(trainplex_offline_queue_drain_seconds_bucket[5m])))",
+          "legendFormat": "p95 s"
+        }
+      ]
+    },
+    {
+      "title": "Active device types (24h)",
+      "type": "piechart",
+      "id": 5,
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 14 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum by (device_type)(increase(trainplex_rum_sessions_total[24h]))",
+          "legendFormat": "{{device_type}}"
+        }
+      ]
+    },
+    {
+      "title": "Hindi UI sessions / total",
+      "type": "stat",
+      "id": 6,
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 14 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(increase(trainplex_rum_sessions_total{lang=\"hi\"}[24h])) / sum(increase(trainplex_rum_sessions_total[24h]))",
+          "legendFormat": "hi/total"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        }
+      }
+    },
+    {
+      "title": "PWA install rate",
+      "type": "stat",
+      "id": 7,
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 14 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(increase(trainplex_pwa_installed_total[7d])) / sum(increase(trainplex_rum_sessions_total[7d]))",
+          "legendFormat": "installs/sessions"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        }
+      }
+    },
+    {
+      "title": "Slow render warnings (>2s) per state",
+      "type": "bargauge",
+      "id": 8,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 22 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "topk(10, sum by (state)(increase(trainplex_rum_slow_render_total[24h])))",
+          "legendFormat": "{{state}}"
+        }
+      ]
+    }
+  ]
+}

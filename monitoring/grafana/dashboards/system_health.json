@@ -1,0 +1,129 @@
+{
+  "title": "TrainPlex — System Health",
+  "uid": "trainplex-system-health",
+  "schemaVersion": 39,
+  "timezone": "Asia/Kolkata",
+  "tags": ["trainplex", "system", "prod"],
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "title": "App p95 latency (ms)",
+      "type": "timeseries",
+      "id": 1,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, job) (rate(django_http_requests_latency_seconds_by_view_method_bucket{job=\"trainplex_app\"}[5m]))) * 1000",
+          "legendFormat": "p95 {{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 300 },
+              { "color": "red", "value": 500 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Error rate (5xx)",
+      "type": "timeseries",
+      "id": 2,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(django_http_responses_total_by_status_view_method_total{status=~\"5..\",job=\"trainplex_app\"}[5m]))",
+          "legendFormat": "5xx /s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Postgres connections",
+      "type": "timeseries",
+      "id": 3,
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "pg_stat_activity_count{service=\"postgres\"}",
+          "legendFormat": "active"
+        }
+      ]
+    },
+    {
+      "title": "Redis memory used (MB)",
+      "type": "timeseries",
+      "id": 4,
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "redis_memory_used_bytes{service=\"redis\"} / 1024 / 1024",
+          "legendFormat": "redis"
+        }
+      ]
+    },
+    {
+      "title": "Node CPU %",
+      "type": "timeseries",
+      "id": 5,
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "100 - (avg by (instance)(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "title": "Health probe (blackbox)",
+      "type": "stat",
+      "id": 6,
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 16 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "probe_success{job=\"blackbox_http\",instance=~\".*api/v1/health.*\"}",
+          "legendFormat": "/api/v1/health"
+        }
+      ]
+    },
+    {
+      "title": "Login p95 (ms)",
+      "type": "timeseries",
+      "id": 7,
+      "gridPos": { "h": 6, "w": 16, "x": 8, "y": 16 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le)(rate(django_http_requests_latency_seconds_by_view_method_bucket{view=~\".*login.*\",job=\"trainplex_app\"}[5m]))) * 1000",
+          "legendFormat": "login p95"
+        }
+      ]
+    }
+  ]
+}

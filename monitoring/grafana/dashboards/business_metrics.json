@@ -1,0 +1,140 @@
+{
+  "title": "TrainPlex — Business Metrics",
+  "uid": "trainplex-business",
+  "schemaVersion": 39,
+  "timezone": "Asia/Kolkata",
+  "tags": ["trainplex", "business", "founder"],
+  "refresh": "1m",
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "title": "Submissions / hour",
+      "type": "timeseries",
+      "id": 1,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(trainplex_submissions_total[1h])) * 3600",
+          "legendFormat": "submissions/hr"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "submissions/hr"
+        }
+      }
+    },
+    {
+      "title": "Payouts released today (₹)",
+      "type": "stat",
+      "id": 2,
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(increase(trainplex_payouts_released_inr_total[24h]))",
+          "legendFormat": "today"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyINR"
+        }
+      }
+    },
+    {
+      "title": "Active trainers (logged in last 24h)",
+      "type": "stat",
+      "id": 3,
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "trainplex_active_trainers_24h",
+          "legendFormat": "trainers"
+        }
+      ]
+    },
+    {
+      "title": "Open quality alerts",
+      "type": "stat",
+      "id": 4,
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "trainplex_quality_alerts_open",
+          "legendFormat": "open"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 20 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Submissions by state (top 5)",
+      "type": "bargauge",
+      "id": 5,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "topk(5, sum by (state)(rate(trainplex_submissions_total[24h]))) * 86400",
+          "legendFormat": "{{state}}"
+        }
+      ]
+    },
+    {
+      "title": "WhatsApp broadcasts sent (last 7d)",
+      "type": "timeseries",
+      "id": 6,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(increase(trainplex_wa_broadcast_sent_total[1d]))",
+          "legendFormat": "broadcasts/day"
+        }
+      ]
+    },
+    {
+      "title": "Consensus throughput (review / hr)",
+      "type": "timeseries",
+      "id": 7,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(trainplex_consensus_decisions_total[1h])) * 3600",
+          "legendFormat": "decisions/hr"
+        }
+      ]
+    },
+    {
+      "title": "Avg payout per trainer (₹, 7d)",
+      "type": "stat",
+      "id": 8,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(increase(trainplex_payouts_released_inr_total[7d])) / count(count by (trainer_id)(trainplex_submissions_total))",
+          "legendFormat": "avg ₹/trainer"
+        }
+      ]
+    }
+  ]
+}
