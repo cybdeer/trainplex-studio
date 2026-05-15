@@ -370,6 +370,81 @@ This will go away once Step 11 (proper dev-image with source bind-mount) lands.
 
 ---
 
+### Step 17 — pytest backend test framework (Step 9.1)
+
+**Solid pytest foundation for TrainPlex backend.** Shared fixtures (admin/trainer/reviewer/qa_lead users, organization, DRF clients), factory-boy factories, repo-root coverage config, custom markers (`rbac`, `i18n`, `slow`, `integration_tests`). Phase 1 Week 2 Step 9.1 delivered.
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `label_studio/tests/factories.py` | factory-boy factories — `UserFactory`, `OrganizationFactory`, `ProjectFactory`, `TaskFactory`, `AnnotationFactory`. Default `UserFactory.role='trainer'`; pass `role='admin'` to override. |
+| `label_studio/tests/test_fixtures_smoke.py` | 16 smoke tests verifying every fixture + factory boots correctly (role correctness, DRF client type, API reachability without 500, factory uniqueness). |
+| `.coveragerc` (repo root) | Coverage config — `source=label_studio`, omits tests/migrations/__init__/apps/manage/server, 80% target per Phase 1 plan. Old `label_studio/.coveragerc` left untouched for upstream HumanSignal CI compat. |
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `label_studio/conftest.py` | Added 6 shared fixtures: `admin_user`, `trainer_user`, `reviewer_user`, `qa_lead_user`, `organization`, `api_client`, `authenticated_client`. Pre-existing `clear_current_context_after_test` autouse kept. |
+| `label_studio/pytest.ini` | Added `python_classes`, `python_functions`, `--strict-markers`, and `markers` block declaring `slow`, `integration_tests`, `rbac`, `i18n`. Existing env vars + tavern config preserved. |
+
+#### Tests
+
+- Command: `docker exec -w /label-studio/label_studio trainplex-studio-dev /label-studio/.venv/bin/python -m pytest users/tests/test_role_rbac.py tests/test_fixtures_smoke.py -v --tb=short -m "not integration_tests"`
+- Result: **23 passed in 26.79s** (7 pre-existing RBAC tests + 16 new fixture/factory smoke tests).
+- Marker filter verified: `pytest -m "rbac"` selects only the 5 `@pytest.mark.rbac` tests, deselects 11.
+- Collection sanity: `pytest --collect-only` shows **1281 tests collectible** repo-wide — `--strict-markers` did not break any pre-existing test.
+- Coverage (targeted run on Step 1.4-A code): `users/decorators/require_role.py` = **100.0%**, `users/models.py` = **63.3%** (most uncovered lines are unrelated avatar/name helpers). Full-suite coverage requires running the legacy tavern integration suite which is out of Step 9.1 scope.
+
+#### How to run
+
+Inside the dev container (preferred — venv has all test deps):
+
+```powershell
+# Just the new infra + RBAC
+docker exec -w /label-studio/label_studio trainplex-studio-dev `
+  /label-studio/.venv/bin/python -m pytest `
+  users/tests/test_role_rbac.py tests/test_fixtures_smoke.py `
+  -v --tb=short -m "not integration_tests"
+
+# Full backend (non-integration), with coverage:
+docker exec -w /label-studio/label_studio trainplex-studio-dev `
+  /label-studio/.venv/bin/python -m pytest `
+  --cov=. --cov-report=term-missing -m "not integration_tests"
+
+# Just RBAC-marked tests:
+docker exec -w /label-studio/label_studio trainplex-studio-dev `
+  /label-studio/.venv/bin/python -m pytest -m "rbac" -v
+```
+
+Locally (requires `poetry install --with test`):
+
+```bash
+cd label_studio && poetry run pytest -v -m "not integration_tests"
+```
+
+#### CI Integration
+
+The existing `.github/workflows/test.yml` `test-backend` job already invokes pytest with the right marker filter — `poetry run pytest -v -m "not integration_tests" --disable-warnings --durations=30 -n auto`. **No workflow change needed for Step 9.1.** Suggested follow-up (founder review): add `--cov=. --cov-report=xml --cov-fail-under=80` once the coverage baseline lands above 80% on `develop`. Holding that change for founder approval.
+
+#### Issues + Resolutions
+
+| Issue | Resolution |
+|-------|------------|
+| Pre-built dev container `/label-studio/.venv` missing several test deps (`pytest-cov`, `mock`, `freezegun`, `moto`, `tavern`, `fakeredis`, `responses`, `requests-mock`, `psutil`) — image was built runtime-only. | Installed via `pip install` into the existing venv. These are already declared in `pyproject.toml [tool.poetry.group.test.dependencies]` — no manifest change needed; just a container-level baseline drift that gets corrected next time the image is rebuilt from `pyproject.toml`. |
+| `pip` resolved `moto>=4.2.6` → `moto 5.2.1`, which renamed `moto.mock_s3` → `moto.mock_aws`. Existing `label_studio/tests/conftest.py:22` imports the old name and broke collection. | Pinned in-container to `moto==4.2.14`. The task spec forbids modifying existing test files, and `pyproject.toml` already constrains via `>=4.2.6`, so the legacy code is correct — only the resolver overshot. Founder may want to add an upper bound (`moto >=4.2.6,<5.0`) in `pyproject.toml` in a follow-up PR. |
+| Wanted a repo-root `pytest.ini` per task spec, but one already exists at `label_studio/pytest.ini`. Two configs cause pytest to load only one (whichever it finds first via rootdir resolution). | Extended the existing `label_studio/pytest.ini` with the requested fields (`python_classes`, `python_functions`, `--strict-markers`, `markers`) rather than creating a duplicate. CI workflow runs pytest from `working-directory: label_studio` so this is the file it picks up. |
+| Smoke test path (`label_studio/tests/test_fixtures_smoke.py` per spec) inherits the heavy autouse mocks from `label_studio/tests/conftest.py` (S3/GCS/Azure/Redis/ML). | Acceptable — moto mocks work offline and the test still runs in ~24s. New fixtures live in `label_studio/conftest.py` (root) so future unit tests outside `label_studio/tests/` can use them without paying the autouse-mock cost. |
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Backend testing infra ad-hoc thi — har test ke andar user, org, API client manually create karna padta tha, koi shared fixtures nahi the, coverage tooling missing.
+- Usse kya ho rha tha: New test likhne mein boilerplate zyaada tha, fixtures inconsistent the (har file apna admin user banata tha), aur coverage measure nahi ho pa rahi thi — 80% target ke against baseline pata nahi tha.
+- Ab fix ke baad kya hoga: Koi bhi test `def test_xxx(admin_user, organization, authenticated_client):` likhe — fixture automatic mil jayegi. Naya user chahiye toh `UserFactory(role='reviewer')`. `pytest -m "rbac"` se sirf RBAC tests, `pytest --cov` se coverage report. Existing 7 RBAC tests + new 16 smoke tests sab pass — total 23/23. CI workflow already correct hai, koi change nahi.
+
+---
+
 ## Log Update Rules
 
 - Every new file → `Files Created` table
