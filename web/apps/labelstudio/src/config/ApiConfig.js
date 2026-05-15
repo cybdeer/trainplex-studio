@@ -95,6 +95,9 @@ export const API_CONFIG = {
 
     // FSM
     fsmStateHistory: "GET:/fsm/entities/:entityType/:entityId/history",
+
+    // TrainPlex — Phase 1 Step 4.2-1: Admin dashboard snapshot (mock data in Phase 1)
+    adminDashboardSnapshot: "GET:/v1/admin/dashboard/snapshot",
   },
   alwaysExpectJSON: false,
 };

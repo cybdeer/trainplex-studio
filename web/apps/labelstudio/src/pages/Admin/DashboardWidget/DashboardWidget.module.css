@@ -1,0 +1,309 @@
+/*
+ * DashboardWidget styles — TrainPlex Phase 1 Step 4.2-1.
+ *
+ * Uses the brand tokens defined in `web/libs/ui/src/tokens/tokens.trainplex.css`
+ * (Indigo for the dashboard header / KPIs, Orange for the primary CTA).
+ *
+ * Layout principles
+ * -----------------
+ * - 4-tile KPI row at top: CSS Grid `repeat(4, 1fr)` on desktop, single column on
+ *   narrow screens (Indian mobile-first; founders also check on phone).
+ * - Trainer table: standard HTML <table> with monospace numerics so column
+ *   alignment reads cleanly even with INR amounts of varying width.
+ * - Skeleton loader mimics the same grid so there is no layout shift when data
+ *   arrives.
+ */
+
+.dashboardRoot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-6, 24px);
+  font-family: var(--tp-font-ui, 'Inter', system-ui, sans-serif);
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+
+.dashboardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--tp-space-4, 16px);
+  padding: var(--tp-space-4, 16px) var(--tp-space-6, 24px);
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.dashboardTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: var(--tp-font-display, 'Inter Tight', 'Inter', system-ui, sans-serif);
+}
+
+.asOf {
+  font-size: 0.875rem;
+  opacity: 0.85;
+}
+
+/* ── KPI row ────────────────────────────────────────────────────── */
+
+.kpiRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--tp-space-4, 16px);
+}
+
+@media (max-width: 900px) {
+  .kpiRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .kpiRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── MetricCard ─────────────────────────────────────────────────── */
+
+.metricCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-2, 8px);
+  padding: var(--tp-space-4, 16px);
+  background: #FFFFFF;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  box-shadow: var(--tp-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+  min-height: 96px;
+}
+
+.metricCardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-2, 8px);
+}
+
+.metricCardLabel {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metricCardIcon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.metricCardValueRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--tp-space-2, 8px);
+}
+
+.metricCardValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-family: var(--tp-font-display, 'Inter Tight', 'Inter', system-ui, sans-serif);
+  color: var(--tp-color-indigo-700, #121242);
+  font-variant-numeric: tabular-nums;
+}
+
+.metricCardDelta {
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.deltaUp { color: var(--tp-color-success, #16A34A); }
+.deltaDown { color: var(--tp-color-error, #DC2626); }
+
+.tone_warning .metricCardValue {
+  color: var(--tp-color-warn, #F59E0B);
+}
+
+.tone_danger .metricCardValue {
+  color: var(--tp-color-error, #DC2626);
+}
+
+/* ── Section headings ───────────────────────────────────────────── */
+
+.sectionHeading {
+  margin: 0 0 var(--tp-space-3, 12px) 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+/* ── Top trainers table ─────────────────────────────────────────── */
+
+.topTrainersBlock {
+  padding: var(--tp-space-4, 16px);
+  background: #FFFFFF;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.trainerTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.trainerTable th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  border-bottom: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+}
+
+.trainerTable td {
+  padding: var(--tp-space-3, 12px);
+  border-bottom: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.trainerTable tr:last-child td {
+  border-bottom: 0;
+}
+
+.colNum {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Alert chips ────────────────────────────────────────────────── */
+
+.alertsBreakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tp-space-2, 8px);
+}
+
+.alertChip {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--tp-space-1, 4px) var(--tp-space-3, 12px);
+  background: var(--tp-color-warn-bg, #FEF3C7);
+  color: var(--tp-color-indigo-700, #121242);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: var(--tp-radius-full, 9999px);
+}
+
+/* ── Quick actions ──────────────────────────────────────────────── */
+
+.quickActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-3, 12px);
+}
+
+.quickActionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tp-space-3, 12px);
+}
+
+.ctaPrimary {
+  /* Brand Orange — energetic India accent for the primary action. */
+  background: var(--tp-color-orange-500, #FF6B35);
+  border-color: var(--tp-color-orange-500, #FF6B35);
+  color: #FFFFFF;
+}
+
+.ctaPrimary:hover {
+  background: var(--tp-color-orange-600, #E55A26);
+  border-color: var(--tp-color-orange-600, #E55A26);
+}
+
+/* ── Error box ──────────────────────────────────────────────────── */
+
+.errorBox {
+  padding: var(--tp-space-6, 24px);
+  background: var(--tp-color-error-bg, #FEE2E2);
+  color: var(--tp-color-error, #DC2626);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-weight: 500;
+}
+
+/* ── Skeleton ───────────────────────────────────────────────────── */
+
+.skeletonRoot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-4, 16px);
+}
+
+.skeletonHeader {
+  height: 48px;
+  background: linear-gradient(
+    90deg,
+    var(--tp-color-indigo-50, #E8E8F0) 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    var(--tp-color-indigo-50, #E8E8F0) 100%
+  );
+  background-size: 200% 100%;
+  animation: dashSkeletonShimmer 1.5s infinite;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.skeletonKpiRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--tp-space-4, 16px);
+}
+
+.skeletonTile {
+  height: 96px;
+  background: linear-gradient(
+    90deg,
+    var(--tp-color-indigo-50, #E8E8F0) 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    var(--tp-color-indigo-50, #E8E8F0) 100%
+  );
+  background-size: 200% 100%;
+  animation: dashSkeletonShimmer 1.5s infinite;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.skeletonTable {
+  height: 220px;
+  background: linear-gradient(
+    90deg,
+    var(--tp-color-indigo-50, #E8E8F0) 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    var(--tp-color-indigo-50, #E8E8F0) 100%
+  );
+  background-size: 200% 100%;
+  animation: dashSkeletonShimmer 1.5s infinite;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+@keyframes dashSkeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

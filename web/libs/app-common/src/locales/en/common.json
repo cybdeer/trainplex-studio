@@ -41,7 +41,29 @@
     "invite_members": "Invite Members",
     "trainers": "Trainers",
     "submissions": "Submissions",
-    "reports": "Reports"
+    "reports": "Reports",
+    "dashboard": {
+      "today_snapshot": "Today's snapshot",
+      "submissions": "Submissions",
+      "active_trainers": "Active trainers",
+      "pay_hold": "Pay hold",
+      "alerts": "Alerts",
+      "top_trainers": "Top 5 trainers (state-wise)",
+      "disputes_pending": "Disputes pending",
+      "quality_flags": "Quality flags",
+      "quick_actions": "Quick actions",
+      "stuck_payouts": "Stuck payouts",
+      "pay_released_today": "Pay released today",
+      "new_project": "New Project",
+      "wa_broadcast": "WA Broadcast",
+      "bulk_assign": "Bulk Assign",
+      "trainer_name": "Trainer",
+      "state": "State",
+      "tasks_today": "Tasks today",
+      "earnings_today": "Earnings today",
+      "loading_snapshot": "Loading snapshot…",
+      "snapshot_failed": "Couldn't load dashboard snapshot."
+    }
   },
   "home": {
     "welcome": "Welcome",

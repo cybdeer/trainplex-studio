@@ -41,7 +41,29 @@
     "invite_members": "सदस्य आमंत्रित करें",
     "trainers": "ट्रेनर्स",
     "submissions": "जमा कार्य",
-    "reports": "रिपोर्ट"
+    "reports": "रिपोर्ट",
+    "dashboard": {
+      "today_snapshot": "आज का स्नैपशॉट",
+      "submissions": "जमा कार्य",
+      "active_trainers": "सक्रिय ट्रेनर",
+      "pay_hold": "रोका हुआ payment",
+      "alerts": "अलर्ट",
+      "top_trainers": "टॉप 5 ट्रेनर (राज्य-वार)",
+      "disputes_pending": "विवाद लंबित",
+      "quality_flags": "गुणवत्ता फ्लैग",
+      "quick_actions": "त्वरित कार्य",
+      "stuck_payouts": "अटके payouts",
+      "pay_released_today": "आज जारी payment",
+      "new_project": "नया प्रोजेक्ट",
+      "wa_broadcast": "WA ब्रॉडकास्ट",
+      "bulk_assign": "बल्क असाइन",
+      "trainer_name": "ट्रेनर",
+      "state": "राज्य",
+      "tasks_today": "आज के कार्य",
+      "earnings_today": "आज की कमाई",
+      "loading_snapshot": "स्नैपशॉट लोड हो रहा…",
+      "snapshot_failed": "डैशबोर्ड स्नैपशॉट लोड नहीं हो सका।"
+    }
   },
   "home": {
     "welcome": "स्वागत है",

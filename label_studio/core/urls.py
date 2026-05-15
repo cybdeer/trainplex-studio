@@ -18,6 +18,7 @@ Including another URLconf
 
 from core import views
 from core.utils.static_serve import serve
+from core.views_dashboard import AdminDashboardSnapshotAPI
 from django.conf import settings
 from django.conf.urls import include
 from django.contrib import admin
@@ -70,6 +71,12 @@ urlpatterns = [
     re_path(r'^', include('fsm.urls')),
     re_path(r'version/', views.version_page, name='version'),  # html page
     re_path(r'api/version/', views.version_page, name='api-version'),  # json response
+    # TrainPlex — Phase 1 Step 4.2-1: Admin dashboard snapshot (mock data, real wiring in Phase 2)
+    path(
+        'api/v1/admin/dashboard/snapshot',
+        AdminDashboardSnapshotAPI.as_view(),
+        name='admin-dashboard-snapshot',
+    ),
     re_path(r'health/', views.health, name='health'),
     re_path(r'metrics/', views.metrics, name='metrics'),
     re_path(r'trigger500/', views.TriggerAPIError.as_view(), name='metrics'),
