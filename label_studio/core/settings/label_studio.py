@@ -16,6 +16,12 @@ MIDDLEWARE.append('core.middleware.UpdateLastActivityMiddleware')
 if INACTIVITY_SESSION_TIMEOUT_ENABLED:
     MIDDLEWARE.append('core.middleware.InactivitySessionTimeoutMiddleWare')
 
+# TrainPlex Phase 1 Step 12.2 — security headers (HSTS, X-Frame-Options, …).
+# MUST be the LAST middleware so it wraps every response (including ones produced
+# by upstream LS middlewares above). Does NOT touch CSP — see SecurityHeadersMiddleware
+# docstring; CSP is managed by the upstream django-csp middleware.
+MIDDLEWARE.append('users.middleware.security_headers.SecurityHeadersMiddleware')
+
 ADD_DEFAULT_ML_BACKENDS = False
 
 LOGGING['root']['level'] = get_env('LOG_LEVEL', 'WARNING')

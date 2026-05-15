@@ -163,6 +163,27 @@ class User(UserMixin, AbstractBaseUser, PermissionsMixin, UserLastActivityMixin)
         help_text='TrainPlex role for RBAC',
     )
 
+    # ---------------------------------------------------------------------
+    # Phase 1 Step 12.4 — TOTP 2FA scaffold.
+    # Login-flow wire-in is the next agent's job; these fields land here so
+    # the migration ships with the rest of the Security Baseline.
+    # ---------------------------------------------------------------------
+    totp_secret = models.CharField(
+        max_length=64,
+        blank=True,
+        default='',
+        help_text='Base32-encoded TOTP shared secret. Empty until the user enrolls.',
+    )
+    totp_enabled = models.BooleanField(
+        default=False,
+        help_text='True once the user has confirmed their authenticator app with a valid code.',
+    )
+    backup_codes = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of SHA-256-hashed single-use recovery codes. Each code is removed when consumed.',
+    )
+
     objects = UserManager()
 
     EMAIL_FIELD = 'email'
@@ -258,3 +279,93 @@ def init_user(sender, instance=None, created=False, **kwargs):
     if created:
         # create token for user
         Token.objects.create(user=instance)
+
+
+# ---------------------------------------------------------------------------
+# TrainPlex Phase 1 Step 12.3 — AuditLog
+# ---------------------------------------------------------------------------
+
+
+class AuditLog(models.Model):
+    """Append-only audit trail for security-sensitive events.
+
+    Captured event categories:
+    - Login attempts (success + fail, with IP / UA)
+    - Permission/role changes
+    - Hard deletes of user-visible objects
+    - Admin actions (data export, config change, etc.)
+
+    Retention policy: 2 years (cleanup cron lands in Phase 2). Rows are
+    never updated — fields are write-once at insert time.
+    """
+
+    # Coarse action taxonomy. Keep this list short — fine-grained context
+    # lives in ``metadata``.
+    ACTION_LOGIN_SUCCESS = 'login_success'
+    ACTION_LOGIN_FAIL = 'login_fail'
+    ACTION_PERMISSION_CHANGE = 'permission_change'
+    ACTION_DELETE = 'delete'
+    ACTION_ADMIN_ACTION = 'admin_action'
+
+    ACTION_CHOICES = [
+        (ACTION_LOGIN_SUCCESS, 'Login success'),
+        (ACTION_LOGIN_FAIL, 'Login failure'),
+        (ACTION_PERMISSION_CHANGE, 'Permission change'),
+        (ACTION_DELETE, 'Delete'),
+        (ACTION_ADMIN_ACTION, 'Admin action'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_events',
+        help_text=_('Actor / subject of the event. NULL for failed logins where the user is unknown.'),
+    )
+    action = models.CharField(max_length=64, choices=ACTION_CHOICES)
+    target_type = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text=_('Object class name affected — e.g. "User", "Project", "Annotation".'),
+    )
+    target_id = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text=_('PK of the affected object, stored as a string so non-int PKs (UUIDs) fit.'),
+    )
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    success = models.BooleanField(default=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'htx_audit_log'
+        verbose_name = _('audit log entry')
+        verbose_name_plural = _('audit log entries')
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['action', '-created_at']),
+            models.Index(fields=['-created_at']),
+        ]
+
+    def __str__(self):  # pragma: no cover  (display only)
+        return f'AuditLog({self.action}, user={self.user_id}, at={self.created_at:%Y-%m-%d %H:%M:%S})'
+
+
+# ---------------------------------------------------------------------------
+# TrainPlex Phase 1 Step 12.4 — 2FA helpers on User
+# ---------------------------------------------------------------------------
+
+
+def user_needs_2fa(user) -> bool:
+    """Per founder rule (Step 12.4): admins are REQUIRED to set up 2FA;
+    trainers/reviewers/QA-leads are encouraged but not blocked.
+
+    Returns True iff ``user`` has the admin role. Anonymous users and any
+    object without a ``role`` attribute return False.
+    """
+    role = getattr(user, 'role', None)
+    return role == 'admin'

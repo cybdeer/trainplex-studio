@@ -650,6 +650,72 @@ yarn nx test app-common --testPathPattern=i18n
 
 ---
 
+### Step 12 Security Baseline (Week 4 kickoff)
+
+Lands the production-grade security defaults the founder approved in the Phase 1 plan: rate-limit decorators, response-side security headers, an append-only audit log, and a TOTP 2FA scaffold (model + service, login-flow wiring is the next agent's job).
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `label_studio/users/middleware/__init__.py` | Public surface of the security middleware package — re-exports the four rate-limit decorators and `SecurityHeadersMiddleware`. |
+| `label_studio/users/middleware/rate_limit.py` | Four policy-locked decorators on top of `django_ratelimit.decorators.ratelimit`: `ratelimit_login` (5/15m/IP), `ratelimit_api` (100/m/IP), `ratelimit_otp` (3/15m/mobile), `ratelimit_password_reset` (3/h/email). Plus `handle_ratelimited` helper that turns `Ratelimited` into a 429 JSON response so the next agent can wire views without touching DRF exception handlers. |
+| `label_studio/users/middleware/security_headers.py` | `SecurityHeadersMiddleware` — adds HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy via `setdefault` so a downstream view with tighter policy still wins. CSP intentionally left to upstream `django-csp` (TODO note in module docstring). |
+| `label_studio/users/migrations/0013_audit_log.py` | Creates `htx_audit_log` table — append-only event log (FK to User SET_NULL, action choices, target_type/id, ip_address, user_agent, success, JSONB metadata, created_at) with indexes on (user, -created_at), (action, -created_at), (-created_at). |
+| `label_studio/users/migrations/0014_user_2fa_fields.py` | Adds `totp_secret` / `totp_enabled` / `backup_codes` (JSONB) to `htx_user`. |
+| `label_studio/users/services/__init__.py` | Re-exports `audit_logger` + `totp_handler` so call sites use `users.services.audit_logger` consistently. |
+| `label_studio/users/services/audit_logger.py` | Best-effort wrappers: `log_login`, `log_permission_change`, `log_delete`, `log_admin_action`. Swallow DB errors (audit must never break the caller), truncate user agents to 1 KB, coerce `target_id` to str. |
+| `label_studio/users/services/totp_handler.py` | `generate_secret` (32-char base32, ~160 bits), `get_provisioning_uri` (otpauth:// w/ "TrainPlex Studio" issuer), `verify_token` (RFC 6238 ±1 step), `generate_backup_codes` (10 × 8-hex), `hash_backup_code` (SHA-256), `verify_backup_code` (one-time-use — consumes on hit). |
+| `label_studio/users/tests/test_security_baseline.py` | 29 tests covering all of the above (see Test Count below). |
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `label_studio/users/models.py` | Adds `AuditLog` model + `user_needs_2fa(user)` helper (admin-only → True per founder rule). Adds `totp_secret` / `totp_enabled` / `backup_codes` columns to the `User` class. No existing behaviour touched. |
+| `label_studio/core/settings/label_studio.py` | Appends `'users.middleware.security_headers.SecurityHeadersMiddleware'` to `MIDDLEWARE` (last entry — must wrap all responses). |
+| `pyproject.toml` | Adds `django-ratelimit (>=4.1.0,<5.0.0)` and `pyotp (>=2.9.0,<3.0.0)` to project dependencies. |
+
+#### Migrations
+
+- `users/0013_audit_log` — APPLIED to dev DB (`trainplex-studio-dev` SQLite).
+- `users/0014_user_2fa_fields` — APPLIED to dev DB.
+- Verified clean apply via `manage.py migrate users` (both migrations: `OK`).
+
+#### Test Count
+
+`pytest users/tests/test_security_baseline.py -v` → **29 passed** in 27.90s.
+
+- 4 rate-limit cases (login block, freezegun window-reset, per-IP isolation, OTP block, password-reset block, API smoke) — 6 total
+- 2 security-headers cases (all headers set, setdefault preserves downstream HSTS)
+- 5 audit-logger cases (login success, login fail w/ NULL user, permission change, delete, admin action)
+- 7 TOTP cases (secret length+alphabet, uniqueness, valid code accept, bad code reject, non-numeric reject, provisioning URI, empty-secret guard)
+- 3 backup-code cases (generate uniqueness, hash determinism, roundtrip + one-time-use)
+- 5 `user_needs_2fa` cases (admin True, trainer/reviewer/qa_lead False, None safe)
+- 1 policy-constants guard
+
+Regression: existing `users/tests/test_role_rbac.py` still 7/7 passing.
+
+#### Pending wire-in (next agent's job)
+
+1. **Apply `@ratelimit_login`** to the LS login POST (`label_studio/users/views.py` / `core.middleware` login form) and to the JWT login endpoint.
+2. **Apply `@ratelimit_password_reset`** to `users.api.UserResetPasswordAPI`.
+3. **Apply `@ratelimit_otp`** to the WA-OTP request endpoint once that view lands (Step 11 follow-up).
+4. **Apply `@ratelimit_api`** (or a dedicated DRF throttle class) to unauthenticated API mounts.
+5. **Audit-log call sites:** invoke `audit_logger.log_login` from the login view (both success + fail paths), `log_permission_change` from the role-edit serializer, `log_delete` from `User`/`Project` hard-delete endpoints.
+6. **TOTP enrollment + challenge:** add `/api/totp/enroll`, `/api/totp/verify`, `/api/totp/backup-codes` endpoints + a middleware that forces admins through TOTP on each session (`user_needs_2fa` gate).
+7. **DRF exception handler** — register `handle_ratelimited` or equivalent so `Ratelimited` becomes a 429 JSON response globally.
+8. **CSP tightening** — audit existing `django-csp` settings and remove `'unsafe-inline'` from `script-src` where possible.
+9. **Retention cron** — Phase 2 job to delete `AuditLog` rows older than 2 years.
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Production-grade security defaults missing — koi rate limit nahi tha (brute-force login / OTP spam open), security headers (HSTS / X-Frame-Options) nahi the (clickjacking + downgrade attacks possible), audit log nahi tha (kaun kab login hua / role change kiya — trace nahi ho sakta), aur 2FA scaffold nahi tha (admin account compromise = puri tenancy compromise).
+- Usse kya ho rha tha: Compliance bhi fail, audit bhi fail, aur ek admin password leak hone pe attacker pure data ko access kar sakta tha bina kisi second factor ke. Plus kisi bhi incident ke baad "kaun kya kiya" trace karne ka koi tareeka nahi tha.
+- Ab fix ke baad kya hoga: 4 rate-limit decorators ready (login 5/15m, API 100/m, OTP 3/15m, password reset 3/hr), security headers har response pe automatically set, `AuditLog` table ready (login attempts + role changes + deletes + admin actions sab record honge), 2FA scaffold ready (TOTP + 10 backup codes — admin role ke liye MANDATORY rule encoded). Next agent decorators ko views pe lagayega + TOTP enrollment UI banayega — abhi sirf building blocks + 29 tests green.
+
+---
+
 ## Log Update Rules
 
 - Every new file → `Files Created` table
