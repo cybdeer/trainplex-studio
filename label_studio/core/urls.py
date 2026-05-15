@@ -18,7 +18,14 @@ Including another URLconf
 
 from core import views
 from core.utils.static_serve import serve
+from core.views_audit import AdminAuditLogAPI
+from core.views_broadcast import (
+    AdminWhatsAppBroadcastAPI,
+    AdminWhatsAppBroadcastHistoryAPI,
+    AdminWhatsAppTemplatesAPI,
+)
 from core.views_dashboard import AdminDashboardSnapshotAPI
+from core.views_heatmap import AdminHeatmapStateActivityAPI
 from core.views_template_gallery import (
     AdminProjectWizardCreateAPI,
     AdminTemplateCatalogAPI,
@@ -92,6 +99,41 @@ urlpatterns = [
         'api/v1/admin/projects/wizard',
         AdminProjectWizardCreateAPI.as_view(),
         name='admin-project-wizard-create',
+    ),
+    # TrainPlex — Phase 1 Step 4.2-4: Admin Audit Log viewer
+    # Paginated read-only view over users.AuditLog. Filters: action, actor email,
+    # target_type, success, date range. Admin role only.
+    path(
+        'api/v1/admin/audit/log',
+        AdminAuditLogAPI.as_view(),
+        name='admin-audit-log',
+    ),
+    # TrainPlex — Phase 1 Step 4.2-6: Admin India geographic heatmap.
+    # Per-state active trainers + submissions + earnings for the requested period.
+    # Mock data in Phase 1; real aggregation lands in Phase 2 (Step 8).
+    path(
+        'api/v1/admin/heatmap/state-activity',
+        AdminHeatmapStateActivityAPI.as_view(),
+        name='admin-heatmap-state-activity',
+    ),
+    # TrainPlex — Phase 1 Step 4.2-7: Admin WhatsApp Broadcast.
+    # Templates list, fan-out send (mock AiSensy in Phase 1), and history log.
+    # All three are admin-only via @require_role(['admin']). Send is rate-limited
+    # to 3 broadcasts per hour per admin.
+    path(
+        'api/v1/admin/wa/templates',
+        AdminWhatsAppTemplatesAPI.as_view(),
+        name='admin-wa-templates',
+    ),
+    path(
+        'api/v1/admin/wa/broadcast',
+        AdminWhatsAppBroadcastAPI.as_view(),
+        name='admin-wa-broadcast',
+    ),
+    path(
+        'api/v1/admin/wa/broadcast/history',
+        AdminWhatsAppBroadcastHistoryAPI.as_view(),
+        name='admin-wa-broadcast-history',
     ),
     re_path(r'health/', views.health, name='health'),
     re_path(r'metrics/', views.metrics, name='metrics'),

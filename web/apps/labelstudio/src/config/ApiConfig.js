@@ -103,6 +103,22 @@ export const API_CONFIG = {
     adminTemplateCatalog: "GET:/v1/admin/templates/catalog",
     adminProjectWizardCreate: "POST:/v1/admin/projects/wizard",
 
+    // TrainPlex — Phase 1 Step 4.2-4: Admin audit-log viewer.
+    // Paginated read-only listing over users.AuditLog. Query params: action,
+    // actor_email, target_type, success, start_date, end_date, page, page_size.
+    adminAuditLog: "GET:/v1/admin/audit/log",
+
+    // TrainPlex — Phase 1 Step 4.2-6: Admin India geographic heatmap.
+    // Accepts ?period=today|week|month (default month). Mock data in Phase 1;
+    // real DB aggregation lands in Phase 2 / Step 8.
+    adminHeatmapStateActivity: "GET:/v1/admin/heatmap/state-activity",
+
+    // TrainPlex — Phase 1 Step 4.2-7: Admin WhatsApp Broadcast.
+    // Templates list, fan-out send (mock AiSensy in Phase 1), and history.
+    adminWaTemplates: "GET:/v1/admin/wa/templates",
+    adminWaBroadcast: "POST:/v1/admin/wa/broadcast",
+    adminWaBroadcastHistory: "GET:/v1/admin/wa/broadcast/history",
+
     // TrainPlex — Phase 1 Step 12.4: TOTP 2FA endpoints (admin + qa_lead only).
     twoFactorEnrollStart: "POST:/v1/users/me/2fa/enroll/start",
     twoFactorEnrollConfirm: "POST:/v1/users/me/2fa/enroll/confirm",

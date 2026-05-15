@@ -1,0 +1,317 @@
+/*
+ * WhatsAppBroadcast styles — TrainPlex Phase 1 Step 4.2-7.
+ *
+ * Visual language:
+ *   - TrainPlex Indigo header (matches the rest of the admin shell)
+ *   - WhatsApp Green (#25D366) accents on send button, status chips, and the
+ *     preview pane left border so the page is instantly identifiable as WA.
+ *
+ * Layout: top picker → middle trainer selector → bottom preview + send.
+ * Reuses the filter-chip / table styles from ProjectWizard verbatim so the
+ * admin sees the same control affordances they already learned in Step 4.2-2.
+ */
+
+.waRoot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-6, 24px);
+  font-family: var(--tp-font-ui, 'Inter', system-ui, sans-serif);
+}
+
+.waHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--tp-space-4, 16px) var(--tp-space-6, 24px);
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.waTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: var(--tp-font-display, 'Inter Tight', 'Inter', system-ui, sans-serif);
+}
+
+.waSubtitle {
+  font-size: 0.8125rem;
+  opacity: 0.8;
+}
+
+.headerActions {
+  display: flex;
+  gap: var(--tp-space-2, 8px);
+}
+
+/* ── Section heading ─────────────────────────────────────────── */
+
+.sectionHeading {
+  margin: 0 0 var(--tp-space-3, 12px) 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-4, 16px);
+  background: #FFFFFF;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+/* ── Template picker ─────────────────────────────────────────── */
+
+.templatePicker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-2, 8px);
+}
+
+.templateSelectLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.templateSelect {
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  font-size: 1rem;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  background: #FFFFFF;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.templateSelect:focus {
+  outline: none;
+  border-color: var(--tp-color-indigo-500, #1A1A5E);
+  box-shadow: 0 0 0 3px rgba(26, 26, 94, 0.08);
+}
+
+.templateDescription {
+  margin-top: var(--tp-space-2, 8px);
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  background: var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-size: 0.875rem;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.templateDescriptionHi {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  margin-top: 2px;
+}
+
+/* ── Preview pane (WhatsApp Green accent) ───────────────────── */
+
+.previewWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-3, 12px);
+}
+
+.previewBubble {
+  position: relative;
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  background: #DCF8C6; /* WhatsApp sent-bubble light green */
+  border-radius: 8px;
+  border-left: 4px solid #25D366; /* WhatsApp brand green */
+  font-size: 0.9375rem;
+  color: #303030;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.previewMeta {
+  font-size: 0.75rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+/* ── Send button + counts ────────────────────────────────────── */
+
+.sendRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--tp-space-3, 12px);
+  flex-wrap: wrap;
+}
+
+.selectedCount {
+  font-size: 0.9375rem;
+  color: var(--tp-color-indigo-700, #121242);
+  font-weight: 500;
+}
+
+.sendBtn {
+  background: #25D366; /* WhatsApp green CTA */
+  border-color: #25D366;
+  color: #FFFFFF;
+  min-width: 200px;
+}
+
+.sendBtn:hover {
+  background: #1FB754;
+  border-color: #1FB754;
+}
+
+.sendBtn:disabled {
+  background: #CCCCCC;
+  border-color: #CCCCCC;
+  cursor: not-allowed;
+}
+
+/* ── Result / banner ─────────────────────────────────────────── */
+
+.successBanner {
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  background: rgba(37, 211, 102, 0.12);
+  color: #14592F;
+  border-left: 4px solid #25D366;
+  border-radius: var(--tp-radius-sm, 2px);
+  font-size: 0.9375rem;
+}
+
+.errorBanner {
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  background: var(--tp-color-error-bg, #FEE2E2);
+  color: var(--tp-color-error, #DC2626);
+  border-left: 4px solid var(--tp-color-error, #DC2626);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+/* ── History drawer ──────────────────────────────────────────── */
+
+.historyToggle {
+  background: transparent;
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 4px 10px;
+  border-radius: var(--tp-radius-sm, 2px);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.historyToggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.drawerBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  z-index: 50;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(480px, 100vw);
+  background: #FFFFFF;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
+  z-index: 51;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--tp-space-4, 16px);
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+}
+
+.drawerHeading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.drawerClose {
+  background: transparent;
+  color: #FFFFFF;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.drawerBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--tp-space-3, 12px);
+}
+
+.historyEmpty {
+  padding: var(--tp-space-6, 24px);
+  text-align: center;
+  font-style: italic;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.historyRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--tp-space-3, 12px);
+  border-bottom: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  font-size: 0.875rem;
+}
+
+.historyRow:last-child { border-bottom: 0; }
+
+.historyMeta {
+  display: flex;
+  gap: var(--tp-space-2, 8px);
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.statusChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--tp-radius-full, 9999px);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status_sent     { background: rgba(37, 211, 102, 0.16); color: #14592F; }
+.status_failed   { background: #FEE2E2; color: #DC2626; }
+.status_skipped  { background: #FEF3C7; color: #92400E; }
+.status_queued   { background: #DBEAFE; color: #1E40AF; }
+
+/* ── 403 / forbidden ─────────────────────────────────────────── */
+
+.errorBox {
+  padding: var(--tp-space-4, 16px);
+  background: var(--tp-color-error-bg, #FEE2E2);
+  color: var(--tp-color-error, #DC2626);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-weight: 500;
+}
+
+.loadingBox {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-6, 24px);
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}

@@ -82,3 +82,12 @@ class DeletedRow(models.Model):
             row_id = int(data['pk'])
             bulk_objects.append(cls(model=model, row_id=row_id, data=data, **kwargs))
         return cls.objects.bulk_create(bulk_objects)
+
+
+# ---------------------------------------------------------------------------
+# TrainPlex Phase 1 Step 4.2-7 — WhatsApp broadcast log.
+# Imported here so Django's app loader registers the model under `core`.
+# Defined in a sibling module to keep this file focused on upstream LS schema.
+# ---------------------------------------------------------------------------
+
+from core.models_broadcast import WhatsAppBroadcastLog  # noqa: E402,F401

@@ -1,0 +1,402 @@
+/*
+ * AuditLog styles — TrainPlex Phase 1 Step 4.2-4.
+ *
+ * Uses the brand tokens from `web/libs/ui/src/tokens/tokens.trainplex.css`:
+ *   - Indigo for headers, table chrome, sticky header background
+ *   - Orange for the primary CTA (Apply / Refresh)
+ *   - Red for "Failed" status badges
+ *
+ * Layout principles
+ * -----------------
+ * - Filter bar sits above the table on desktop; wraps to two rows on phones.
+ * - Table has a sticky header so the founder can scroll long lists.
+ * - Failed rows are subtly tinted red so eye finds them without scanning text.
+ * - Drawer slides in from the right; backdrop click closes.
+ */
+
+.auditRoot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-4, 16px);
+  font-family: var(--tp-font-ui, 'Inter', system-ui, sans-serif);
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+
+.auditHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--tp-space-4, 16px) var(--tp-space-6, 24px);
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.auditTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: var(--tp-font-display, 'Inter Tight', 'Inter', system-ui, sans-serif);
+}
+
+.totalCount {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Filter bar ─────────────────────────────────────────────────── */
+
+.filterBar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-3, 12px);
+  background: #FFFFFF;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-1, 4px);
+}
+
+.filterLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.filterInput,
+.filterSelect {
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  font-size: 0.9375rem;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  background: #FFFFFF;
+  color: var(--tp-color-indigo-700, #121242);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.filterInput:focus,
+.filterSelect:focus {
+  outline: none;
+  border-color: var(--tp-color-indigo-500, #1A1A5E);
+  box-shadow: 0 0 0 3px rgba(26, 26, 94, 0.08);
+}
+
+.filterActions {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--tp-space-2, 8px);
+}
+
+.ctaPrimary {
+  background: var(--tp-color-orange-500, #FF6B35);
+  border-color: var(--tp-color-orange-500, #FF6B35);
+  color: #FFFFFF;
+  padding: var(--tp-space-2, 8px) var(--tp-space-4, 16px);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  font-size: 0.9375rem;
+}
+
+.ctaPrimary:hover {
+  background: var(--tp-color-orange-600, #E55A26);
+  border-color: var(--tp-color-orange-600, #E55A26);
+}
+
+.ctaSecondary {
+  background: #FFFFFF;
+  color: var(--tp-color-indigo-700, #121242);
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  padding: var(--tp-space-2, 8px) var(--tp-space-4, 16px);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ctaSecondary:hover {
+  border-color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+/* ── Table ──────────────────────────────────────────────────────── */
+
+.tableWrap {
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  background: #FFFFFF;
+  overflow: auto;
+  max-height: 70vh;
+}
+
+.auditTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.auditTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--tp-color-indigo-50, #E8E8F0);
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-700, #121242);
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  border-bottom: 1px solid var(--tp-color-indigo-100, #D8D8E5);
+}
+
+.auditTable td {
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  border-bottom: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  color: var(--tp-color-indigo-700, #121242);
+  vertical-align: top;
+}
+
+.auditTable tbody tr {
+  cursor: pointer;
+  transition: background 100ms ease-out;
+}
+
+.auditTable tbody tr:hover {
+  background: rgba(26, 26, 94, 0.04);
+}
+
+.auditTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.failedRow {
+  background: rgba(220, 38, 38, 0.05);
+}
+
+.failedRow:hover {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.colWhen { white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 140px; }
+.colActor { min-width: 180px; }
+.colAction { min-width: 140px; }
+.colTarget { min-width: 120px; }
+.colIp { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.colStatus { white-space: nowrap; }
+
+.successBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--tp-radius-full, 9999px);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+}
+
+.failedBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--tp-radius-full, 9999px);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: rgba(220, 38, 38, 0.1);
+  color: #B91C1C;
+}
+
+.actionChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--tp-radius-sm, 2px);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--tp-color-indigo-50, #E8E8F0);
+  color: var(--tp-color-indigo-700, #121242);
+  font-family: var(--tp-font-mono, ui-monospace, monospace);
+}
+
+.emptyRow {
+  padding: var(--tp-space-6, 24px);
+  text-align: center;
+  font-style: italic;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+/* ── Pagination ─────────────────────────────────────────────────── */
+
+.paginationBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--tp-space-3, 12px) 0;
+  gap: var(--tp-space-3, 12px);
+  flex-wrap: wrap;
+}
+
+.paginationInfo {
+  font-size: 0.875rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.paginationControls {
+  display: flex;
+  gap: var(--tp-space-2, 8px);
+  align-items: center;
+}
+
+.pageButton {
+  padding: var(--tp-space-1, 4px) var(--tp-space-3, 12px);
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  background: #FFFFFF;
+  color: var(--tp-color-indigo-700, #121242);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.pageButton:hover:not(:disabled) {
+  border-color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.pageButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pageLabel {
+  font-size: 0.875rem;
+  color: var(--tp-color-indigo-700, #121242);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Drawer ─────────────────────────────────────────────────────── */
+
+.drawerBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 50;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drawer {
+  width: min(560px, 100vw);
+  background: #FFFFFF;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12);
+  animation: slideIn 200ms ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.drawerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--tp-space-4, 16px);
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+}
+
+.drawerTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.drawerCloseBtn {
+  background: transparent;
+  border: 0;
+  color: #FFFFFF;
+  cursor: pointer;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.drawerBody {
+  padding: var(--tp-space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-3, 12px);
+}
+
+.drawerSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-1, 4px);
+}
+
+.drawerLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.drawerValue {
+  font-size: 0.9375rem;
+  color: var(--tp-color-indigo-700, #121242);
+  word-break: break-all;
+}
+
+.drawerMetadata {
+  background: var(--tp-color-indigo-50, #E8E8F0);
+  padding: var(--tp-space-3, 12px);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-family: var(--tp-font-mono, ui-monospace, monospace);
+  font-size: 0.8125rem;
+  color: var(--tp-color-indigo-700, #121242);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* ── Loading / error ───────────────────────────────────────────── */
+
+.loadingBox {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-6, 24px);
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  justify-content: center;
+}
+
+.errorBox {
+  padding: var(--tp-space-4, 16px);
+  background: var(--tp-color-error-bg, #FEE2E2);
+  color: var(--tp-color-error, #DC2626);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-weight: 500;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .filterBar {
+    grid-template-columns: 1fr;
+  }
+}

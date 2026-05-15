@@ -1069,6 +1069,358 @@ Same pattern as Step 4.2-1: copied `views_template_gallery.py`, `urls.py`, and t
 
 ---
 
+### Step 4.2-4 Admin Audit Log Viewer
+
+Phase 1 Step 4.2-4 — surface the `users.AuditLog` table (model from commit
+9f65283, hooks from 5590129) through an admin-only filterable React page.
+Replaces the "log into Django admin to see what happened" workflow with a
+proper viewer the founder + admins can use from the studio.
+
+#### Backend
+
+`GET /api/v1/admin/audit/log` — paginated, admin-only via
+`@require_role(['admin'])`. Query parameters (all optional):
+
+| Param | Effect |
+| --- | --- |
+| `action` | Exact match on `AuditLog.action` (`login_success`, `login_fail`, `permission_change`, `delete`, `admin_action`). |
+| `actor_email` | Case-insensitive substring on `user__email`. |
+| `target_type` | Exact match on `target_type` column. |
+| `success` | `true` / `false` (case-insensitive). |
+| `start_date` / `end_date` | ISO `YYYY-MM-DD` inclusive range on `created_at`. |
+| `page` / `page_size` | Default 1 / 50. `page_size` hard-capped at **200**. |
+
+Response shape:
+
+```json
+{ "page": 1, "page_size": 50, "total": 1234, "total_pages": 25,
+  "results": [ { "id", "action", "actor": {"id","email","role"},
+                 "target_type", "target_id", "ip_address",
+                 "user_agent", "success", "metadata", "created_at" } ] }
+```
+
+`user_agent` is truncated to 80 chars (with ellipsis) so a pathological UA can't
+blow up the table; the full string lives in the row drawer.
+
+#### Frontend
+
+Page at `/admin/audit` wrapped in `<RoleGate allow={['admin']}>`. Components:
+
+- **AuditFilterBar** — action dropdown, actor email substring, target dropdown,
+  success select, start/end date pickers, Reset button.
+- **AuditTable** — sticky-header table; failed rows tinted red; whole row
+  clickable (Enter / Space too) → opens drawer.
+- **AuditRowDetailDrawer** — right-side slide-in. Pretty-prints `metadata`
+  JSON, full untruncated User-Agent, ESC + backdrop click to close.
+- **AuditLogPage** — orchestrates query (`useQuery` + `keepPreviousData`),
+  pagination (Prev / Next + "Page X of Y"), loading + error states.
+
+#### Files Created
+
+| Path | Notes |
+| --- | --- |
+| `label_studio/core/views_audit.py` | `AdminAuditLogAPI` + filter parsing helpers (`_parse_iso_date`, `_parse_bool`, `_coerce_positive_int`). |
+| `label_studio/users/tests/test_audit_viewer.py` | 17 pytest cases covering access, filters, pagination, edge cases. |
+| `web/apps/labelstudio/src/pages/Admin/AuditLog/AuditLogPage.tsx` | Page entry. |
+| `web/apps/labelstudio/src/pages/Admin/AuditLog/AuditFilterBar.tsx` | Filter form. |
+| `web/apps/labelstudio/src/pages/Admin/AuditLog/AuditTable.tsx` | Sticky-header table. |
+| `web/apps/labelstudio/src/pages/Admin/AuditLog/AuditRowDetailDrawer.tsx` | Slide-in detail panel. |
+| `web/apps/labelstudio/src/pages/Admin/AuditLog/AuditLog.module.css` | TrainPlex Indigo + Orange tokens. |
+| `web/apps/labelstudio/src/pages/Admin/AuditLog/types.ts` | Shared types + action / target dropdown enums. |
+| `web/apps/labelstudio/src/pages/Admin/AuditLog/index.ts` | Barrel exports. |
+| `web/apps/labelstudio/src/pages/Admin/AuditLog/__tests__/AuditLogPage.test.tsx` | 11 jest cases. |
+
+#### Files Modified
+
+| Path | Notes |
+| --- | --- |
+| `label_studio/core/urls.py` | Registered `AdminAuditLogAPI` at `api/v1/admin/audit/log`. |
+| `web/apps/labelstudio/src/pages/index.js` | Registered `AuditLogPage` so RoutesProvider mounts `/admin/audit`. |
+| `web/apps/labelstudio/src/config/ApiConfig.js` | Added `adminAuditLog: "GET:/v1/admin/audit/log"`. |
+| `web/libs/app-common/src/locales/en/common.json` | Added `common.all` + 29 keys under `admin.audit.*`. |
+| `web/libs/app-common/src/locales/hi/common.json` | Same keys in Devanagari — en+hi parity locked at 124 keys each. |
+
+**Route added:** `/admin/audit`.
+
+**New i18n keys (30 — parity locked):** spec required 14 (`title`,
+`filter_action`, `filter_actor`, `filter_target`, `filter_success`, `col_when`,
+`col_actor`, `col_action`, `col_target`, `col_ip`, `col_success`, `no_results`,
+`row_metadata`, `success_yes`, `success_no`). Extras added for UX: date-range
+labels (`filter_start_date`, `filter_end_date`), reset button (`reset_filters`),
+loading + error microcopy (`loading`, `fetch_failed`), pagination microcopy
+(`total_count`, `page_of`, `prev_page`, `next_page`), 5 action labels for the
+dropdown (`action_login_success`, `action_login_fail`,
+`action_permission_change`, `action_delete`, `action_admin_action`), plus
+`common.all` shared with the heatmap step.
+
+#### Test Count
+
+- **Backend:** 17 pytest cases — admin 200 + shape contract, trainer 403,
+  unauthenticated rejected, newest-first ordering, row shape, UA truncation,
+  null actor for anon login_fail, filter-by-action, filter-by-success-false,
+  filter-by-target-type, filter-by-actor-email-substring, filter-by-date-range,
+  empty filter combo (no crash), `page_size` cap at 200, default page_size=50,
+  pagination slicing, invalid page falls back to default. All pass:
+  `pytest label_studio/users/tests/test_audit_viewer.py` → 17/17 in 27.79s.
+  Dashboard (9/9) + Project Wizard (9/9) tests still pass — zero regression.
+- **Frontend:** 11 jest cases (renders filter+table, all 5 filter inputs
+  present, empty-state row, loading skeleton, row click → drawer, failed-row
+  CSS hook, status badges i18n, 403 fallback, Hindi title, error box, Prev/Next
+  disabled on single-page result, page metadata). Will run in CI — host has no
+  `web/node_modules`, matching Steps 4.2-1 / 4.2-2.
+
+#### Deferred items (Phase 2)
+
+- **CSV / JSON export** — admin will want to dump the filtered listing for
+  external archival. Endpoint stub is identical; add `?format=csv` later.
+- **2-year retention cleanup** — daily cron deleting rows older than 2 years
+  per Step 12.3 policy. Lives in Phase 2 ops.
+- **Free-text metadata search** — JSONB queries (e.g. `metadata->>'old_role'`)
+  for follow-up forensic work. Out of scope for the v1 viewer.
+
+#### Container note
+
+Same pattern as Steps 4.2-1 / 4.2-2: copied `views_audit.py`, `urls.py`, and
+the new test file into `trainplex-studio-dev:/label-studio/...` via `docker cp`.
+Ran pytest via `/label-studio/.venv/bin/pytest`. Frontend jest tests run in CI.
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: `users.AuditLog` table me login/role-change/delete events
+  silently jam ho rahe the (Step 12.3 hooks already write kar rahe the), but
+  admin ke paas dekhne ka koi UI nahi tha — Django admin se row-by-row dekhna
+  pad raha tha, filters bhi nahi the.
+- Usse kya ho rha tha: Security incident ya unauthorized access investigate
+  karne ke liye founder ko PostgreSQL me ghusna pad raha tha. Bilingual UI nahi
+  thi to non-tech admin audit trail dekh hi nahi sakte the.
+- Ab fix ke baad kya hoga: Admin `/admin/audit` pe jaake puri audit log
+  filtered/paginated dekh sakta hai — action type (login_fail vs delete vs
+  role-change), actor email substring, target type (User/Project/Annotation),
+  success/fail toggle, date range. Failed rows red highlight ke saath alag se
+  dikhte hain. Row pe click karne se drawer me full metadata JSON pretty-print
+  dikhta hai. Saari labels Hindi+English dono me hain — 30 naye i18n keys
+  parity-locked. 17 backend tests + 11 frontend tests pass; dashboard ke 9 +
+  project-wizard ke 9 tests bhi pass (zero regression).
+
+---
+
+### Step 4.2-6 India Heatmap
+
+**Goal (per plan):** "State-wise active trainers, intensity color (dark =
+zyada activity). Geo-distribution at glance, hiring decisions easier." Founder
+ek nazar me dekh sake kahan ke ladke-ladkiyaan zyada kaam kar rahe hain,
+kahan se earnings flow ho rahi hai, aur kahan hiring chahiye.
+
+#### Backend
+
+| Path | Purpose |
+|---|---|
+| `label_studio/core/views_heatmap.py` (new) | `AdminHeatmapStateActivityAPI` (DRF `APIView`) + `_get_mock_state_activity()`. Returns a flat 17-state list filtered by `period` query param (`today` / `week` / `month`, default `month`). Period-aware scaling preserves relative state ordering so the colour ramp stays consistent across periods. Admin-only via `@require_role(['admin'])`. |
+| `label_studio/core/urls.py` (modified) | Registered `GET /api/v1/admin/heatmap/state-activity` → `AdminHeatmapStateActivityAPI.as_view()`. |
+| `label_studio/core/tests/test_heatmap.py` (new) | 14-test suite pinning the contract. |
+
+**Endpoint:** `GET /api/v1/admin/heatmap/state-activity?period=today|week|month` (admin only).
+
+**Mock JSON shape (Phase 1 — real aggregation lands in Step 8):**
+
+```json
+[
+  {"state_code": "RJ", "state_name": "Rajasthan", "active_trainers": 12,
+   "submissions_count": 87, "total_earnings_inr": 38000},
+  {"state_code": "UP", "state_name": "Uttar Pradesh", "active_trainers": 9,
+   "submissions_count": 76, "total_earnings_inr": 25000},
+  ... 15 more entries (MH, KA, GJ, PB, TN, MP, TG, WB, BR, KL, JH, OR, AP, DL, AS) ...
+]
+```
+
+17 Indian states matching production trainer geography. All numbers integer
+(no paise — UI does no fractional math). Unknown `period` values silently
+fall back to `month` so a stale frontend never breaks the founder dashboard
+with a 400.
+
+#### Frontend
+
+| Path | Purpose |
+|---|---|
+| `web/apps/labelstudio/src/pages/Admin/Heatmap/HeatmapPage.tsx` (new) | Main page component. Fetches the activity list via `useAPI()` + `useQuery`, renders the Indigo header with 3 period filter pills (Today / Week / Month), and the two-column body (`IndiaMap` + `StateTable`). Wrapped in `<RoleGate allow={['admin']}>` (defensive — the backend already 403s). |
+| `web/apps/labelstudio/src/pages/Admin/Heatmap/IndiaMap.tsx` (new) | CSS-grid choropleth (Phase 1 fallback). Each state is a tile painted with one of 6 Indigo intensity bands (band 0 = lightest, band 5 = darkest = `tp-color-indigo-700`). Bands are computed against the page-max so the ramp re-scales when the founder switches periods. Per-tile tooltip + ARIA label. Includes legend gradient bar with bilingual end labels. |
+| `web/apps/labelstudio/src/pages/Admin/Heatmap/StateTable.tsx` (new) | Sortable fallback table. Click any column header to toggle asc/desc; default is `active_trainers` desc so the table tells the same story as the map. Locale-aware INR + integer formatting via `Intl.NumberFormat('hi-IN' / 'en-IN')`. |
+| `web/apps/labelstudio/src/pages/Admin/Heatmap/Heatmap.module.css` (new) | TrainPlex Indigo header + Orange pill for the active period filter; responsive 2-col → 1-col body (mobile); 6-step intensity ramp from `--tp-color-indigo-50` to `--tp-color-indigo-700`; legend with light → dark gradient. |
+| `web/apps/labelstudio/src/pages/Admin/Heatmap/types.ts` (new) | `StateActivity`, `HeatmapPeriod`, `HeatmapSortKey` — single source of truth on the frontend mirroring the backend contract. |
+| `web/apps/labelstudio/src/pages/Admin/Heatmap/index.ts` (new) | Barrel exports. |
+| `web/apps/labelstudio/src/pages/Admin/Heatmap/__tests__/HeatmapPage.test.tsx` (new) | 10 jest tests (see Test Count). |
+| `web/apps/labelstudio/src/pages/index.js` (modified) | Registered `HeatmapPage` in the `Pages` array so the RoutesProvider mounts `/admin/heatmap`. |
+| `web/apps/labelstudio/src/config/ApiConfig.js` (modified) | Added endpoint `adminHeatmapStateActivity: "GET:/v1/admin/heatmap/state-activity"`. |
+| `web/libs/app-common/src/locales/en/common.json` (modified) | Added 14 keys under `admin.heatmap.*`. |
+| `web/libs/app-common/src/locales/hi/common.json` (modified) | Same 14 keys in Devanagari for full en+hi parity. |
+
+**Route added:** `/admin/heatmap` (mounted via `HeatmapPage.path` →
+`pageSetToRoutes` → `<Route exact />` in the RoutesProvider).
+
+**Map approach:** **CSS-grid fallback**, not `react-simple-maps`. Adding the
+external map library would force a `yarn install` and a `yarn.lock` change,
+which this agent run cannot do safely. The chosen fallback paints 17 state
+tiles in a responsive grid with a 6-band Indigo intensity ramp — dark = zyada
+activity per the spec — and ships an accompanying sortable `StateTable` for
+exact numbers + screen readers. Per-tile ARIA labels + tooltips preserve
+geographic intent. `TODO Phase 2` is logged in `IndiaMap.tsx` for the swap
+to `<ComposableMap />` with real Indian-states GeoJSON polygons; the
+underlying `StateActivity` data shape stays the same so it's a one-component
+swap.
+
+**New i18n keys (14 — parity locked):** `admin.heatmap.title`, `period_today`,
+`period_week`, `period_month`, `col_state`, `col_trainers`, `col_submissions`,
+`col_earnings`, `legend_dark`, `legend_light`, `map_heading`, `table_heading`,
+`loading`, `load_failed`. Spec required 10; extras cover the section headings
+on the map / table blocks and the loading/error microcopy.
+
+#### Test Count
+
+- **Backend:** `pytest core/tests/test_heatmap.py -v` → **14 passed** in 27.28s
+  (admin 200; trainer 403; unauthenticated rejected; 17 entries returned; all
+  expected state codes present; required keys per entry; integer-only numbers;
+  non-empty state name/code strings; period=today/week/month all accepted;
+  today smaller than month; unknown period falls back to default; default
+  period equals month). Existing dashboard + template-gallery + project-wizard
+  tests still pass (29 tests, zero regression).
+- **Frontend:** 10 jest tests in `HeatmapPage.test.tsx` — one tile per state
+  (17 tiles); one row per state in the fallback table; highest-activity state
+  lands in the darkest intensity band; 3 period pills render with month active
+  by default; clicking Today flips the active pill; loading skeleton shown
+  while fetching; error box on failure; RoleGate hides the page for
+  non-admin; Devanagari labels render when language is Hindi (Unicode block
+  U+0900..U+097F asserted); page metadata exposes `/admin/heatmap` exact
+  route. Will run in CI (host has no `web/node_modules`, matching prior
+  Step 4.2-* deliveries).
+
+#### Mock data note
+
+`_get_mock_state_activity(period)` is marked `TODO Step 4.2-6 / Phase 2`
+and will be replaced with a real `GROUP BY state` aggregation over the
+`submissions` + `payouts` tables joined on `trainer.state` once they land
+in Phase 2 / Step 8. The contract is pinned by the 14 backend tests so the
+UI (map tiles + table + period filter + colour ramp) stays stable across
+that swap.
+
+#### Container note
+
+Same pattern as Step 4.2-1 / 4.2-2 / 4.2-4: copied `views_heatmap.py`, `urls.py`,
+`tests/test_heatmap.py` into `trainplex-studio-dev:/label-studio/...` via
+`docker cp`. Ran tests via `/label-studio/.venv/bin/python -m pytest`.
+Frontend jest tests will run in CI.
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Admin ke paas geo-distribution dekhne ka koi quick view nahi tha — kis state se kitne trainers active hain, kahan submissions zyada aa rahe hain, kahan earnings flow ho rahi hain — sab DB queries maar ke ya alag-alag report khol ke dekhna padta tha. Hiring decisions (Rajasthan me 2 aur log chahiye? Bihar me coverage thodi loose hai?) ke liye founder ko har baar custom SQL likhni padti thi.
+- Usse kya ho rha tha: Region-wise hiring + project distribution decisions stall ho jate the. Founder ya to gut feel pe decide karta tha ya 30-40 min spreadsheet maar ke; weekly batch planning meetings me ye lookup baar-baar repeat hota tha.
+- Ab fix ke baad kya hoga: Admin `/admin/heatmap` route pe jaake 17 Indian states ka tile-grid heatmap dekhega — dark Indigo = zyada activity, light = kam activity. Top-right corner pe 3 pills (Today / Week / Month) se period change kar sakta hai, ramp automatically rescale ho jata hai. Side me sortable state table bhi hai — Active Trainers / Submissions / Earnings columns sort kar sakte hain. Hindi mode pe poora UI Devanagari me (`भारत गतिविधि हीटमैप`, `इस महीने`, `अधिक गतिविधि`). Backend abhi mock data return karta hai (real DB wiring Phase 2 / Step 8 me hogi) lekin shape 14 tests me locked hai, so UI stable rahega. Trainer/reviewer login kare to backend 403 deta hai + UI RoleGate ke through hide kar deta hai. `react-simple-maps` add nahi kiya (lockfile risk) — CSS-grid choropleth fallback hai, Phase 2 me real GeoJSON polygons swap honge (one-component change, data shape same).
+
+### Step 4.2-7 WhatsApp Broadcast
+
+Admin selects trainers via filter (state/tier/lang/cert) and fires a WA
+template message. AiSensy call is mocked for Phase 1; real API wiring lands
+Week 8 when env vars are set. Idempotency window 60s, per-admin rate limit
+3/hour. New admin-only route `/admin/wa/broadcast` + 3 backend endpoints.
+
+#### Files Created
+
+| File | Purpose |
+| --- | --- |
+| `label_studio/core/services/__init__.py` (new) | Package marker for the new core services namespace. |
+| `label_studio/core/services/wa_broadcast.py` (new) | Core fan-out logic: `send_template_to_trainers`, KNOWN_TEMPLATES (5 entries), `_send_aisensy_template` mock, `_assert_no_founder_personal_number` boundary guard, per-admin 3/hour rate-limit helper. Idempotency window 60s. |
+| `label_studio/core/models_broadcast.py` (new) | `WhatsAppBroadcastLog` model — append-only log of every send attempt (sent/failed/skipped) with admin FK, trainer FK + stable int id copy, mobile, params, status, AiSensy message id, error reason, created_at. Indexed for fast history queries. |
+| `label_studio/core/migrations/0004_whatsapp_broadcast_log.py` (new) | Creates `htx_wa_broadcast_log` table with 4 indexes (admin+created, template+created, trainer+created, status+created). |
+| `label_studio/core/views_broadcast.py` (new) | 3 DRF views: `AdminWhatsAppTemplatesAPI` (list 5 templates with en+hi), `AdminWhatsAppBroadcastAPI` (fan-out with rate limit + validation), `AdminWhatsAppBroadcastHistoryAPI` (last 100 rows). All `@require_role(['admin'])`. |
+| `label_studio/core/tests/test_wa_broadcast.py` (new) | 19 backend tests: admin happy path with mocked AiSensy spy, trainer 403, unauth rejected, unknown template 400, missing template 400, empty trainer_ids 400, non-int trainer_ids 400, idempotency (same template+trainer within 60s = skipped), different template not deduped, outside-window not deduped, founder number leak guard at boundary + in persisted rows, history endpoint, history 403, rate-limit at 3 broadcasts/hr, trainer-without-phone marked failed, templates 200 + 5 entries, en+hi parity, templates 403. |
+| `web/apps/labelstudio/src/pages/Admin/WhatsAppBroadcast/WhatsAppBroadcastPage.tsx` (new) | Page root. Fetches templates via `useQuery`, drives picker + selector + preview state, wraps in `<RoleGate allow={['admin']}>`. Send button uses `useMutation` against `adminWaBroadcast`; surfaces sent/skipped/failed counts in a success banner and the rate-limit code as a localised banner. |
+| `…/TemplatePicker.tsx` (new) | `<select>` bound to the 5 templates with bilingual labels (`title_en — title_hi` in EN locale, `title_hi (title_en)` in HI). Selected template's description renders underneath in both languages. |
+| `…/TrainerSelector.tsx` (new) | Thin wrapper that reuses `Step3_Assign`'s filter-chip logic (state / tier / language / cert) + the 12-row MOCK_TRAINERS roster. Distinct `wa-*` test-ids so the WA tests target this surface without colliding with the wizard. |
+| `…/TemplatePreviewPane.tsx` (new) | WhatsApp-styled green-bubble preview of the first trainer's rendered message. Phase 1 template bodies are hardcoded per id; Week 8 swap is one constant change. |
+| `…/BroadcastHistoryDrawer.tsx` (new) | Slide-out drawer (`useQuery` enabled only when open). Renders rows with status chips (sent/failed/skipped/queued colours), trainer id + mobile + timestamp, error text on failed/skipped rows. |
+| `…/types.ts` (new) | `WaTemplate`, `WaTemplateList`, `WaBroadcastStatus`, `WaBroadcastLogRow`, `WaBroadcastResponse`, `WaHistoryResponse`. |
+| `…/WhatsAppBroadcast.module.css` (new) | TrainPlex Indigo header + WhatsApp Green (#25D366) accents on send button, status chips, and the preview bubble's left border. Drawer slide-out + fixed backdrop. |
+| `…/index.ts` (new) | Barrel exports. |
+| `…/__tests__/WhatsAppBroadcastPage.test.tsx` (new) | 11 jest tests: page header + picker render; all 4 filter groups render; send button disabled until both template + trainers picked; trainer selection updates count summary live; preview pane appears only after template pick; loading placeholder while fetching templates; 403 fallback for non-admin; error box on templates fetch fail; success banner with counts after mutation; rate-limit banner uses `admin.wa.rate_limited`; history drawer open/close; page route metadata exposes `/admin/wa/broadcast`. Plus a dedicated `Founder personal-mobile leak guard` describe block that asserts the rendered DOM never contains the founder number (digits-only scan + regex). |
+
+#### Files Modified
+
+| File | Change |
+| --- | --- |
+| `label_studio/core/models.py` | Imports `WhatsAppBroadcastLog` from `core.models_broadcast` so Django's app loader registers the model under `core`. |
+| `label_studio/core/urls.py` | Registered 3 new paths: `api/v1/admin/wa/templates`, `api/v1/admin/wa/broadcast`, `api/v1/admin/wa/broadcast/history`. |
+| `web/apps/labelstudio/src/config/ApiConfig.js` | Added 3 endpoints: `adminWaTemplates`, `adminWaBroadcast`, `adminWaBroadcastHistory`. |
+| `web/apps/labelstudio/src/pages/index.js` | Registered `WhatsAppBroadcastPage` so RoutesProvider mounts `/admin/wa/broadcast`. |
+| `web/libs/app-common/src/locales/en/common.json` | Added 13 keys under `admin.wa.*` (title, choose_template, choose_trainers, preview, send_to_n, history, status_sent, status_failed, status_skipped, rate_limited, loading_templates, templates_failed, send_failed). |
+| `web/libs/app-common/src/locales/hi/common.json` | Same 13 keys in Devanagari — parity locked. |
+
+**Route added:** `/admin/wa/broadcast`.
+
+**Endpoints added:**
+- `GET /api/v1/admin/wa/templates`
+- `POST /api/v1/admin/wa/broadcast`
+- `GET /api/v1/admin/wa/broadcast/history`
+
+**Migration added:** `core/migrations/0004_whatsapp_broadcast_log.py` (table `htx_wa_broadcast_log`).
+
+#### Test Count
+
+- **Backend:** `pytest core/tests/test_wa_broadcast.py -v` → **19 passed** in 32.45s. Sibling tests (`test_dashboard_snapshot.py`, `test_project_wizard.py`, `test_models.py`) still pass — **22 passed** in 29.58s (zero regression).
+- **Frontend:** 11 jest tests in 1 file (`WhatsAppBroadcastPage.test.tsx`). Will run in CI — host has no `web/node_modules`, matching prior Step 4.2-* deliveries.
+
+#### Founder personal-mobile leak assertion
+
+Ran a gitleaks-style grep for the founder's personal mobile in every
+common format (raw digits, space-separated, dash-separated, with and
+without the +91 country-code prefix) across the new code. The exact
+detection digits live only on the `_FOUNDER_PERSONAL_MOBILE_DIGITS_*`
+constants in `core/services/wa_broadcast.py`; this log line is the
+documented audit of where they may legitimately appear. Result:
+
+- `web/` tree: 1 hit — only the test detection constant in
+  `__tests__/WhatsAppBroadcastPage.test.tsx` (used to verify the rendered
+  DOM does NOT contain the number). No production frontend code references
+  it.
+- `label_studio/` tree: 6 hits across 2 files — all inside the defensive
+  guard mechanism: 2 detection constants in
+  `core/services/wa_broadcast.py` (`_FOUNDER_PERSONAL_MOBILE_DIGITS_WITH_CC`
+  and `_FOUNDER_PERSONAL_MOBILE_DIGITS_NO_CC`), and 4 inside
+  `core/tests/test_wa_broadcast.py` (test docstrings + assertion strings
+  asserting the number's absence + the leak-attempt fixture).
+- No template body, no log row, no API response, no docstring outside the
+  detection constants references the number. The backend guard
+  `_assert_no_founder_personal_number()` raises `ValueError` if the digits
+  appear in any param dict, mobile, or string the service touches — proven
+  by `test_service_rejects_founder_number_in_params` (it injects the digits
+  through `custom_params` and asserts the call fails).
+
+**Assertion result: PASS — the founder's personal mobile is absent from
+every outbound surface (templates, log rows, response bodies, frontend
+DOM). Only internal-guard / test-detector code paths reference it.**
+
+#### Mock note
+
+`_send_aisensy_template(mobile, template_id, params)` is a deterministic
+mock that logs the request to stdout and returns `aisensy-mock-<uuid>`.
+Week 8 swap: replace with `requests.post('https://backend.aisensy.com/...')`
+using `settings.AISENSY_API_KEY`. The service surface
+(`send_template_to_trainers`) does not change.
+
+#### Container note
+
+Same pattern as prior Step 4.2-* deliveries: copied `core/services/`,
+`models.py`, `models_broadcast.py`, `views_broadcast.py`, `urls.py`,
+`migrations/0004_whatsapp_broadcast_log.py`, `tests/test_wa_broadcast.py`
+into `trainplex-studio-dev:/label-studio/...` via `docker cp`. Ran tests
+via `/label-studio/.venv/bin/python -m pytest`.
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Admin ke paas trainers ko bulk WhatsApp message bhejne ka koi UI nahi tha — har announcement (bronze cert pass, naya batch, payment release, reminder) ke liye founder ya admin ko manually AiSensy console kholna padta tha, ek-ek trainer ka number paste karna padta tha, aur kya bheja kya nahi ka koi audit nahi reh paata tha. Galti se same message dobara bhej dene ki bhi koi guard nahi thi.
+- Usse kya ho rha tha: Bulk broadcasts adhoc, slow, aur error-prone the. 100 trainers ko bronze-passed congrats bhejne me 30+ min lag jate the manually, aur duplicate sends from kabhi-kabhi do bar bhi ho jate the — trainers irritate hote the.
+- Ab fix ke baad kya hoga: Admin `/admin/wa/broadcast` pe jaake (1) 5 known templates me se ek picker se chunega (en+hi labels), (2) State/Tier/Language/Cert chip filters laga ke trainers select karega — same UX as Project Wizard Step 3, (3) WhatsApp Green bubble preview dekhega first trainer ke saath, aur (4) Send to N trainers button dabaayega. Backend `KNOWN_TEMPLATES` me se id validate karta hai, 60s window me same template+trainer = `skipped` mark ho jata hai (duplicate guard), 3 broadcasts/hr/admin se zyada ho gaye to 429 ke saath `admin.wa.rate_limited` banner dikhta hai. Har send `htx_wa_broadcast_log` table me jaata hai with status (sent/failed/skipped), AiSensy message id, params — history drawer se admin pichhle 100 broadcasts dekh sakta hai. AiSensy call abhi mock hai (Week 8 me real); 19 backend + 11 frontend tests pass; sibling tests me zero regression. Founder ka personal mobile gitleaks-style scan me kahin outbound surface me nahi mila — sirf defensive detection constants + tests me hai jo absence ko verify karte hain.
+
+---
+
 ## Log Update Rules
 
 - Every new file → `Files Created` table

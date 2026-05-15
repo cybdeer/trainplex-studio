@@ -1,0 +1,312 @@
+/*
+ * Heatmap styles — TrainPlex Phase 1 Step 4.2-6.
+ *
+ * Uses the brand tokens from `web/libs/ui/src/tokens/tokens.trainplex.css`:
+ *   - Indigo for the page header / map polygons / table headers
+ *   - Orange for the period-filter active state
+ *
+ * Layout principles
+ * -----------------
+ * - Two-column layout on desktop (map + table side-by-side), single column
+ *   on mobile. Founders also check on phone.
+ * - The "map" is a CSS-grid of state tiles, each painted with an Indigo
+ *   intensity proportional to active_trainers. No external map library
+ *   (react-simple-maps would force a yarn install + lockfile change). Real
+ *   GeoJSON polygons land in Phase 2.
+ * - Tile colour ramp: 5 levels from `tp-color-indigo-50` (lightest, low
+ *   activity) → `tp-color-indigo-700` (darkest, high activity). Dark = zyada
+ *   activity per the spec.
+ */
+
+.heatmapRoot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-6, 24px);
+  font-family: var(--tp-font-ui, 'Inter', system-ui, sans-serif);
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+
+.heatmapHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-4, 16px) var(--tp-space-6, 24px);
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.heatmapTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: var(--tp-font-display, 'Inter Tight', 'Inter', system-ui, sans-serif);
+}
+
+/* ── Period filter pills ───────────────────────────────────────── */
+
+.periodFilterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tp-space-2, 8px);
+  align-items: center;
+}
+
+.periodPill {
+  padding: 4px 12px;
+  border-radius: var(--tp-radius-full, 9999px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  color: #FFFFFF;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 120ms ease-out;
+}
+
+.periodPill:hover {
+  border-color: #FFFFFF;
+}
+
+.periodPillActive {
+  background: var(--tp-color-orange-500, #FF6B35);
+  border-color: var(--tp-color-orange-500, #FF6B35);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+/* ── Two-column layout (map + table) ───────────────────────────── */
+
+.heatmapBody {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
+  gap: var(--tp-space-4, 16px);
+}
+
+@media (max-width: 960px) {
+  .heatmapBody {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Map block (grid of state tiles) ───────────────────────────── */
+
+.mapBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-4, 16px);
+  background: #FFFFFF;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  box-shadow: var(--tp-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+}
+
+.mapHeading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+/* Each state is a tile in a responsive grid. Looks like an abstracted
+ * choropleth without needing actual GeoJSON polygons in Phase 1. */
+.stateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: var(--tp-space-2, 8px);
+}
+
+.stateTile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--tp-space-2, 8px);
+  border-radius: var(--tp-radius-sm, 2px);
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  cursor: pointer;
+  transition: transform 120ms ease-out;
+  min-height: 68px;
+}
+
+.stateTile:hover {
+  transform: translateY(-1px);
+  border-color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.stateTileCode {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.stateTileMetric {
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--tp-font-display, 'Inter Tight', 'Inter', system-ui, sans-serif);
+}
+
+.stateTileLabel {
+  font-size: 0.6875rem;
+  opacity: 0.9;
+}
+
+/* ── Intensity ramp — dark Indigo = zyada activity ─────────────── */
+
+/* 0 trainers — empty / no activity */
+.intensity_0 {
+  background: var(--tp-color-indigo-50, #E8E8F0);
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+/* Lowest active band — still light, but coloured */
+.intensity_1 {
+  background: #D4D4E5;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.intensity_2 {
+  background: #9C9CC8;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.intensity_3 {
+  background: #6464AB;
+  color: #FFFFFF;
+}
+
+.intensity_4 {
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+}
+
+/* Top band — darkest, highest activity (matches the spec "dark = zyada") */
+.intensity_5 {
+  background: var(--tp-color-indigo-700, #121242);
+  color: #FFFFFF;
+}
+
+/* ── Legend (light → dark gradient) ────────────────────────────── */
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-2, 8px);
+  font-size: 0.8125rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.legendBar {
+  flex: 1;
+  height: 10px;
+  border-radius: var(--tp-radius-full, 9999px);
+  background: linear-gradient(
+    90deg,
+    var(--tp-color-indigo-50, #E8E8F0) 0%,
+    #D4D4E5 20%,
+    #9C9CC8 40%,
+    #6464AB 60%,
+    var(--tp-color-indigo-500, #1A1A5E) 80%,
+    var(--tp-color-indigo-700, #121242) 100%
+  );
+  min-width: 100px;
+  max-width: 200px;
+}
+
+/* ── State table block ─────────────────────────────────────────── */
+
+.tableBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-4, 16px);
+  background: #FFFFFF;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  box-shadow: var(--tp-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+}
+
+.tableHeading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.stateTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.stateTable th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  border-bottom: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  cursor: pointer;
+  user-select: none;
+}
+
+.stateTable th:hover {
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.stateTable td {
+  padding: var(--tp-space-3, 12px);
+  border-bottom: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.stateTable tr:last-child td {
+  border-bottom: 0;
+}
+
+.sortIndicator {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.625rem;
+  vertical-align: middle;
+}
+
+.colNum {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Loading / error ───────────────────────────────────────────── */
+
+.loadingBox {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-6, 24px);
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.errorBox {
+  padding: var(--tp-space-4, 16px);
+  background: var(--tp-color-error-bg, #FEE2E2);
+  color: var(--tp-color-error, #DC2626);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-weight: 500;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
