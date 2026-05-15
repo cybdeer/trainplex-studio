@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useParams as useRouterParams } from "react-router";
 import { Redirect } from "react-router-dom";
-import { Button } from "@humansignal/ui";
+import { Button, RoleGate } from "@humansignal/ui";
 import { Oneof } from "../../components/Oneof/Oneof";
 import { Spinner } from "../../components/Spinner/Spinner";
 import { ApiContext } from "../../providers/ApiProvider";
@@ -12,6 +12,7 @@ import { DataManagerPage } from "../DataManager/DataManager";
 import { SettingsPage } from "../Settings";
 import { EmptyProjectsList, ProjectsList } from "./ProjectsList";
 import { useAbortController, useUpdatePageTitle } from "@humansignal/core";
+import { useAuth } from "@humansignal/core/providers/AuthProvider";
 import "./Projects.prefix.css";
 
 const getCurrentPage = () => {
@@ -161,10 +162,14 @@ ProjectsPage.routes = ({ store }) => [
   },
 ];
 ProjectsPage.context = ({ openModal, showButton }) => {
+  const { user } = useAuth();
   if (!showButton) return null;
+  // TODO: Step 1.4-B — Creating new projects is admin-only.
   return (
-    <Button onClick={openModal} size="small" aria-label="Create new project">
-      Create
-    </Button>
+    <RoleGate allow={["admin"]} userRole={user?.role}>
+      <Button onClick={openModal} size="small" aria-label="Create new project">
+        Create
+      </Button>
+    </RoleGate>
   );
 };

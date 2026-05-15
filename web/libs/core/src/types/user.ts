@@ -1,5 +1,8 @@
 import type { Ability } from "../providers/AuthProvider";
 
+/** TrainPlex Studio role values (Phase 1 Step 1.4-B). */
+export type TrainPlexRole = "trainer" | "reviewer" | "qa_lead" | "admin";
+
 export type APIUser = {
   id: number;
   first_name: string;
@@ -18,4 +21,6 @@ export type APIUser = {
   allow_newsletters: boolean;
   date_joined: string;
   permissions?: Ability[];
+  /** TrainPlex RBAC role, exposed by BaseUserSerializer (Step 1.4-B). */
+  role?: TrainPlexRole;
 };

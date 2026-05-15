@@ -93,12 +93,18 @@ class BaseUserSerializer(FlexFieldsModelSerializer):
             'active_organization_meta',
             'allow_newsletters',
             'date_joined',
+            # TrainPlex Step 1.4-B (RBAC). Required by frontend RoleGate to render
+            # role-aware UI for trainer/reviewer/qa_lead/admin.
+            'role',
         )
 
 
 class BaseUserSerializerUpdate(BaseUserSerializer):
     class Meta(BaseUserSerializer.Meta):
-        read_only_fields = ('email',)
+        # Role is intentionally read-only on the self-update endpoint so users
+        # cannot self-promote via PATCH /api/current-user/. Admin promotion
+        # must go through a dedicated admin-only flow (Step 1.4-B follow-up).
+        read_only_fields = ('email', 'role')
 
 
 class BaseWhoAmIUserSerializer(BaseUserSerializer):

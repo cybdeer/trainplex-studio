@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useHistory } from "react-router";
-import { Button, Typography, useToast } from "@humansignal/ui";
+import { Button, RoleGate, Typography, useToast } from "@humansignal/ui";
 import { useUpdatePageTitle, createTitleFromSegments } from "@humansignal/core";
+import { useAuth } from "@humansignal/core/providers/AuthProvider";
 import { Label } from "../../components/Form";
 import { modal } from "../../components/Modal/Modal";
 import { useModalControls } from "../../components/Modal/ModalPopup";
@@ -17,6 +18,7 @@ export const DangerZone = () => {
   const api = useAPI();
   const history = useHistory();
   const toast = useToast();
+  const { user } = useAuth();
   const [processing, setProcessing] = useState(null);
 
   useUpdatePageTitle(createTitleFromSegments([project?.title, "Danger Zone"]));
@@ -196,6 +198,8 @@ export const DangerZone = () => {
     [project],
   );
 
+  // TODO: Step 1.4-B — Danger Zone (project delete, drop tabs, reset cache) is admin-only.
+  // Non-admins see an explanatory empty state instead of the destructive actions.
   return (
     <div className={cn("simple-settings").toClassName()}>
       <Typography variant="headline" size="medium" className="mb-tighter">
@@ -205,6 +209,17 @@ export const DangerZone = () => {
         Perform these actions at your own risk. Actions you take on this page can't be reverted. Make sure your data is
         backed up.
       </Typography>
+
+      <RoleGate
+        allow={["admin"]}
+        userRole={user?.role}
+        fallback={
+          <Typography variant="body" size="medium" className="text-neutral-content-subtler">
+            Only project admins can perform destructive actions on this project. Ask your admin if you need a
+            project deleted, cache reset, or tabs dropped.
+          </Typography>
+        }
+      >
 
       {project.id ? (
         <div style={{ marginTop: 16 }}>
@@ -240,6 +255,7 @@ export const DangerZone = () => {
           <Spinner size={32} />
         </div>
       )}
+      </RoleGate>
     </div>
   );
 };

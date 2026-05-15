@@ -1,3 +1,7 @@
 @import "./tokens.prefix.css";
 @import "./colors.prefix.css";
 @import "./typography.prefix.css";
+
+/* TrainPlex Studio brand overrides — MUST stay AFTER upstream tokens so our values win.
+   Plan ref: Phase 1 Step 1.4-D. */
+@import "../../../../../libs/ui/src/tokens/tokens.trainplex.css";

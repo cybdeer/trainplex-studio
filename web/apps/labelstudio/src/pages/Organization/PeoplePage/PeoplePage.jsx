@@ -1,6 +1,7 @@
-import { Button } from "@humansignal/ui";
+import { Button, RoleGate } from "@humansignal/ui";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useUpdatePageTitle } from "@humansignal/core";
+import { useAuth } from "@humansignal/core/providers/AuthProvider";
 import { HeidiTips } from "../../../components/HeidiTips/HeidiTips";
 import { modal } from "../../../components/Modal/Modal";
 import { Space } from "../../../components/Space/Space";
@@ -18,6 +19,7 @@ import { SelectedUser } from "./SelectedUser";
 export const PeoplePage = () => {
   const apiSettingsModal = useRef();
   const toast = useToast();
+  const { user } = useAuth();
   const [selectedUser, setSelectedUser] = useState(null);
   const [invitationOpen, setInvitationOpen] = useState(false);
 
@@ -69,13 +71,16 @@ export const PeoplePage = () => {
                 API Tokens Settings
               </Button>
             )}
-            <Button
-              leading={<IconPlus className="!h-4" />}
-              onClick={() => setInvitationOpen(true)}
-              aria-label="Invite new member"
-            >
-              Add Members
-            </Button>
+            {/* TODO: Step 1.4-B — Inviting new members to the org is admin-only. */}
+            <RoleGate allow={["admin"]} userRole={user?.role}>
+              <Button
+                leading={<IconPlus className="!h-4" />}
+                onClick={() => setInvitationOpen(true)}
+                aria-label="Invite new member"
+              >
+                Add Members
+              </Button>
+            </RoleGate>
           </Space>
         </Space>
       </div>

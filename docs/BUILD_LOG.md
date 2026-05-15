@@ -445,6 +445,98 @@ The existing `.github/workflows/test.yml` `test-backend` job already invokes pyt
 
 ---
 
+### Step 1.4-B + 1.4-D — Frontend brand activation + RBAC render guards (Week 3)
+
+Phase 1 frontend customizations: wire the existing TrainPlex brand override CSS into the build, replace the upstream Label Studio logo + favicon, surface the backend `User.role` field to the React client, and gate four admin-only UI spots behind a new `<RoleGate>` component.
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `web/libs/ui/src/components/RoleGate/RoleGate.tsx` | Presentational role-gate component. Renders children only when `userRole` is in `allow=[Role]`. Reads `Role` union from `users.models.User.ROLE_CHOICES` (trainer / reviewer / qa_lead / admin). Defensive — does NOT replace server-side DRF perms; just hides UI. |
+| `web/libs/ui/src/components/RoleGate/index.ts` | Barrel re-export (named + default). |
+| `web/libs/ui/src/components/RoleGate/__tests__/RoleGate.test.tsx` | 9 Jest + RTL tests: admin allowed, trainer blocked w/ null fallback, custom fallback, undefined / null / empty userRole all blocked, multi-role allow list, unknown role string blocked. |
+| `web/apps/labelstudio/src/assets/images/favicon.svg` | TrainPlex SVG favicon (Indigo bg #1A1A5E, orange "T" #FF6B35). Loaded via `<link rel="icon" type="image/svg+xml">`; legacy `favicon.ico` retained as fallback. |
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `web/apps/labelstudio/src/themes/default/variables.prefix.css` | Added `@import "../../../../../libs/ui/src/tokens/tokens.trainplex.css";` AFTER the upstream tokens/colors/typography imports so brand overrides win the cascade. This is the file actually loaded by `App.prefix.css` → labelstudio app at runtime. |
+| `web/libs/ui/src/styles.prefix.css` | Same brand override import added AFTER upstream tokens, for storybook/playground/editor-standalone consumers (which load this file instead of the labelstudio theme). |
+| `web/apps/labelstudio/src/assets/images/logo.svg` | Replaced HumanSignal "Label Studio" wordmark with TrainPlex Studio text logo — "TrainPlex" in brand Indigo (#1A1A5E, weight 700) + "Studio" in brand Orange (#FF6B35, weight 400). Kept upstream `width="194" height="30"` so the Menubar slot (`142×22`) renders unchanged. |
+| `web/apps/labelstudio/src/index.html` | `<title>` Labelstudio → TrainPlex Studio. Added `<link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">` as primary, kept `.ico` as `alternate icon` fallback. |
+| `web/apps/labelstudio/src/components/Menubar/Menubar.jsx` | Logo `alt` text "Label Studio Logo" → "TrainPlex Studio" (a11y / screen reader). |
+| `label_studio/users/serializers.py` | Added `'role'` to `BaseUserSerializer.Meta.fields` — `WhoAmIUserSerializer` and `UserSerializerUpdate` inherit so the field flows through `/api/current-user/whoami` and `/api/users/`. Added `'role'` to `BaseUserSerializerUpdate.Meta.read_only_fields` to block self-promotion via PATCH `/api/current-user/` (defense-in-depth; backend perms also gate admin-only role mutations). |
+| `web/libs/core/src/types/user.ts` | Added `TrainPlexRole` union (`'trainer' \| 'reviewer' \| 'qa_lead' \| 'admin'`) and optional `role?: TrainPlexRole` on `APIUser` so TypeScript surfaces the field everywhere `useAuth().user` is destructured. |
+| `web/libs/ui/src/index.ts` | Re-export `./components/RoleGate` so consumers can `import { RoleGate } from "@humansignal/ui"`. |
+| `web/apps/labelstudio/src/pages/Settings/DangerZone.jsx` | Wrapped the entire button list (`Delete Project`, `Drop All Tabs`, `Reset Cache`) in `<RoleGate allow={['admin']}>`. Non-admins now see a one-line explanatory fallback instead of the destructive action panel. |
+| `web/apps/labelstudio/src/pages/Organization/PeoplePage/PeoplePage.jsx` | Wrapped "Add Members" invite button in `<RoleGate allow={['admin']}>`. Non-admins still see the people list — they just can't invite. |
+| `web/apps/labelstudio/src/pages/Projects/Projects.jsx` | Wrapped the "Create" project button (`ProjectsPage.context`) in `<RoleGate allow={['admin']}>`. Non-admins can still view + open projects, just not create new ones. Hook called from a component used via `<ContextComponent />` in Menubar — safe pattern. |
+
+#### Admin elements gated (3 of 5 spec'd targets)
+
+1. **Project deletion / drop-tabs / cache-reset** — `Settings/DangerZone.jsx` (whole panel gated; null state for non-admins).
+2. **Member invite** — `Organization/PeoplePage/PeoplePage.jsx` "Add Members" button.
+3. **Project creation** — `Projects/Projects.jsx` "Create" button in top nav context.
+
+#### Skipped — deliberately
+
+| Target | Why skipped |
+|--------|-------------|
+| **Project Settings tab (top nav, `DataManager.context`)** | Gating the whole entry would block trainers from reading labeling instructions / general project info. Per Step 1.4-B spec "if you can't find a spot cleanly without breaking something, SKIP it". Destructive items inside Settings are already gated via DangerZone. Revisit in Week 4 with finer-grained per-subtab gates (Webhooks ✓ admin, Storage ✓ admin, ML ✓ admin, General ❌ leave open, Labeling ❌ leave open). |
+| **Annotation delete buttons in editor toolbar** | The labelstudio editor lives in `web/libs/editor/` and is a separately compiled bundle (mobx-state-tree + custom React). It does NOT use the same `useAuth()` flow — user state arrives via window globals from the host. Wiring role through requires a deeper change than fits the "low risk" budget. Deferred to Week 4 — a dedicated mini-task can plumb role into the editor's user object. |
+
+#### Backend serializer diff
+
+```diff
+ class BaseUserSerializer(FlexFieldsModelSerializer):
+     ...
+     class Meta:
+         model = User
+         fields = (
+             'id', 'first_name', 'last_name', 'username', 'email',
+             'last_activity', 'custom_hotkeys', 'avatar', 'initials',
+             'phone', 'active_organization', 'active_organization_meta',
+             'allow_newsletters', 'date_joined',
++            # TrainPlex Step 1.4-B (RBAC)
++            'role',
+         )
+
+ class BaseUserSerializerUpdate(BaseUserSerializer):
+     class Meta(BaseUserSerializer.Meta):
+-        read_only_fields = ('email',)
++        # Block self-promotion via PATCH /api/current-user/
++        read_only_fields = ('email', 'role')
+```
+
+#### Tests
+
+- `web/libs/ui/src/components/RoleGate/__tests__/RoleGate.test.tsx` — 9 unit tests covering allow/block/fallback/undefined/null/empty/multi-role/unknown-role.
+- No other test files modified (per spec).
+- Backend serializer change requires no new tests — covered by existing `users/tests/` if `WhoAmI` response shape is asserted. The existing role RBAC tests (`label_studio/users/tests/test_role_rbac.py`) already cover that `user.role` is set correctly server-side.
+
+#### How to verify (after rebuild)
+
+Container `trainplex-studio-dev` is running the pre-built image. Frontend changes require a yarn rebuild — **founder approval needed before triggering the 30-min build** (per task constraints). After rebuild:
+
+1. **Brand colors** — log in, primary buttons + nav highlights should be Indigo `#1A1A5E`. Inspect `:root` in DevTools — `--color-primary-surface` should resolve to indigo, NOT upstream grape.
+2. **Logo + favicon** — top-left of Menubar shows "TrainPlex Studio" wordmark; browser tab shows Indigo+Orange "T" favicon; page title "TrainPlex Studio".
+3. **RoleGate** — create 2 test users:
+   - `admin@local` with role=admin → sees Create button on Projects, sees Add Members on People, sees full Danger Zone panel.
+   - `trainer@local` with role=trainer → Create button hidden, Add Members hidden, Danger Zone shows only the explanatory text fallback.
+4. **Backend** — `curl /api/current-user/whoami` with auth cookie should return `"role": "admin"` (or whatever the user's role is).
+
+Backend serializer change is hot-reloadable inside `trainplex-studio-dev` (Django runserver autoreload) — so the role field will appear in API responses without a full image rebuild. Frontend changes (logo/CSS/RoleGate) require the yarn build.
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Frontend pe TrainPlex brand bilkul render nahi ho raha tha (Indigo+Orange CSS file likhi thi par kahin import nahi tha), logo abhi tak HumanSignal "Label Studio" wala tha, aur backend `user.role` field frontend tak nahi pahunch rahi thi — toh admin-only UI sab users ko dikh raha tha (project delete, member invite, project create).
+- Usse kya ho rha tha: User ko brand identity galat dikhti (white-label promise tooti), trainers/reviewers se Create / Delete / Invite buttons exposed the — backend permission deny karta tha 403 se, par UX confusing tha aur trainer ko lagta tha kuch kar sakte hain.
+- Ab fix ke baad kya hoga: Rebuild ke baad — brand Indigo+Orange sab jagah, "TrainPlex Studio" logo + favicon, aur trainer/reviewer login pe Create/Invite/Delete button automatically chhup jayenge (server-side RBAC ke saath defense-in-depth). Admin ko sab kuch dikhega jaisa pehle. Role field WhoAmI API mein expose ho gayi, RoleGate component reusable hai — Week 4 mein aur jagah daal denge.
+
+---
+
 ## Log Update Rules
 
 - Every new file → `Files Created` table
