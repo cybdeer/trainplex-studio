@@ -263,7 +263,13 @@ MIDDLEWARE = [
     'core.middleware.DatabaseIsLockedRetryMiddleware',
     'core.current_request.ThreadLocalMiddleware',
     'jwt_auth.middleware.JWTAuthenticationMiddleware',
+    # TrainPlex Phase 1 Step 12 — convert django_ratelimit.Ratelimited
+    # exceptions to a JSON 429 response via ``users.views.ratelimit_view``.
+    'django_ratelimit.middleware.RatelimitMiddleware',
 ]
+
+# TrainPlex Phase 1 Step 12 — target view for ``RatelimitMiddleware``.
+RATELIMIT_VIEW = 'users.views.ratelimit_view'
 
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],

@@ -3,6 +3,7 @@
 import logging
 
 from core.permissions import ViewClassPermission, all_permissions
+from core.utils.common import get_client_ip
 from django.utils.decorators import method_decorator
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
@@ -17,6 +18,7 @@ from rest_framework.views import APIView
 from users.functions import check_avatar
 from users.models import User
 from users.serializers import HotkeysSerializer, UserSerializer, UserSerializerUpdate, WhoAmIUserSerializer
+from users.services import audit_logger
 
 logger = logging.getLogger(__name__)
 
@@ -206,7 +208,26 @@ class UserAPI(viewsets.ModelViewSet):
         return context
 
     def update(self, request, *args, **kwargs):
-        return super(UserAPI, self).update(request, *args, **kwargs)
+        # TrainPlex Phase 1 Step 12 wire-in: capture pre-update role so we
+        # can record an audit event when an admin changes it via PUT.
+        # ``partial_update`` (PATCH) goes through ``UserSerializerUpdate``
+        # where role is read-only — only PUT through ``UserSerializer`` can
+        # actually change roles.
+        target_user = self.get_object()
+        old_role = getattr(target_user, 'role', None)
+
+        result = super(UserAPI, self).update(request, *args, **kwargs)
+
+        new_role = request.data.get('role')
+        if new_role and old_role and new_role != old_role:
+            audit_logger.log_permission_change(
+                actor=request.user,
+                target=target_user,
+                old_role=old_role,
+                new_role=new_role,
+                ip=get_client_ip(request),
+            )
+        return result
 
     def list(self, request, *args, **kwargs):
         return super(UserAPI, self).list(request, *args, **kwargs)
@@ -242,6 +263,15 @@ class UserAPI(viewsets.ModelViewSet):
         return result
 
     def destroy(self, request, *args, **kwargs):
+        # TrainPlex Phase 1 Step 12 wire-in: audit hard delete of a User row.
+        target = self.get_object()
+        audit_logger.log_delete(
+            actor=request.user,
+            target_type='User',
+            target_id=target.pk,
+            ip=get_client_ip(request),
+            metadata={'target_email': getattr(target, 'email', '')},
+        )
         return super(UserAPI, self).destroy(request, *args, **kwargs)
 
 

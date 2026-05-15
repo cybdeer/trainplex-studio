@@ -716,6 +716,200 @@ Regression: existing `users/tests/test_role_rbac.py` still 7/7 passing.
 
 ---
 
+### Step 4.2-1 Admin Dashboard Widget
+
+**Goal (per plan):** Founder dashboard widget — one-screen ops snapshot that
+admin sees on login. "Aaj ke submissions, kitne pay-hold, top 5 trainers
+state-wise, alerts ka counter. Founder ek nazar me poora system status dekhe."
+
+#### Backend
+
+| Path | Purpose |
+|---|---|
+| `label_studio/core/views_dashboard.py` (new) | `AdminDashboardSnapshotAPI` (DRF `APIView`) + `_get_mock_dashboard_snapshot()` returning the JSON contract. Decorated with `@require_role(['admin'])`. |
+| `label_studio/core/urls.py` (modified) | Registered `GET /api/v1/admin/dashboard/snapshot` → `AdminDashboardSnapshotAPI.as_view()`. |
+| `label_studio/core/tests/test_dashboard_snapshot.py` (new) | 9-test suite pinning the contract. |
+
+**Endpoint:** `GET /api/v1/admin/dashboard/snapshot` (admin only).
+
+**Mock JSON shape (Phase 1 — real wiring lands in Step 8):**
+
+```json
+{
+  "as_of": "2026-05-15T12:34:56Z",
+  "today": {
+    "submissions_count": 142,
+    "submissions_delta_pct": 12,
+    "active_trainers": 47,
+    "pay_hold_total_inr": 4200,
+    "pay_released_today_inr": 18500
+  },
+  "top_trainers": [
+    { "id": 5, "name": "Geeta P.", "state": "Rajasthan",
+      "tasks_today": 87, "earnings_today_inr": 4350 },
+    ... 4 more ...
+  ],
+  "alerts": { "disputes_pending": 2, "quality_flags": 1, "stuck_payouts": 0 }
+}
+```
+
+All INR amounts are whole rupees (no paise) so the UI doesn't divide by 100.
+`as_of` is ISO 8601 Zulu so the frontend can pass it to `new Date(...)`.
+
+#### Frontend
+
+| Path | Purpose |
+|---|---|
+| `web/apps/labelstudio/src/pages/Admin/DashboardWidget/DashboardWidget.tsx` (new) | Main page component. Fetches the snapshot via `useAPI()` + `useQuery`, renders the KPI row + top-trainers table + alert chips + quick-action buttons. Wrapped in `<RoleGate allow={['admin']}>` (defensive — the backend already 403s). |
+| `web/apps/labelstudio/src/pages/Admin/DashboardWidget/MetricCard.tsx` (new) | Reusable KPI tile: label + value + optional delta arrow + tone variants (`warning`, `danger`). |
+| `web/apps/labelstudio/src/pages/Admin/DashboardWidget/TopTrainersTable.tsx` (new) | Top-5 trainers table with locale-aware INR formatting (`Intl.NumberFormat('hi-IN'/'en-IN', { style: 'currency', currency: 'INR' })`). |
+| `web/apps/labelstudio/src/pages/Admin/DashboardWidget/DashboardWidget.module.css` (new) | TrainPlex Indigo header + Orange CTA, responsive 4-col → 2-col → 1-col KPI grid, skeleton shimmer that matches final layout to prevent CLS. |
+| `web/apps/labelstudio/src/pages/Admin/DashboardWidget/types.ts` (new) | TS interfaces mirroring the backend contract — single source of truth on the frontend. |
+| `web/apps/labelstudio/src/pages/Admin/DashboardWidget/index.ts` (new) | Barrel exports. |
+| `web/apps/labelstudio/src/pages/Admin/DashboardWidget/__tests__/DashboardWidget.test.tsx` (new) | 7 jest tests (see Test Count below). |
+| `web/apps/labelstudio/src/pages/index.js` (modified) | Registered `DashboardWidget` in the `Pages` array so the RoutesProvider mounts `/admin/dashboard`. |
+| `web/apps/labelstudio/src/config/ApiConfig.js` (modified) | Added endpoint `adminDashboardSnapshot: "GET:/v1/admin/dashboard/snapshot"` (gateway base is `/api`). |
+| `web/libs/app-common/src/locales/en/common.json` (modified) | Added 20 keys under `admin.dashboard.*`. |
+| `web/libs/app-common/src/locales/hi/common.json` (modified) | Same 20 keys in Devanagari for full en+hi parity. |
+
+**Route added:** `/admin/dashboard` (mounted via `DashboardWidget.path` →
+`pageSetToRoutes` → `<Route exact />` in the RoutesProvider).
+
+**New i18n keys (20 — parity locked):** `admin.dashboard.today_snapshot`,
+`submissions`, `active_trainers`, `pay_hold`, `alerts`, `top_trainers`,
+`disputes_pending`, `quality_flags`, `quick_actions`, `stuck_payouts`,
+`pay_released_today`, `new_project`, `wa_broadcast`, `bulk_assign`,
+`trainer_name`, `state`, `tasks_today`, `earnings_today`, `loading_snapshot`,
+`snapshot_failed`. Spec required 9; extras cover the table headers, action
+buttons, alert breakdown chips, loading/error microcopy.
+
+#### Test Count
+
+- **Backend:** `pytest core/tests/test_dashboard_snapshot.py -v` → **9 passed** in
+  24.43s (admin 200; trainer 403; unauthenticated rejected; top-level keys; KPIs
+  shape + all int; ≥5 top trainers; trainer rows have required fields and int
+  numerics; alerts block has 3 int counters; `as_of` is ISO 8601 Z).
+- **Frontend:** 7 jest tests in `DashboardWidget.test.tsx` — 4 KPI tiles
+  render; 5 trainer rows render; loading skeleton shows when fetching with no
+  data; Hindi mode renders Devanagari labels (Unicode block U+0900..U+097F
+  asserted); RoleGate hides dashboard for non-admin; error state renders the
+  failure box; page metadata exposes `/admin/dashboard` exact route.
+
+#### Mock data note
+
+`_get_mock_dashboard_snapshot()` is marked `TODO Step 4.2-1` and will be
+replaced with real aggregation queries once the `submissions` / `payouts` /
+trainer state-of-day tables land in Phase 2 (Step 8 migration). The contract
+is pinned by the 9 backend tests so the UI stays stable across that swap.
+
+#### Container note
+
+Same pattern as Step 1.4-A: copied `views_dashboard.py`, `urls.py`,
+`test_dashboard_snapshot.py` into `trainplex-studio-dev:/label-studio/...` via
+`docker cp` (no bind mount on the pre-built container). Ran tests via
+`/label-studio/.venv/bin/pytest`. Frontend tests will run in CI (no
+`web/node_modules` in the container).
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Login hote hi admin ko ek consolidated ops snapshot screen
+  nahi tha — submissions kitne hue, kitna payment hold pe hai, top performers
+  kaun hain, alerts kya pending hain, sab ke liye alag-alag query/page maarna
+  pad raha tha. Founder ek nazar me poora system status nahi dekh paa raha tha.
+- Usse kya ho rha tha: Decision delay — har morning DB query maarni padti ya
+  kai dashboards switch karne padte, isliye payment release / dispute resolve
+  jaise time-sensitive actions me lag jata. Founder ka time wahi roz repeat
+  hone wale lookups me chala jata jaise ke aaj ke top 5 trainers kaun hain.
+- Ab fix ke baad kya hoga: Admin login karte hi `/admin/dashboard` route pe
+  4-tile KPI row (Submissions/Active trainers/Pay hold/Alerts), top 5 trainers
+  state-wise table (Geeta P., Sunil M., etc.), aur alert chips dikh jaayenge.
+  Quick actions row (New Project / WA Broadcast / Bulk Assign) bhi ek click
+  dur. Backend ka mock data abhi return ho raha hai (real DB wiring Phase 2
+  me hogi — Step 8 ke baad), lekin shape locked hai 9 tests me, so UI stable
+  rahega. Trainer/reviewer login kare to backend 403 deta hai aur UI bhi
+  RoleGate ke through hide kar deta hai. Hindi mode pe pura dashboard
+  Devanagari me render hota hai (`आज का स्नैपशॉट`, `टॉप 5 ट्रेनर`, etc.).
+
+---
+
+### Step 12 Security wire-in (Week 4)
+
+**Goal:** Apply the rate-limit decorators + audit_logger service that
+Step 12 baseline already built to the actual Django views, so the
+production defaults (5 login/15m/IP, audit trail, JSON-429 with Hindi
+message) are live — not just unit-tested in isolation.
+
+#### Files Modified
+
+| Path | What changed |
+|---|---|
+| `label_studio/users/views.py` | `@ratelimit_login` wraps `user_login`; success + fail paths call `audit_logger.log_login(...)`; new `ratelimit_view` returns Hindi JSON 429 for `RATELIMIT_VIEW`. |
+| `label_studio/users/api.py` | `UserAPI.update` captures pre-update role + writes `log_permission_change` when role changes. `UserAPI.destroy` writes `log_delete` for User rows. |
+| `label_studio/projects/api.py` | `ProjectAPI.perform_destroy` writes `log_delete(target_type='Project', ...)` BEFORE delete. |
+| `label_studio/tasks/api.py` | `AnnotationAPI.perform_destroy` writes `log_delete(target_type='Annotation', ...)` BEFORE delete. |
+| `label_studio/core/utils/common.py` | `custom_exception_handler` catches `django_ratelimit.exceptions.Ratelimited` → 429 JSON `{error, message (Hindi), retry_after_seconds, Retry-After}`. |
+| `label_studio/core/settings/base.py` | Added `django_ratelimit.middleware.RatelimitMiddleware` + `RATELIMIT_VIEW = 'users.views.ratelimit_view'`. |
+| `label_studio/pytest.ini` | New `security_wireup` pytest marker. |
+
+#### Files Created
+
+| Path | Purpose |
+|---|---|
+| `label_studio/users/tests/test_security_wireup.py` | 9 tests covering login rate limit, login audit, permission-change audit, delete audit, DRF + middleware 429-with-Hindi-message paths. |
+
+#### Decorators Applied
+
+- `@ratelimit_login` → `users.views.user_login` (5 POSTs / 15 min / IP)
+- Global `RatelimitMiddleware` + `RATELIMIT_VIEW` → any view raising `Ratelimited` returns the Hindi JSON 429.
+- DRF `custom_exception_handler` catches `Ratelimited` independently so DRF endpoints get the same body even without middleware.
+
+#### Audit Hooks Added (5 sites)
+
+1. `users.views.user_login` — `log_login(success=True)` after login + session save.
+2. `users.views.user_login` — `log_login(success=False)` on form-invalid path.
+3. `users.api.UserAPI.update` — `log_permission_change` when role changed.
+4. `users.api.UserAPI.destroy` — `log_delete(target_type='User')` before destroy.
+5. `projects.api.ProjectAPI.perform_destroy` — `log_delete(target_type='Project')`.
+6. `tasks.api.AnnotationAPI.perform_destroy` — `log_delete(target_type='Annotation')`.
+
+Each audit call is wrapped so a DB write failure never breaks the user flow (`_safe_create` swallows + logs).
+
+#### Hindi Rate-Limit Message
+
+```
+"Bahut sare requests — kuch der ruk ke try karein"
+```
+
+Returned with `status=429`, `Retry-After: 60`, and a `retry_after_seconds: 60` field by both `core.utils.common.custom_exception_handler` (DRF) and `users.views.ratelimit_view` (plain Django).
+
+#### Tests
+
+- 9 new tests in `test_security_wireup.py`, all passing.
+- 0 regressions: `users/tests/` (84 tests) + `projects/tests/` + `tasks/tests/` (54 tests) all green.
+
+Run:
+
+```
+docker exec -w /label-studio/label_studio trainplex-studio-dev \
+  /label-studio/.venv/bin/python -m pytest \
+  users/tests/test_security_wireup.py -v
+```
+
+#### Skipped Items (documented for next agent)
+
+- **`@ratelimit_password_reset`** — OSS Label Studio has no HTTP password-reset endpoint. The `reset_password` flow upstream is a CLI command (`label_studio/server.py:_reset_password`), not a Django view. There is no URL to decorate. TrainPlex's planned mobile-OTP / forgot-password flow lives in our own backend (Phase 1 Step 11); the decorator will be applied there when that view lands.
+- **`@ratelimit_otp`** — Same situation: no OTP request view exists upstream. Will be wired into the TrainPlex backend's `WhatsAppOTPRequestAPI` when Step 11 lands.
+- **`@ratelimit_api`** — Not applied yet. OSS LS already uses `IsAuthenticated` + per-org `permission_required` for almost every API endpoint, so a per-IP unauthenticated cap is best added as a DRF throttle class globally (in `REST_FRAMEWORK['DEFAULT_THROTTLE_CLASSES']`) rather than per-view. Deferred — needs founder review of which endpoints should keep an authenticated-but-rate-limited cap.
+- **Permission-change via HTTP endpoint** — OSS LS deliberately makes `role` read-only on `BaseUserSerializerUpdate` (PATCH path) and disables `PUT` via `UserAPI.http_method_names`. So the only way to change a role today is Django admin. The hook is still wired in `UserAPI.update` so it fires the instant a downstream re-enables PUT or adds a custom admin endpoint. The test uses monkeypatch + direct method call to verify the hook works.
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Pichli step (Step 12 baseline) me 4 rate-limit decorators + audit_logger banaye the par actual Django views pe lage hi nahi the. Code present tha, but production effect zero — koi bhi 100 baar login try kar sakta tha, koi audit log nahi banta tha.
+- Usse kya ho rha tha: Brute-force login open tha, "kaun kab login hua / kaun ne project delete kiya" trace karne ka koi tareeka nahi tha. Compliance ke liye ye blocker tha.
+- Ab fix ke baad kya hoga: `/user/login/` pe 6th attempt 429 deta hai Hindi message ("Bahut sare requests — kuch der ruk ke try karein") ke saath. Har login attempt (success + fail) AuditLog table me record hota hai IP + UA ke saath. Project / Annotation / User delete bhi log hota hai. Role change bhi (jab future admin endpoint aayega). 9 naye tests + 84 purane tests sab green — zero regression.
+
+---
+
 ## Log Update Rules
 
 - Every new file → `Files Created` table

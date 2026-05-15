@@ -10,7 +10,7 @@ from core.label_config import config_essential_data_has_changed
 from core.mixins import GetParentObjectMixin
 from core.permissions import ViewClassPermission, all_permissions
 from core.redis import start_job_async_or_sync
-from core.utils.common import paginator, paginator_help, temporary_disconnect_all_signals
+from core.utils.common import get_client_ip, paginator, paginator_help, temporary_disconnect_all_signals
 from core.utils.exceptions import LabelStudioDatabaseException, ProjectExistException
 from core.utils.filterset_to_openapi_params import filterset_to_openapi_params
 from core.utils.io import find_dir, find_file, read_yaml
@@ -411,6 +411,21 @@ class ProjectAPI(generics.RetrieveUpdateDestroyAPIView):
         return super(ProjectAPI, self).patch(request, *args, **kwargs)
 
     def perform_destroy(self, instance):
+        # TrainPlex Phase 1 Step 12 wire-in: record the delete in AuditLog
+        # BEFORE the row goes away so target_id is captured.
+        try:
+            from users.services import audit_logger
+
+            audit_logger.log_delete(
+                actor=self.request.user,
+                target_type='Project',
+                target_id=instance.pk,
+                ip=get_client_ip(self.request),
+                metadata={'title': getattr(instance, 'title', '')},
+            )
+        except Exception:  # noqa: BLE001  (audit must never break delete flow)
+            logger.exception('AuditLog write failed during ProjectAPI.perform_destroy (pk=%s)', instance.pk)
+
         # we don't need to relaculate counters if we delete whole project
         with temporary_disconnect_all_signals():
             instance.delete()

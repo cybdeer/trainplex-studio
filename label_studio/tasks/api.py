@@ -5,7 +5,7 @@ import logging
 from core.feature_flags import flag_set
 from core.mixins import GetParentObjectMixin
 from core.permissions import ViewClassPermission, all_permissions
-from core.utils.common import is_community
+from core.utils.common import get_client_ip, is_community
 from core.utils.params import bool_from_request
 from data_manager.api import TaskListAPI as DMTaskListAPI
 from data_manager.functions import evaluate_predictions
@@ -645,6 +645,21 @@ class AnnotationAPI(generics.RetrieveUpdateDestroyAPIView):
     queryset = Annotation.objects.all()
 
     def perform_destroy(self, annotation):
+        # TrainPlex Phase 1 Step 12 wire-in: record annotation hard delete
+        # BEFORE the row vanishes.
+        try:
+            from users.services import audit_logger
+
+            audit_logger.log_delete(
+                actor=self.request.user,
+                target_type='Annotation',
+                target_id=annotation.pk,
+                ip=get_client_ip(self.request),
+                metadata={'task_id': getattr(annotation, 'task_id', None)},
+            )
+        except Exception:  # noqa: BLE001  (audit must never break delete flow)
+            logger.exception('AuditLog write failed during AnnotationAPI.perform_destroy (pk=%s)', annotation.pk)
+
         annotation.delete()
 
     def update(self, request, *args, **kwargs):

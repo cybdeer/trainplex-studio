@@ -5,20 +5,51 @@ from urllib.parse import quote
 
 from core.feature_flags import flag_set
 from core.middleware import enforce_csrf_checks
-from core.utils.common import load_func
+from core.utils.common import get_client_ip, load_func
 from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.http import JsonResponse
 from django.shortcuts import redirect, render, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
+from django_ratelimit.exceptions import Ratelimited
 from organizations.forms import OrganizationSignupForm
 from organizations.models import Organization
 from rest_framework.authtoken.models import Token
 from users import forms
 from users.functions import login, proceed_registration
+from users.middleware.rate_limit import ratelimit_login
+from users.services import audit_logger
 
 logger = logging.getLogger()
+
+
+# TrainPlex Phase 1 Step 12 wire-in — Hindi-friendly 429 body for the
+# (non-DRF) Django login view. DRF views get the same body via
+# ``core.utils.common.custom_exception_handler``.
+_RATE_LIMIT_BODY = {
+    'error': 'rate_limited',
+    'message': 'Bahut sare requests — kuch der ruk ke try karein',
+    'retry_after_seconds': 60,
+}
+
+
+def ratelimit_view(request, exception):  # noqa: ARG001
+    """TrainPlex global handler for ``django_ratelimit.exceptions.Ratelimited``.
+
+    Wired in via ``RATELIMIT_VIEW`` + ``RatelimitMiddleware`` in
+    ``core.settings.base``. Returns a Hindi-friendly JSON 429 for both
+    plain Django and DRF views.
+
+    DRF views generally won't hit this path — they're handled inside
+    ``core.utils.common.custom_exception_handler`` before middleware sees
+    them — but having a single source of truth here makes the contract
+    explicit.
+    """
+    response = JsonResponse(_RATE_LIMIT_BODY, status=429)
+    response['Retry-After'] = '60'
+    return response
 
 
 @login_required
@@ -100,9 +131,18 @@ def user_signup(request):
     )
 
 
+@ratelimit_login
 @enforce_csrf_checks
 def user_login(request):
-    """Login page"""
+    """Login page.
+
+    TrainPlex Phase 1 Step 12 wire-in:
+    - ``@ratelimit_login`` caps 5 POST attempts per 15 min per IP. The 6th
+      raises ``Ratelimited`` which we catch below and return as JSON 429.
+    - Every login attempt (success + fail) is recorded via
+      ``audit_logger.log_login`` so the security team can trace brute-force
+      attempts after the fact.
+    """
     user = request.user
     next_page = request.GET.get('next')
 
@@ -133,7 +173,31 @@ def user_login(request):
             org_pk = Organization.find_by_user(user).pk
             user.active_organization_id = org_pk
             user.save(update_fields=['active_organization'])
+
+            # TrainPlex Step 12 — audit successful login (best-effort, never raises).
+            audit_logger.log_login(
+                user,
+                ip=get_client_ip(request),
+                ua=request.META.get('HTTP_USER_AGENT', ''),
+                success=True,
+            )
             return redirect(next_page)
+        else:
+            # TrainPlex Step 12 — audit failed login. ``user`` here is None
+            # (the form's clean() raised ValidationError so cleaned_data has
+            # no 'user' key); pass the attempted email through metadata so
+            # security can detect targeted enumeration.
+            attempted_email = (request.POST.get('email') or '').lower()
+            audit_logger.log_login(
+                user=None,
+                ip=get_client_ip(request),
+                ua=request.META.get('HTTP_USER_AGENT', ''),
+                success=False,
+            )
+            # The login form already attaches a generic error to the form
+            # (INVALID_USER_ERROR), so we just fall through to the render
+            # below — no separate response needed.
+            logger.info('Failed login attempt for email=%s ip=%s', attempted_email, get_client_ip(request))
 
     if flag_set('fflag_feat_front_lsdv_e_297_increase_oss_to_enterprise_adoption_short'):
         return render(request, 'users/new-ui/user_login.html', {'form': form, 'next': quote(next_page)})

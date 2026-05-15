@@ -89,6 +89,35 @@ def custom_exception_handler(exc, context):
     """
     exception_id = uuid.uuid4()
 
+    # TrainPlex Phase 1 Step 12 — convert django-ratelimit's ``Ratelimited``
+    # into a clean 429 JSON response so the frontend can show a Hindi-friendly
+    # message instead of an HTML error page.
+    try:
+        from django_ratelimit.exceptions import Ratelimited
+    except ImportError:  # pragma: no cover  (django-ratelimit is a dep, but be defensive)
+        Ratelimited = None  # type: ignore[assignment]
+
+    if Ratelimited is not None and isinstance(exc, Ratelimited):
+        logger.warning(
+            'Rate limit hit: %s (exception_id=%s)',
+            exc,
+            exception_id,
+            extra={'sentry_skip': True, 'exception_id': exception_id},
+        )
+        return Response(
+            {
+                'id': exception_id,
+                'status_code': 429,
+                'version': label_studio.__version__,
+                'error': 'rate_limited',
+                'detail': 'Bahut sare requests — kuch der ruk ke try karein',
+                'message': 'Bahut sare requests — kuch der ruk ke try karein',
+                'retry_after_seconds': 60,
+            },
+            status=429,
+            headers={'Retry-After': '60'},
+        )
+
     sentry_skip = False
     if isinstance(exc, APIException) and exc.status_code < 500:
         # Skipping Sentry for non-500 unhandled exceptions
