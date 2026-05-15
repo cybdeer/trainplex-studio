@@ -3,9 +3,11 @@ import { HomePage } from "./Home/HomePage";
 import { OrganizationPage } from "./Organization";
 import { ModelsPage } from "./Organization/Models/ModelsPage";
 import { AuditLogPage } from "./Admin/AuditLog";
+import { BulkAssignPage } from "./Admin/BulkAssign";
 import { DashboardWidget } from "./Admin/DashboardWidget";
 import { HeatmapPage } from "./Admin/Heatmap";
 import { ProjectWizard } from "./Admin/ProjectWizard";
+import { QualityAlertsPage } from "./Admin/QualityAlerts";
 import { WhatsAppBroadcastPage } from "./Admin/WhatsAppBroadcast";
 import { TwoFactorSetup } from "./Settings/TwoFactor/TwoFactorSetup";
 import { TwoFactorDisable } from "./Settings/TwoFactor/TwoFactorDisable";
@@ -39,6 +41,19 @@ export const Pages = [
   // Picker → trainer filter → preview → send (mock AiSensy). Same RoleGate +
   // backend @require_role(['admin']) pattern. Real AiSensy call lands Week 8.
   WhatsAppBroadcastPage,
+  // TrainPlex Phase 1 Step 4.2-3 — Admin Bulk Task Assign at /admin/bulk-assign.
+  // Filter trainers (state/tier/language/cert) → assign tasks in bulk
+  // (mock plan in Phase 1). Same RoleGate + backend @require_role(['admin'])
+  // pattern. Rate-limited to 5 bulk-assigns / hr / admin. Real LS task wiring
+  // lands Phase 2 / Step 8.
+  BulkAssignPage,
+  // TrainPlex Phase 1 Step 4.2-8 — Admin Quality Alert Center at
+  // /admin/quality-alerts. Surfaces auto-flagged reviewer-disagreement /
+  // time-anomaly / duplicate-pattern signals; admin can filter, drill in,
+  // and resolve (reviewed / dismissed / action_taken) with notes. Same
+  // RoleGate('admin') + backend @require_role(['admin']) pattern. Detection
+  // hooks are MOCK in Phase 1; real call-sites land Week 5 with peer-review.
+  QualityAlertsPage,
   // TrainPlex Phase 1 Step 12.4 — 2FA enrollment + disable Settings pages.
   // RoleGate inside each component restricts to admin + qa_lead. The
   // login-step challenge component (TwoFactorChallenge) is rendered from

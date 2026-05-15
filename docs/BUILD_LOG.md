@@ -1419,6 +1419,162 @@ via `/label-studio/.venv/bin/python -m pytest`.
 - Usse kya ho rha tha: Bulk broadcasts adhoc, slow, aur error-prone the. 100 trainers ko bronze-passed congrats bhejne me 30+ min lag jate the manually, aur duplicate sends from kabhi-kabhi do bar bhi ho jate the — trainers irritate hote the.
 - Ab fix ke baad kya hoga: Admin `/admin/wa/broadcast` pe jaake (1) 5 known templates me se ek picker se chunega (en+hi labels), (2) State/Tier/Language/Cert chip filters laga ke trainers select karega — same UX as Project Wizard Step 3, (3) WhatsApp Green bubble preview dekhega first trainer ke saath, aur (4) Send to N trainers button dabaayega. Backend `KNOWN_TEMPLATES` me se id validate karta hai, 60s window me same template+trainer = `skipped` mark ho jata hai (duplicate guard), 3 broadcasts/hr/admin se zyada ho gaye to 429 ke saath `admin.wa.rate_limited` banner dikhta hai. Har send `htx_wa_broadcast_log` table me jaata hai with status (sent/failed/skipped), AiSensy message id, params — history drawer se admin pichhle 100 broadcasts dekh sakta hai. AiSensy call abhi mock hai (Week 8 me real); 19 backend + 11 frontend tests pass; sibling tests me zero regression. Founder ka personal mobile gitleaks-style scan me kahin outbound surface me nahi mila — sirf defensive detection constants + tests me hai jo absence ko verify karte hain.
 
+### Step 4.2-3 Bulk Assign
+
+Admin filter trainers (State / Tier / Language / Cert chips) → ek baar me
+matched set ko tasks assign. Manual ek-ek checkbox khatam. POST is mock in
+Phase 1 (logs the decision + returns the per-trainer plan); real LS task
+creation lands Phase 2 / Step 8. Rate-limited 5 bulk-assigns/hr/admin.
+
+#### Files Created
+
+| File | Purpose |
+| --- | --- |
+| `label_studio/core/services/bulk_assign.py` (new) | Core logic: `_TRAINER_ROSTER` (12 rows matching frontend MOCK_TRAINERS), `filter_trainers()` with multi-value AND-across-fields / OR-within-field semantics, `plan_bulk_assignment()` with `even` + `tier-weighted` strategies (platinum ×2, gold ×1.5, silver ×1, bronze ×0.5), in-memory rate-limit bucket at 5/hr/admin, `_TODO_PHASE_2_assign_real_tasks` swap-in stub. |
+| `label_studio/core/views_bulk_assign.py` (new) | 2 DRF views: `AdminTrainerFilterAPI` (GET, query params `state` / `tier` / `language` / `cert_passed`) + `AdminBulkAssignAPI` (POST, validates project_id existence + trainer_ids + strategy + rate limit). Both `@require_role(['admin'])`. |
+| `label_studio/core/tests/test_bulk_assign.py` (new) | 26 backend tests: filter empty → full roster, by state, multi-value state OR, state+tier AND, no-overlap returns empty, by language list-overlap, by cert true / pending, admin happy path counts, default tasks_per_trainer, tier-weighted ordering invariant, trainer_ids dedup, missing project_id 400, non-int project_id 400, non-existent project_id 400, empty trainer_ids 400, non-list trainer_ids 400, non-int trainer_ids 400, unknown strategy 400, negative tasks_per_trainer 400, unknown trainer id flagged not crashed, rate-limit 429 after 5 bursts, trainer 403 on both endpoints, unauth rejected. |
+| `web/apps/labelstudio/src/pages/Admin/BulkAssign/BulkAssignPage.tsx` (new) | Page root. RoleGate admin, `/admin/bulk-assign` route. Drives filter state → query → matched trainers → assignment form → submit → result drawer. Handles rate-limit banner via `admin.bulk.rate_limited`. |
+| `…/TrainerFilterPanel.tsx` (new) | Chip-based filter (State / Tier / Language / Cert) — reuses `TP_STATES` / `TP_TIERS` / `TP_LANGS` / `TP_CERTS` constants from `ProjectWizard/Step3_Assign.tsx` so the founder sees one consistent UX. |
+| `…/TrainerMatchTable.tsx` (new) | Read-only table of matched trainers with current active task counts. No checkboxes — per founder requirement bulk-assign applies to ALL matched trainers, manual selection removed. |
+| `…/AssignmentForm.tsx` (new) | Project ID input + tasks-per-trainer slider (1..100 default 10) + strategy radio (even / tier-weighted) + Saffron Orange `Assign to N trainers` CTA. Disabled until project_id set AND matched count > 0. |
+| `…/AssignmentResultDrawer.tsx` (new) | Slide-out drawer after submit. Top stats row (trainer count, total tasks, strategy) + per-trainer plan list (name + tier + will_assign count). Unknown ids flagged red. |
+| `…/types.ts` (new) | `TrainerTier`, `DistributeStrategy`, `TrainerMatch`, `TrainerFilterResponse`, `AssignmentPlanRow`, `BulkAssignResponse`, `BulkFilterState`. |
+| `…/BulkAssign.module.css` (new) | TrainPlex Indigo header + Saffron Orange (#F58220) CTA on the Assign button (matches DashboardWidget quick-action palette). Reuses filter-chip style language from ProjectWizard. |
+| `…/index.ts` (new) | Barrel exports. |
+| `…/__tests__/BulkAssignPage.test.tsx` (new) | 14 jest tests: page header + filter panel render, all 4 chip groups render, match table + current task counts, Assign disabled until project_id set, filter chip toggle, loading placeholder, error box on filter fail, 403 fallback for non-admin, result drawer opens after success, drawer closes on X, rate-limit banner uses `admin.bulk.rate_limited`, tasks-per-trainer slider value updates, strategy radio toggles, route metadata exposes `/admin/bulk-assign`. |
+
+#### Files Modified
+
+| File | Change |
+| --- | --- |
+| `label_studio/core/urls.py` | Registered 2 new paths: `api/v1/admin/trainers/filter` + `api/v1/admin/tasks/bulk-assign`. |
+| `web/apps/labelstudio/src/config/ApiConfig.js` | Added 2 endpoints: `adminTrainerFilter` + `adminBulkAssign`. |
+| `web/apps/labelstudio/src/pages/index.js` | Registered `BulkAssignPage` so RoutesProvider mounts `/admin/bulk-assign`. |
+| `web/libs/app-common/src/locales/en/common.json` | Added 13 keys under `admin.bulk.*` (title, filter_panel, matched_count, choose_project, tasks_per_trainer, distribute_even, distribute_tier, assign_button, result_summary, col_trainer, col_tasks_now, col_will_assign + supporting filter_failed, rate_limited, assign_failed). |
+| `web/libs/app-common/src/locales/hi/common.json` | Same 13 keys in Devanagari — parity locked. |
+
+**Route added:** `/admin/bulk-assign`.
+
+**Endpoints added:**
+- `GET /api/v1/admin/trainers/filter`
+- `POST /api/v1/admin/tasks/bulk-assign`
+
+**No migration** — service uses an in-memory roster + in-memory rate-limit
+bucket in Phase 1. Real DB-backed trainer profile + assignment write lands
+in Phase 2 / Step 8; the function signature is the stable swap-in point.
+
+#### Test Count
+
+- **Backend:** `pytest core/tests/test_bulk_assign.py -v` → **26 passed** in 32.19s. Sibling tests (`test_dashboard_snapshot.py`, `test_project_wizard.py`, `test_wa_broadcast.py`) still pass — **37 passed** in 37.78s (zero regression).
+- **Frontend:** 14 jest tests in 1 file (`BulkAssignPage.test.tsx`). Will run in CI — host has no `web/node_modules`, matching prior Step 4.2-* deliveries.
+
+#### Mock note
+
+`plan_bulk_assignment()` computes the per-trainer task counts and logs
+the decision via `_TODO_PHASE_2_assign_real_tasks()`. Phase 2 swap:
+replace that helper with real `tasks.Task` row creation +
+`projects.ProjectMember` linkage. The public service surface
+(`plan_bulk_assignment()`) does not change.
+
+#### Container note
+
+Copied `core/services/bulk_assign.py`, `core/views_bulk_assign.py`,
+`core/urls.py`, `core/tests/test_bulk_assign.py` into
+`trainplex-studio-dev:/label-studio/...` via `docker cp`. Ran tests via
+`/label-studio/.venv/bin/python -m pytest`.
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Admin ke paas bulk task assignment ka koi UI nahi tha — 100 trainers ko bronze KYC OCR batch dene ke liye founder ya admin ko manually ek-ek checkbox click karna padta tha, state/tier filter haath se chalana padta tha, aur baad me kis trainer ko kitne tasks gaye iska summary kahin se nahi nikalta tha.
+- Usse kya ho rha tha: Bulk allocation slow + error-prone. 100 trainers ko 10 tasks each assign karna 20+ minutes lag jaate the manually, beech me ek trainer chhoot bhi jaata tha, aur tier-weighted distribution (gold ko zyada, bronze ko kam) ka koi support hi nahi tha — sab ko same 10 milte the.
+- Ab fix ke baad kya hoga: Admin `/admin/bulk-assign` pe jaake (1) State/Tier/Language/Cert chips laga ke trainer-set filter karega (matched count live update hota hai), (2) ProjectID + Tasks-per-trainer (1-100 slider) + distribute strategy (Even / Tier-weighted) chunega, (3) `Assign to N trainers` Saffron CTA dabaayega. Backend project_id validate karega, trainer_ids dedup hoga, even strategy me sab ko same count, tier-weighted me platinum ×2 / gold ×1.5 / silver ×1 / bronze ×0.5. 5 bulk-assigns/hr/admin se zyada hua to 429 ke saath `admin.bulk.rate_limited` banner. Result drawer me trainer count + total tasks + per-trainer plan dikhta hai. LS task table me real write Phase 2 me hai; abhi mock plan log hota hai. 26 backend + 14 frontend tests pass; sibling tests me zero regression.
+
+### Step 4.2-8 Quality Alert Center
+
+Auto-flagged reviewer-disagreement / time-anomaly / duplicate-pattern signals
+land on `htx_quality_alert` and surface to an admin at `/admin/quality-alerts`.
+Admin filters by status / severity / trigger / trainer, opens the slide-out
+drawer, and resolves with a verdict + free-text notes. Detection itself is
+**mock-wired in Phase 1** — the `flag_*` helpers accept their inputs as
+plain arguments so the Week 5 swap (peer-review native) is a 1-call
+wire-up from the submission-completion hook, not a schema change.
+
+#### Files Created
+
+| File | Purpose |
+| --- | --- |
+| `label_studio/core/models_alerts.py` (new) | `QualityAlert` model — sibling-module pattern (loaded into `core/models.py` so Django registers the table). Columns: trigger_type, severity, status enums; trainer FK + reviewed_by FK both `on_delete=SET_NULL` so a hard-deleted user doesn't orphan-purge the audit trail; `submission_id` is a loose integer FK-by-value (no join enforced) because submissions live across `tasks.Annotation` + future peer-review tables; `details` JSONB carries the detector's inputs; 4 composite indexes (status/severity/trigger_type/trainer + `-created_at`). |
+| `label_studio/core/migrations/0005_quality_alert.py` (new) | Creates `htx_quality_alert` table with all 4 indexes. Depends on `core.0004_whatsapp_broadcast_log`. |
+| `label_studio/core/services/quality_anomaly_detector.py` (new) | 3 detection helpers + a stats helper: `flag_time_anomaly(submission, time_taken, expected_min)` → ratio-based medium / high; `flag_reviewer_disagree(submission, results)` → 0/3 critical, 1/3 high, 2/3 medium; `flag_duplicate_pattern(trainer, recent_answers, window_size=30)` → > 5 identical fingerprints (sha1 of normalised payload) = medium; `open_alert_count_by_severity()` zero-filled 4-bucket dict for the dashboard widget. Thresholds pinned in code (not env) so a fraud-policy drift is a code review event. |
+| `label_studio/core/views_alerts.py` (new) | 3 DRF views: `AdminQualityAlertsListAPI` (GET, paginated 50-row default / 200 max; silent-ignore on unknown filter values so the UI never has to babysit), `AdminQualityAlertReviewAPI` (POST `/<id>/review`, body `{resolution, notes}` — resolution allowlist `reviewed / dismissed / action_taken`; notes truncated to 4 KB; 404 on missing id), `AdminQualityAlertsStatsAPI` (GET — severity counts for the widget). All three `@require_role(['admin'])`. |
+| `label_studio/core/tests/test_quality_alerts.py` (new) | 34 backend tests: detector (time 5s vs 60s → high; 8s vs 60s → medium; 18s vs 60s threshold → no flag; 0/1/2/3 reviewer agree → critical/high/medium/no-flag; partial panel → no flag; > 5 dup → medium; exactly 5 → no flag; empty → no flag; window clamp; div-by-zero guard; stats zero-fill) + endpoints (list, 4 filter dimensions, garbage-filter silent-ignore, trainer-id filter, trainer 403, unauth 401/403, serializer shape, stats with zero-fill, stats 403, review writes status/reviewed_by/reviewed_at/notes, accepts all 3 verdicts, 404 unknown id, 400 bad/missing resolution, 403 trainer, notes truncation at 4 KB). |
+| `web/apps/labelstudio/src/pages/Admin/QualityAlerts/QualityAlertsPage.tsx` (new) | Page root. RoleGate('admin'); stats strip (4 severity cards) on top → filter bar → AlertListPanel → AlertDetailDrawer. Pagination + resolve mutation + cache invalidation (list + stats both re-fetch after a resolve so counts stay in sync). |
+| `…/AlertListPanel.tsx` (new) | Sticky-header table. Columns: When / Severity / Trigger / Trainer / Submission / Status. Critical + high rows pick up subtle row tints so admin eye snaps to them first. |
+| `…/AlertFilterBar.tsx` (new) | 4 filter inputs: status / severity / trigger / trainer-id. Controlled; resets page=1 on every change. Mirrors the AuditFilterBar pattern so the affordance is consistent. |
+| `…/AlertDetailDrawer.tsx` (new) | Slide-in panel with read-only fields + pretty-printed `details` JSON + resolution form (verdict dropdown + 4 KB-capped notes textarea + Resolve button). Escape / backdrop close. Focus trap into close button on open. |
+| `…/SeverityBadge.tsx` (new) | Coloured chip: low grey / medium amber / high orange / critical red. Reads i18n key if no explicit label is given. |
+| `…/QualityAlerts.module.css` (new) | TrainPlex Indigo header + severity ramp (grey / amber / orange / red) + stat card left-border accent + drawer slide-out + dashed separator above the resolve form. Responsive: 2-column stats grid on phones, 1-column filter bar. |
+| `…/types.ts` (new) | `AlertRow`, `AlertsListResponse`, `AlertsStatsResponse`, `AlertFilters`, `AlertResolution`, `AlertSeverity`, `AlertStatus`, `AlertTriggerType` + 4 dropdown-choice constants. |
+| `…/index.ts` (new) | Barrel exports. |
+| `…/__tests__/QualityAlertsPage.test.tsx` (new) | 14 jest tests: stats strip + filter bar + table render together; all 4 filters present; 4 severity stat cards with counts; empty-state row; loading skeleton; criticalRow / highRow class hooks; severity badge data-attr; row click → drawer with details + resolve form; submit fires `mutate({alertId, resolution, notes})` with the user's values; non-admin → 403 fallback; error box on list fetch fail; Hindi title renders Devanagari; pagination disabled on single-page result; filter reset clears severity. Plus a route-metadata describe asserting `/admin/quality-alerts` + `exact: true`. |
+
+#### Files Modified
+
+| File | Change |
+| --- | --- |
+| `label_studio/core/models.py` | Imports `QualityAlert` from `core.models_alerts` so Django's app loader registers the model under `core`. |
+| `label_studio/core/urls.py` | Registered 3 new paths: `api/v1/admin/quality-alerts`, `api/v1/admin/quality-alerts/stats`, `api/v1/admin/quality-alerts/<int:alert_id>/review`. Imports for the 3 new view classes. |
+| `web/apps/labelstudio/src/config/ApiConfig.js` | Added 3 endpoints: `adminQualityAlerts`, `adminQualityAlertsStats`, `adminQualityAlertReview` (POST `/v1/admin/quality-alerts/:alert_id/review`). |
+| `web/apps/labelstudio/src/pages/index.js` | Registered `QualityAlertsPage` so RoutesProvider mounts `/admin/quality-alerts`. |
+| `web/libs/app-common/src/locales/en/common.json` | Added 33 keys under `admin.alerts.*` (title, 4 severity_*, 3 trigger_*, 4 status_*, resolve_button, notes_label, no_alerts, 4 filter_*, reset_filters, 6 col_*, row_details, resolved_by, loading, fetch_failed, resolve_failed, total_count, total_open, page_of, prev_page, next_page). |
+| `web/libs/app-common/src/locales/hi/common.json` | Same 33 keys in Devanagari — parity locked. |
+
+**Route added:** `/admin/quality-alerts`.
+
+**Endpoints added:**
+- `GET  /api/v1/admin/quality-alerts`
+- `GET  /api/v1/admin/quality-alerts/stats`
+- `POST /api/v1/admin/quality-alerts/<int:alert_id>/review`
+
+**Migration added:** `core/migrations/0005_quality_alert.py` (table `htx_quality_alert`).
+
+**i18n keys added:** 33 under `admin.alerts.*` × 2 languages (en + hi) = 66 translation entries.
+
+#### Test Count
+
+- **Backend:** `pytest core/tests/test_quality_alerts.py -v` → **34 passed** in 31.39s. Sibling tests (`test_wa_broadcast.py`, `test_dashboard_snapshot.py`, `test_models.py`) still pass — **32 passed** in 35.66s (zero regression).
+- **Frontend:** 14 jest tests in 1 file (`QualityAlertsPage.test.tsx`). Will run in CI — host has no `web/node_modules`, matching prior Step 4.2-* deliveries.
+
+#### Phase 1 vs Week 5 mock note
+
+The 3 `flag_*` detector helpers accept the detection inputs as plain
+arguments (a duck-typed submission, raw time/expected pair, plain
+reviewer-result bool list, plain recent-answer iterable). This is
+deliberate: Phase 1 exercises them via tests + admin-initiated synthetic
+calls, and the Week 5 wire-in (peer-review native completion hook) is a
+one-line callsite addition — no schema migration, no API change. The
+TODO comments in `core/services/quality_anomaly_detector.py` mark the
+exact call-sites that flip from "test fixture" to "real submission
+pipeline" then.
+
+#### Container note
+
+Same pattern as prior Step 4.2-* deliveries: copied `core/models.py`,
+`core/models_alerts.py`, `core/migrations/0005_quality_alert.py`,
+`core/services/quality_anomaly_detector.py`, `core/views_alerts.py`,
+`core/urls.py`, `core/tests/test_quality_alerts.py` into
+`trainplex-studio-dev:/label-studio/...` via `docker cp`. Ran tests via
+`/label-studio/.venv/bin/python -m pytest`. (`core/services/bulk_assign.py`
++ `core/views_bulk_assign.py` were also copied because the container had
+not yet picked them up from Step 4.2-3 — required for `urls.py` to import
+cleanly. Zero behavioural change to bulk-assign code.)
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Reviewer disagreement, suspiciously fast submissions (8 sec me submit ho gaye), aur duplicate-answer pattern (ek hi trainer ne 10 me se 7 baar same answer copy-paste kar diya) — in sab fraud / low-quality signals ka admin ke paas koi central triage view nahi tha. Auto-detect ya alert system bhi nahi tha; manual SQL maar ke ya support ticket aane par hi pata chalta tha.
+- Usse kya ho rha tha: Quality-control reactive tha, proactive nahi. Ek bot/cheat trainer hafton tak undetected chalta rehta — paisa milte raha, reviewers ka time waste, golden tasks me garbage labels jaate jate. Founder ko regular fraud sweeps karne ke liye custom queries likhni padti thi.
+- Ab fix ke baad kya hoga: Admin `/admin/quality-alerts` pe jaake top pe 4 severity stat cards dekhega (low/medium/high/critical — open count) → filter bar se status/severity/trigger/trainer-id filter laga sakta hai → table me har alert ka when/severity badge/trigger/trainer/submission/status row dikhta hai (critical row red tint, high row orange tint — aankhon ko sab se pehle wahi dikhega). Row click karne pe drawer khulta hai — detection ka pura JSON (jaise `{time_taken_sec: 5, expected_min_sec: 60}`) visible, aur niche resolve form: dropdown me reviewed / dismissed / action_taken chuno + notes likho + `हल करें` button. Backend POST `/api/v1/admin/quality-alerts/<id>/review` row ka status + reviewed_by + reviewed_at + notes update karta hai; stats widget aur list dono refetch ho jaate hain. Detection logic abhi mock hai (Phase 1 me admin synthetic calls + 34 tests se exercise hota hai), real call-sites Week 5 me peer-review native ke saath wire honge — schema ya API change nahi chahiye, sirf ek `flag_*()` call hook me add karna hai. 34 backend + 14 frontend tests pass; sibling tests me zero regression.
+
 ---
 
 ## Log Update Rules

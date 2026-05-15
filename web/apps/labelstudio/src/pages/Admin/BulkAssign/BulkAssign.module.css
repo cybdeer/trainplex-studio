@@ -1,0 +1,345 @@
+/*
+ * BulkAssign styles — TrainPlex Phase 1 Step 4.2-3.
+ *
+ * Visual language:
+ *   - TrainPlex Indigo header (matches the rest of the admin shell)
+ *   - Saffron Orange (#F58220) CTA on the "Assign to N trainers" button
+ *     so it reads as the primary action and aligns with the Dashboard's
+ *     existing quick-action button palette.
+ *
+ * Layout: top filter panel → middle matched-trainer table → assignment
+ * form + result drawer on the right when submission completes.
+ */
+
+.bulkRoot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-6, 24px);
+  font-family: var(--tp-font-ui, 'Inter', system-ui, sans-serif);
+}
+
+.bulkHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--tp-space-4, 16px) var(--tp-space-6, 24px);
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.bulkTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: var(--tp-font-display, 'Inter Tight', 'Inter', system-ui, sans-serif);
+}
+
+.bulkSubtitle {
+  font-size: 0.8125rem;
+  opacity: 0.8;
+}
+
+/* ── Section ─────────────────────────────────────────────────── */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-4, 16px);
+  background: #FFFFFF;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.sectionHeading {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.matchedCount {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+/* ── Filter chips ────────────────────────────────────────────── */
+
+.filtersBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-2, 8px);
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filterGroupLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.filterChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tp-space-2, 8px);
+}
+
+.filterChip {
+  padding: 4px 10px;
+  border-radius: var(--tp-radius-full, 9999px);
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  background: #FFFFFF;
+  font-size: 0.8125rem;
+  color: var(--tp-color-indigo-700, #121242);
+  cursor: pointer;
+}
+
+.filterChip:hover {
+  background: var(--tp-color-indigo-50, #E8E8F0);
+}
+
+.filterChipActive {
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+  border-color: var(--tp-color-indigo-500, #1A1A5E);
+}
+
+/* ── Trainer match table ─────────────────────────────────────── */
+
+.matchTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.matchTable th,
+.matchTable td {
+  text-align: left;
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  border-bottom: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+}
+
+.matchTable th {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--tp-color-indigo-50, #E8E8F0);
+}
+
+.emptyRow {
+  text-align: center;
+  padding: var(--tp-space-6, 24px) var(--tp-space-3, 12px);
+  font-style: italic;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+/* ── Assignment form ─────────────────────────────────────────── */
+
+.formRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tp-space-4, 16px);
+  align-items: flex-end;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+}
+
+.formLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.formInput {
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  font-size: 1rem;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  background: #FFFFFF;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--tp-color-indigo-500, #1A1A5E);
+  box-shadow: 0 0 0 3px rgba(26, 26, 94, 0.08);
+}
+
+.sliderValue {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.assignBtn {
+  background: #F58220; /* TrainPlex Saffron CTA */
+  border-color: #F58220;
+  color: #FFFFFF;
+  min-width: 220px;
+}
+
+.assignBtn:hover {
+  background: #DC6F11;
+  border-color: #DC6F11;
+}
+
+.assignBtn:disabled {
+  background: #CCCCCC;
+  border-color: #CCCCCC;
+  cursor: not-allowed;
+}
+
+/* ── Banners ─────────────────────────────────────────────────── */
+
+.successBanner {
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  background: rgba(37, 211, 102, 0.12);
+  color: #14592F;
+  border-left: 4px solid #25D366;
+  border-radius: var(--tp-radius-sm, 2px);
+  font-size: 0.9375rem;
+}
+
+.errorBanner {
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  background: var(--tp-color-error-bg, #FEE2E2);
+  color: var(--tp-color-error, #DC2626);
+  border-left: 4px solid var(--tp-color-error, #DC2626);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+/* ── Result drawer ───────────────────────────────────────────── */
+
+.drawerBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  z-index: 50;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(520px, 100vw);
+  background: #FFFFFF;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
+  z-index: 51;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--tp-space-4, 16px);
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+}
+
+.drawerHeading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.drawerClose {
+  background: transparent;
+  color: #FFFFFF;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.drawerBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--tp-space-3, 12px);
+}
+
+.summaryStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-3, 12px) 0;
+  border-bottom: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+}
+
+.summaryStatItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.summaryStatLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.summaryStatValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--tp-color-indigo-700, #121242);
+  font-variant-numeric: tabular-nums;
+}
+
+.planRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  border-bottom: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  font-size: 0.875rem;
+}
+
+.planRow:last-child { border-bottom: 0; }
+
+.planRowUnknown { color: var(--tp-color-error, #DC2626); }
+
+.planTaskCount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* ── 403 / forbidden ─────────────────────────────────────────── */
+
+.errorBox {
+  padding: var(--tp-space-4, 16px);
+  background: var(--tp-color-error-bg, #FEE2E2);
+  color: var(--tp-color-error, #DC2626);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-weight: 500;
+}
+
+.loadingBox {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-6, 24px);
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}

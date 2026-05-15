@@ -103,6 +103,13 @@ export const API_CONFIG = {
     adminTemplateCatalog: "GET:/v1/admin/templates/catalog",
     adminProjectWizardCreate: "POST:/v1/admin/projects/wizard",
 
+    // TrainPlex — Phase 1 Step 4.2-3: Admin Bulk Task Assign.
+    // Filter trainers by state/tier/language/cert, assign tasks in bulk.
+    // Phase 1 backend ships a mock plan; real LS task-write lands Phase 2.
+    // POST is rate-limited to 5 bulk-assigns / hour / admin.
+    adminTrainerFilter: "GET:/v1/admin/trainers/filter",
+    adminBulkAssign: "POST:/v1/admin/tasks/bulk-assign",
+
     // TrainPlex — Phase 1 Step 4.2-4: Admin audit-log viewer.
     // Paginated read-only listing over users.AuditLog. Query params: action,
     // actor_email, target_type, success, start_date, end_date, page, page_size.
@@ -118,6 +125,15 @@ export const API_CONFIG = {
     adminWaTemplates: "GET:/v1/admin/wa/templates",
     adminWaBroadcast: "POST:/v1/admin/wa/broadcast",
     adminWaBroadcastHistory: "GET:/v1/admin/wa/broadcast/history",
+
+    // TrainPlex — Phase 1 Step 4.2-8: Admin Quality Alert Center.
+    // Lists auto-flagged reviewer-disagree / time-anomaly / duplicate-pattern
+    // signals; severity bucket counts feed the dashboard widget; review POST
+    // resolves an alert with admin notes. Detection mock in Phase 1; real
+    // call-sites land Week 5 with peer-review native.
+    adminQualityAlerts: "GET:/v1/admin/quality-alerts",
+    adminQualityAlertsStats: "GET:/v1/admin/quality-alerts/stats",
+    adminQualityAlertReview: "POST:/v1/admin/quality-alerts/:alert_id/review",
 
     // TrainPlex — Phase 1 Step 12.4: TOTP 2FA endpoints (admin + qa_lead only).
     twoFactorEnrollStart: "POST:/v1/users/me/2fa/enroll/start",

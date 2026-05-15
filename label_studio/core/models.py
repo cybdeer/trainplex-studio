@@ -91,3 +91,12 @@ class DeletedRow(models.Model):
 # ---------------------------------------------------------------------------
 
 from core.models_broadcast import WhatsAppBroadcastLog  # noqa: E402,F401
+
+# ---------------------------------------------------------------------------
+# TrainPlex Phase 1 Step 4.2-8 — Quality alert center.
+# Same sibling-module pattern as the broadcast log. Detection logic lives in
+# `core/services/quality_anomaly_detector.py`; admin endpoints in
+# `core/views_alerts.py`.
+# ---------------------------------------------------------------------------
+
+from core.models_alerts import QualityAlert  # noqa: E402,F401

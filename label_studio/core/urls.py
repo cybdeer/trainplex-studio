@@ -18,11 +18,20 @@ Including another URLconf
 
 from core import views
 from core.utils.static_serve import serve
+from core.views_alerts import (
+    AdminQualityAlertReviewAPI,
+    AdminQualityAlertsListAPI,
+    AdminQualityAlertsStatsAPI,
+)
 from core.views_audit import AdminAuditLogAPI
 from core.views_broadcast import (
     AdminWhatsAppBroadcastAPI,
     AdminWhatsAppBroadcastHistoryAPI,
     AdminWhatsAppTemplatesAPI,
+)
+from core.views_bulk_assign import (
+    AdminBulkAssignAPI,
+    AdminTrainerFilterAPI,
 )
 from core.views_dashboard import AdminDashboardSnapshotAPI
 from core.views_heatmap import AdminHeatmapStateActivityAPI
@@ -100,6 +109,21 @@ urlpatterns = [
         AdminProjectWizardCreateAPI.as_view(),
         name='admin-project-wizard-create',
     ),
+    # TrainPlex — Phase 1 Step 4.2-3: Admin Bulk Task Assign.
+    # Filter trainers by state / tier / language / cert, then assign tasks
+    # to all matched trainers in one POST. Phase 1 ships a mock plan that
+    # logs the per-trainer task count; real LS task creation lands Phase 2.
+    # POST is rate-limited to 5 bulk-assigns / hour / admin.
+    path(
+        'api/v1/admin/trainers/filter',
+        AdminTrainerFilterAPI.as_view(),
+        name='admin-trainers-filter',
+    ),
+    path(
+        'api/v1/admin/tasks/bulk-assign',
+        AdminBulkAssignAPI.as_view(),
+        name='admin-bulk-assign',
+    ),
     # TrainPlex — Phase 1 Step 4.2-4: Admin Audit Log viewer
     # Paginated read-only view over users.AuditLog. Filters: action, actor email,
     # target_type, success, date range. Admin role only.
@@ -134,6 +158,25 @@ urlpatterns = [
         'api/v1/admin/wa/broadcast/history',
         AdminWhatsAppBroadcastHistoryAPI.as_view(),
         name='admin-wa-broadcast-history',
+    ),
+    # TrainPlex — Phase 1 Step 4.2-8: Admin Quality Alert Center.
+    # Auto-flagged reviewer-disagree / time-anomaly / duplicate-pattern signals
+    # are listed, drillable, and resolvable by an admin. Detection mock in
+    # Phase 1; real wiring lands Week 5 with peer-review native.
+    path(
+        'api/v1/admin/quality-alerts',
+        AdminQualityAlertsListAPI.as_view(),
+        name='admin-quality-alerts-list',
+    ),
+    path(
+        'api/v1/admin/quality-alerts/stats',
+        AdminQualityAlertsStatsAPI.as_view(),
+        name='admin-quality-alerts-stats',
+    ),
+    path(
+        'api/v1/admin/quality-alerts/<int:alert_id>/review',
+        AdminQualityAlertReviewAPI.as_view(),
+        name='admin-quality-alert-review',
     ),
     re_path(r'health/', views.health, name='health'),
     re_path(r'metrics/', views.metrics, name='metrics'),
