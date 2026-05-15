@@ -1,0 +1,44 @@
+{
+  "app": {
+    "name": "TrainPlex Studio",
+    "tagline": "AI training for India"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "signup": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Submit",
+    "forgot_password": "Forgot password?",
+    "invalid_credentials": "Invalid email or password"
+  },
+  "common": {
+    "yes": "Yes",
+    "no": "No",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry"
+  },
+  "trainer": {
+    "dashboard_title": "Today's tasks",
+    "earnings_label": "Earned today",
+    "tasks_done": "Done",
+    "tasks_remaining": "Remaining",
+    "start_batch": "Start batch",
+    "submit_and_next": "Submit + Next",
+    "skip": "Skip",
+    "task_locked_tier": "Locked — promote to {{tier}} to unlock"
+  },
+  "admin": {
+    "dashboard_title": "Admin Dashboard",
+    "create_project": "Create Project",
+    "trainers": "Trainers",
+    "submissions": "Submissions",
+    "reports": "Reports"
+  }
+}

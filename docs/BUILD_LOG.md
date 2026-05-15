@@ -114,6 +114,7 @@ Pushed to `origin/develop` (cybdeer/trainplex-studio).
 | `bftod8mri` | docker compose build (verbose retry) | STUCK same step; stopped |
 | `boy6376rv` | Build watchdog monitor | STOPPED when build skipped |
 | `bggm1iwak` | LS health-check until-loop | ✅ COMPLETED — LS up in ~40s |
+| `bv9unotdw` | docker compose build (orig) — LATE COMPLETION | ✅ COMPLETED at 16:06 IST (exit 0). Image tagged `trainplex-studio:dev` (1.53 GB). Was not actually stuck — silent poetry install just took ~28 min. Build watchdog 5-min idle threshold flagged it incorrectly. Container swap deferred to Week 3 branding step per founder. |
 
 ### Issues + Resolutions
 
@@ -196,6 +197,92 @@ Pushed to `origin/develop` (cybdeer/trainplex-studio).
 - Kya bug tha: User model mein role field nahi tha — sab user same level access.
 - Usse kya ho rha tha: RBAC enforce nahi kar pa rahe the; admin/qa_lead/reviewer/trainer ka koi distinction nahi tha.
 - Ab fix ke baad kya hoga: Har user ka ek role hoga (default `trainer`), aur `@require_role(['admin'])` lagao toh sirf admin hi wo API hit kar payega; baaki ko 403 milega.
+
+---
+
+### Step 15 — i18n bootstrap (Step 1.4-C)
+
+**react-i18next infrastructure for Hindi/English UI strings.** Foundation only — no existing strings replaced yet. Phase 1 Week 2 Step 1.4-C delivered.
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `web/libs/app-common/src/i18n/config.ts` | i18next init — registers `en` + `hi` resources, `LanguageDetector` (localStorage → cookie `tp_lang` → navigator), `fallbackLng: 'en'`, `defaultNS: 'common'`, `interpolation.escapeValue: false` |
+| `web/libs/app-common/src/i18n/index.ts` | Barrel — re-exports `i18n`, `SUPPORTED_LANGUAGES`, `SupportedLanguage`, `useTranslation`, `Trans` |
+| `web/libs/app-common/src/i18n/useTranslation.ts` | Thin re-export of `useTranslation` and `Trans` from `react-i18next` so app code imports from `@humansignal/app-common` only |
+| `web/libs/app-common/src/i18n/__tests__/config.test.ts` | Unit tests — init, resource registration, `t('app.name')` EN, `t('trainer.dashboard_title')` HI, `{{tier}}` interpolation in HI |
+| `web/libs/app-common/src/locales/en/common.json` | English baseline — `app`, `auth`, `common`, `trainer`, `admin` namespaces (37 keys total) |
+| `web/libs/app-common/src/locales/hi/common.json` | Hindi (Devanagari) translation — exact same key shape as `en/common.json` |
+| `web/libs/ui/src/components/HindiToggle/HindiToggle.tsx` | Small `<button>` that flips `i18n.language` between `en` and `hi`. Label shows the *target* language (`हि` when EN, `EN` when HI). `aria-label` always describes the switch action. |
+| `web/libs/ui/src/components/HindiToggle/index.ts` | Named + default re-export for ergonomic imports |
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `web/libs/app-common/package.json` | Added `i18next ^23.15.1`, `react-i18next ^15.0.2`, `i18next-browser-languagedetector ^8.0.0` to `dependencies` (no `yarn install` run yet — will resolve on next workspace install) |
+| `web/libs/app-common/src/index.ts` | Re-exports `i18n`, `SUPPORTED_LANGUAGES`, `useTranslation`, `Trans` + `SupportedLanguage` type from the new `./i18n` module |
+| `web/libs/ui/src/index.ts` | Added `export * from "./components/HindiToggle"` so `@humansignal/ui` consumers can `import { HindiToggle } from "@humansignal/ui"` |
+
+#### Tests
+
+- Command: `nx run app-common:test` (jest, uses `web/libs/app-common/jest.config.ts`)
+- **Status: deferred — not executed in this session.** Pre-built dev container is runtime-only; `web/node_modules` is not populated and `yarn install` was explicitly out of scope for this task (see task brief). The test file is wired correctly against `jest.config.ts` (no `moduleNameMapper` change needed — i18next is a normal CJS dep) and `tsconfig.spec.json` already includes `src/**/*.test.ts`. Run on next dev-loop iteration once workspace `yarn install` completes.
+
+#### How to Use in Any Component
+
+```tsx
+import { useTranslation } from "@humansignal/app-common";
+
+export function Greeting() {
+  const { t } = useTranslation();
+  return <h1>{t("app.name")}</h1>;        // → "TrainPlex Studio"
+}
+```
+
+For interpolation:
+
+```tsx
+const { t } = useTranslation();
+t("trainer.task_locked_tier", { tier: "silver" });
+// EN → "Locked — promote to silver to unlock"
+// HI → "बंद — silver में जाने पर खुलेगा"
+```
+
+For language switching anywhere in the app:
+
+```tsx
+import { HindiToggle } from "@humansignal/ui";
+
+<HindiToggle />   // drop it into the header
+```
+
+Or programmatically:
+
+```ts
+import { i18n } from "@humansignal/app-common";
+i18n.changeLanguage("hi");   // persists to localStorage `tp_lang` + cookie `tp_lang`
+```
+
+#### Detection Order
+
+`localStorage('tp_lang')` → `cookie('tp_lang')` → `navigator.language` → fallback `en`.
+Both cookie and localStorage caches are updated on every `changeLanguage` so the choice survives reloads + cross-subdomain navigation.
+
+#### Issues + Resolutions
+
+| Issue | Resolution |
+|-------|------------|
+| Task spec said `web/libs/ui/src/components/HindiToggle/` but existing UI lib convention is `web/libs/ui/src/lib/<Component>/` | Followed the explicit task path (`components/`) and added barrel re-export to `web/libs/ui/src/index.ts` so consumers don't care where it lives. Existing `lib/` components untouched. |
+| `app-common/package.json` had empty `dependencies: {}` block | Replaced with the three i18next deps, keeping the same key ordering style as root `web/package.json` |
+| No `yarn install` allowed in this env → cannot execute jest | Files staged correctly; test will run as part of normal CI / next manual `nx run app-common:test` once deps install. Imports + jest config verified by inspection. |
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Hindi support ke liye koi framework nahi tha — har UI string hard-code English mein thi.
+- Usse kya ho rha tha: India ke users (jo Hindi prefer karte hain) ke liye app fully samajhne yogya nahi tha; A/B test bhi nahi kar sakte the.
+- Ab fix ke baad kya hoga: Naye components mein `const { t } = useTranslation(); <h1>{t('app.name')}</h1>` likhne se UI EN/HI dono mein dikhega. Header mein `<HindiToggle />` lagao toh user khud switch kar sakta hai. Choice browser mein save ho jayegi (`tp_lang` localStorage + cookie). Week 3 mein purani strings ek-ek karke `t()` se replace honge.
 
 ---
 

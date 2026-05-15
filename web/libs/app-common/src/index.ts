@@ -7,3 +7,7 @@ export { useStateHistory, type StateHistoryItem, type StateHistoryResponse } fro
 
 // Components
 export * from "./components/state-chips";
+
+// i18n
+export { i18n, SUPPORTED_LANGUAGES, useTranslation, Trans } from "./i18n";
+export type { SupportedLanguage } from "./i18n";
