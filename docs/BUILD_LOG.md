@@ -153,6 +153,52 @@ Pushed to `origin/develop` (cybdeer/trainplex-studio).
 
 ---
 
+### 2026-05-15 — Day 1 Evening (Phase 1 Week 2 kick-off)
+
+**Step 1.4-A: RBAC role field on User model + `@require_role()` decorator.**
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `label_studio/users/migrations/0012_add_role_field.py` | Django migration — `AddField user.role` (CharField, 4 choices, default `trainer`) |
+| `label_studio/users/decorators/__init__.py` | Package init — exports `require_role` |
+| `label_studio/users/decorators/require_role.py` | DRF RBAC decorator — raises `PermissionDenied` for unauthenticated or out-of-role users |
+| `label_studio/users/tests/test_role_rbac.py` | 7 unit tests covering model field + decorator behavior |
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `label_studio/users/models.py` | Added `ROLE_CHOICES` + `role = CharField(max_length=20, choices=ROLE_CHOICES, default='trainer')` on `User` |
+
+#### Migration Applied
+
+- `users.0012_add_role_field` → `OK` on dev DB (`/label-studio/data/label_studio.sqlite3`)
+- Verified: `User.objects.first().role == 'trainer'` (default backfilled on existing row)
+
+#### Tests
+
+- Command: `docker exec -w /label-studio/label_studio trainplex-studio-dev /label-studio/.venv/bin/python -m pytest users/tests/test_role_rbac.py -v`
+- Result: **7 passed in 23.08s** — covers default role, all 4 valid values, invalid-role rejection, admin allowed, qa_lead in multi-role set, trainer denied, anonymous denied.
+
+#### Issues + Resolutions
+
+| Issue | Resolution |
+|-------|------------|
+| `ceo@cybdeer.com` user does not exist in dev DB → `update(role='admin')` matched 0 rows | Logged; existing superuser is `vk.vinodparihar1@gmail.com` (founder). Admin user will be created when Step 1.4-B onboarding flow lands. |
+| Local code not bind-mounted into pre-built dev container | `docker cp` round-trip — copy modified files into container before `makemigrations` / `pytest`, copy generated migration back out |
+| `pytest` not in venv (pre-built image is runtime-only) | `pip install pytest pytest-django pytest-env factory-boy` inside venv |
+| Bash on Windows mangles `/label-studio/...` paths in `docker exec -w` | Used PowerShell to invoke `docker exec` with absolute container paths |
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: User model mein role field nahi tha — sab user same level access.
+- Usse kya ho rha tha: RBAC enforce nahi kar pa rahe the; admin/qa_lead/reviewer/trainer ka koi distinction nahi tha.
+- Ab fix ke baad kya hoga: Har user ka ek role hoga (default `trainer`), aur `@require_role(['admin'])` lagao toh sirf admin hi wo API hit kar payega; baaki ko 403 milega.
+
+---
+
 ## Log Update Rules
 
 - Every new file → `Files Created` table

@@ -150,6 +150,19 @@ class User(UserMixin, AbstractBaseUser, PermissionsMixin, UserLastActivityMixin)
         _('allow newsletters'), null=True, default=None, help_text=_('Allow sending newsletters to user')
     )
 
+    ROLE_CHOICES = [
+        ('trainer', 'Trainer'),
+        ('reviewer', 'Reviewer'),
+        ('qa_lead', 'QA Lead'),
+        ('admin', 'Admin'),
+    ]
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default='trainer',
+        help_text='TrainPlex role for RBAC',
+    )
+
     objects = UserManager()
 
     EMAIL_FIELD = 'email'
