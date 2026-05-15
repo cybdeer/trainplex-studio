@@ -26,7 +26,7 @@ def require_role(allowed_roles):
         @wraps(view_func)
         def wrapper(self, request, *args, **kwargs):
             if not request.user.is_authenticated:
-                raise PermissionDenied('Login required')
+                raise PermissionDenied("Login required")
             if request.user.role not in allowed_roles:
                 raise PermissionDenied(
                     f'Required role: {", ".join(allowed_roles)}. Your role: {request.user.role}'
