@@ -7,6 +7,9 @@ export * from "./components/RoleGate";
 // TrainPlex Phase 1 Step 6 — 3-dot consensus status indicator used by the
 // reviewer queue, QA dispute list, and admin submissions preview drawer.
 export * from "./components/ConsensusBadge";
+// TrainPlex Phase 1 Step 14 — Global Search (Cmd+K) command palette + the
+// hook that owns its open state + recent-searches history.
+export * from "./components/CommandPalette";
 export * from "./lib/Tooltip/Tooltip";
 export * from "./lib/Userpic/Userpic";
 export * from "./lib/badge/badge";

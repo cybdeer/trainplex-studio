@@ -9,6 +9,13 @@ import { HeatmapPage } from "./Admin/Heatmap";
 import { ProjectWizard } from "./Admin/ProjectWizard";
 import { PaymentStatusPage } from "./Admin/PaymentStatus";
 import { QualityAlertsPage } from "./Admin/QualityAlerts";
+import {
+  CohortAnalysis,
+  FounderDashboard,
+  Leaderboard,
+  ProjectROI,
+  ReportsHub,
+} from "./Admin/Reports";
 import { WhatsAppBroadcastPage } from "./Admin/WhatsAppBroadcast";
 // TrainPlex Phase 1 Step 6 — Reviewer (queue + split-screen review form +
 // self-service stats) and QA-lead (dispute queue + three-way resolution)
@@ -82,6 +89,21 @@ export const Pages = [
   // Razorpay payouts + manual retry. RoleGate('admin') + backend
   // @require_role(['admin']) pattern. Razorpay X is MOCKED in Phase 1.
   PaymentStatusPage,
+  // TrainPlex Phase 1 Step 7 — Reports + BI suite.
+  // 5 routes total:
+  //   /admin/reports             → ReportsHub (4 link cards to sub-pages)
+  //   /admin/reports/founder     → FounderDashboard (weekly snapshot)
+  //   /admin/reports/leaderboard → Leaderboard (period pills + filters + CSV)
+  //   /admin/reports/cohorts     → CohortAnalysis (retention heatmap)
+  //   /admin/reports/project-roi → ProjectROI (per-project ROI + PDF export)
+  // All RoleGate('admin'); backend mirrors via @require_role(['admin']) on
+  // every /api/v1/admin/reports/* endpoint. Phase 1 data is MOCK; real DB
+  // wiring lands in Phase 2 / Step 8.
+  ReportsHub,
+  FounderDashboard,
+  Leaderboard,
+  CohortAnalysis,
+  ProjectROI,
   // TrainPlex Phase 1 Step 12.4 — 2FA enrollment + disable Settings pages.
   // RoleGate inside each component restricts to admin + qa_lead. The
   // login-step challenge component (TwoFactorChallenge) is rendered from

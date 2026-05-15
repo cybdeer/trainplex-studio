@@ -2096,6 +2096,253 @@ Same pattern as prior Step 4.2-* / Step 6 deliveries: copied `label_studio/payme
 
 ---
 
+### Step 14 Global Search (Cmd+K)
+
+Phase 1 Step 14. Founder + admin ko ek hi search box me trainer / project /
+submission / audit-log / task search ka surface — Cmd+K command palette.
+Backend mock-driven (real Postgres FTS Phase 2), frontend fully wired with
+keyboard nav + recent searches + quick actions + i18n.
+
+#### Files Created
+
+| Path | Purpose |
+| --- | --- |
+| `label_studio/core/views_search.py` | `AdminGlobalSearchAPI` — `GET /api/v1/admin/search?q=&scope=`. Admin-only. Returns ≤50 mixed-type results across 5 scopes. Mock dataset of 23 seed rows. |
+| `label_studio/core/migrations/0006_fulltext_search_indexes.py` | Postgres GIN `to_tsvector` indexes on `htx_user`, `project`, `htx_audit_log`, `task`. No-op on SQLite (dev/test). |
+| `label_studio/core/tests/test_search.py` | 29 pytest cases: access control × 5, empty/whitespace q × 3, match semantics × 4, scope filters × 7, per-row contract × 4, cap × 2, regression × 2 + sundry. All green. |
+| `web/libs/ui/src/components/CommandPalette/CommandPalette.tsx` | React palette overlay (portal). Debounced search (300ms), grouped results, keyboard nav (↑↓ wrap, Enter, Esc), backdrop close, recent-searches + quick-actions blocks. |
+| `web/libs/ui/src/components/CommandPalette/CommandPalette.module.css` | TrainPlex Indigo overlay + panel + group heading styles. Dark-mode prefers-color-scheme rule. |
+| `web/libs/ui/src/components/CommandPalette/useCommandPalette.ts` | Hook — owns open state, recent-searches (localStorage cap 10, dedupe), global Cmd+K/Ctrl+K listener (gated by `enabled` prop). |
+| `web/libs/ui/src/components/CommandPalette/index.ts` | Barrel re-exports. |
+| `web/libs/ui/src/components/CommandPalette/__tests__/CommandPalette.test.tsx` | 18 jest cases — open/close, debounce, grouping, ArrowUp/Down wrap, Enter activate, click row, empty state, recent, quick-actions, i18n override, hook helpers (read/write/cap/dedup/clear). |
+| `web/apps/labelstudio/src/CommandPaletteMount.tsx` | Wires the lib component to the labelstudio app — pulls role from `APP_SETTINGS.user.role`, fetches `/api/v1/admin/search`, navigates via `window.LSH.push`. Wraps in `<RoleGate allow={['admin']}>`. |
+
+#### Files Modified
+
+| Path | Change |
+| --- | --- |
+| `label_studio/core/urls.py` | `+ path('api/v1/admin/search', AdminGlobalSearchAPI.as_view(), name='admin-global-search')`. |
+| `web/libs/ui/src/index.ts` | `+ export * from "./components/CommandPalette"`. |
+| `web/apps/labelstudio/src/main.tsx` | Mount `<CommandPaletteMount />` as a separate React root in `document.body` (`#tp-command-palette-root`) on DOMContentLoaded. HMR-safe. |
+| `web/libs/app-common/src/locales/en/common.json` | `+ "cmdk" { placeholder, recent, quick_actions, no_results, group_trainers, group_projects, group_submissions, group_audit, group_tasks, shortcut_hint }` — 10 keys. |
+| `web/libs/app-common/src/locales/hi/common.json` | Mirror 10 Hindi keys, parity-locked. |
+| `docs/BUILD_LOG.md` | This section. |
+
+#### Backend Endpoint
+
+`GET /api/v1/admin/search?q=<term>&scope=<scope>`
+
+- **Role:** admin-only (`@require_role(['admin'])`); trainer/reviewer/qa_lead all 403.
+- **Scopes:** `submissions`, `trainers`, `projects`, `audit_logs`, `tasks`, `all` (default). Unknown scope → silent fallback to `all`.
+- **Empty `q`:** returns `[]` (200, NOT 400) — palette opens with empty input + shows recent / quick actions.
+- **Hard cap:** 50 results across all scopes.
+- **Response shape:** flat array of `{type, id, title, subtitle, url}`. Internal `_search` corpus field stripped.
+
+Mock dataset: 6 trainers (Indian states + tiers), 5 projects, 5 submissions, 4 audit log entries, 3 tasks. Designed so `q=Geeta` hits a trainer, `q=Hindi` mixes 3+ types, `q=KYC` hits project + task, `q=Rajasthan` hits Geeta by subtitle.
+
+#### Frontend Integration
+
+- Main mount point: `web/apps/labelstudio/src/main.tsx` mounts a separate React root in `document.body#tp-command-palette-root` on `DOMContentLoaded`. Parallel to the main `<App />` tree so the overlay survives router navigation.
+- `<CommandPaletteMount />` reads role from `APP_SETTINGS.user.role`, gates via `<RoleGate allow={['admin']} />`, fetches from `/api/v1/admin/search`, navigates via `window.LSH.push` (the history exported by `App.jsx`).
+- Keyboard: Cmd+K (Mac) / Ctrl+K (Win) toggles. Esc closes. ArrowUp/Down navigate with wrap. Enter activates. Backdrop click closes.
+- Quick action: "Create new project" → `/projects/wizard`.
+
+#### i18n keys count
+
+10 new keys per locale: `cmdk.placeholder`, `cmdk.recent`, `cmdk.quick_actions`, `cmdk.no_results`, `cmdk.group_trainers`, `cmdk.group_projects`, `cmdk.group_submissions`, `cmdk.group_audit`, `cmdk.group_tasks`, `cmdk.shortcut_hint`. EN + HI parity: 460 keys each side, 0 missing on either.
+
+#### Test Count
+
+- **Backend:** `pytest core/tests/test_search.py -v` → **29 passed in 42.01s**.
+- **Sibling regression:** `pytest core/tests/test_search.py core/tests/test_dashboard_snapshot.py core/tests/test_quality_alerts.py` → **72 passed in 52.96s** — zero regression.
+- **Frontend:** 18 jest cases authored in `CommandPalette.test.tsx` (open/close, debounce, grouped render, keyboard nav, Enter activate, click row, empty state, recent searches, quick actions, i18n labels, plus 5 hook helper tests).
+
+#### Migration
+
+Migration 0006 (`core.0006_fulltext_search_indexes`) creates 4 GIN `to_tsvector('simple', ...)` indexes (`htx_users_fts_idx`, `htx_projects_fts_idx`, `htx_audit_log_fts_idx`, `htx_tasks_fts_idx`). Connection-vendor gated — runs only on Postgres; SQLite/MySQL are no-ops. The view still uses the mock dataset; the GIN indexes are staged so the Phase 2 swap is a one-call-site change in `_search_mock_dataset`.
+
+#### Phase 1 vs Phase 2 wiring note
+
+- **Mocked in Phase 1** (clearly marked with TODOs):
+  - Search dataset returns 23 hand-curated rows. No DB hit.
+  - `to_tsvector` GIN indexes exist after migration 0006 but the view does NOT yet query them.
+- **Real already** in Phase 1:
+  - Full Cmd+K UX: keyboard binding, debounce, grouped render, recent searches (localStorage), quick actions, i18n, Esc/backdrop close, focus management.
+  - Admin RBAC enforcement on both server (`@require_role(['admin'])`) and client (`<RoleGate allow={['admin']}>`). Hook also no-binds the keyboard listener for non-admins so DOM trickery can't pop the palette.
+  - Backend contract pinned by 29 tests so the Phase 2 swap (real FTS query inside `_search_mock_dataset`) is contract-safe.
+
+#### Founder rules honoured
+
+- **One-shot root-cause fix** (`MEMORY.md → feedback_one_shot_root_fix.md`): Single endpoint, single hook, single component. No layered admin sub-pages for "search trainers" + "search projects" + "search audit" — one Cmd+K palette covers all five scopes from one keystroke.
+- **No founder personal number in outbound** (`MEMORY.md → feedback_no_founder_personal_number.md`): Mock dataset audit log seeds use `ceo@cybdeer.com` / `unknown@x.com`. No phone numbers anywhere in seeds, search corpus, or UI strings.
+- **Plain-Hindi bug-fix recap** (`MEMORY.md → feedback_bug_fix_plain_explanation.md`): 3-line founder recap below.
+
+#### NOT in this step (deferred)
+
+- **Real Postgres FTS query** — Phase 2 with the real submissions/tasks schema. GIN indexes are already staged via migration 0006.
+- **Real-time search-as-you-type analytics** — Cmd+K opens are not logged to `AuditLog`. Phase 2 task.
+- **Multi-scope per-result jump** — when `scope=all` returns 50 rows across 5 types, only the first match per type is currently shown. No per-scope quota; the global cap can starve a less-populated type. Acceptable for Phase 1 (mock dataset is small) but a per-scope-quota loop is a Phase 2 polish.
+- **Mobile palette** — the overlay layout assumes ≥ 640px. Mobile Cmd+K (touch) is a Phase 2 design pass.
+
+#### Container note
+
+Same pattern as prior Step 4.2-* / Step 6 / Step 7 deliveries: copied `label_studio/core/views_search.py` + `label_studio/core/urls.py` + `label_studio/core/migrations/0006_fulltext_search_indexes.py` + `label_studio/core/tests/test_search.py` into `trainplex-studio-dev:/label-studio/label_studio/...` via `docker cp`. Ran the test suite via `/label-studio/.venv/bin/python -m pytest core/tests/test_search.py` — 29/29 pass in 42.01s. Combined sibling regression `core/tests/test_dashboard_snapshot.py + test_quality_alerts.py + test_search.py`: 72/72 pass in 52.96s.
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Admin / founder ko platform ke har corner me kuch dhundhne ke liye alag-alag pages khoj-khoj ke jaana padta tha — "Geeta naam ka trainer kaunse state se hai" jaanne ke liye `/admin/trainers` table khol ke filter lagao, "KYC project me kitne task baki hain" ke liye `/admin/projects/14` open karo, "kal raat kisne login attempt fail kiya tha" ke liye `/admin/audit` me ja ke `actor_email` filter set karo, "kis submission ka score 1/3 hai" ke liye `/admin/submissions/preview` me ja ke status filter lagao — paanch alag-alag pages, paanch alag-alag filter UI, har page ek alag muscle memory.
+- Usse kya ho rha tha: Founder ka day-to-day fraud-spot-check loop (5 min/morning) saare context-switches me 20 min me convert ho jata tha. Founder ke paas seedha "Geeta" ya "KYC" ya "192.168.1.5" type karke jump karne ka koi global search nahi tha. Mobile pe to aur bhura — har page reload, har filter dropdown, slow internet pe to bilkul painful. Operationally yeh top 1-2 friction tha founder dashboard ke usability me.
+- Ab fix ke baad kya hoga: Cmd+K (Mac) / Ctrl+K (Windows-Linux) dabate hi ek floating command palette open hota hai — sirf admin role ke liye (trainer/reviewer/qa_lead ke liye keyboard listener bind hi nahi hota, server bhi 403 deta hai). 300ms debounced search backend ko hit karta hai (`GET /api/v1/admin/search?q=&scope=`) jo abhi mock data return karta hai (Phase 2 me Postgres `to_tsvector` GIN index pe swap hoga — migration 0006 indexes already create kar deti hai). Result 5 group me organize hote hain — Trainers / Projects / Submissions / Audit Logs / Tasks — ArrowUp/Down se nav, Enter se jump, Esc se close, backdrop click se close. Hindi locale me palette puri tarah translate (10 naye keys, EN+HI parity locked 460=460). Recent searches localStorage me cap 10 dedup ho ke save hote hain (founder ke morning loop me wahi 5-6 names baar-baar search hote hain), "Create new project" quick action wizard pe jump karta hai. 29 backend tests pass karte hain (access control, empty/whitespace q, scope filter, max-50 cap, contract pin), 18 frontend tests palette ka keyboard nav + debounce + grouping + i18n + hook helpers cover karte hain. Founder ke morning fraud-spot-check ka loop ab 20 min se 5 min ho jayega — har search ek keystroke ka jump hai.
+
+---
+
+### Step 7 Reports + BI
+
+Phase 1 Step 7. Founder dashboard + Trainer leaderboard + Cohort analysis +
+Project ROI + Auto-email schedules. Single Django app `reports` housing 4
+service layers + an admin-only API surface; React hub at `/admin/reports`
+linking to 4 reporting surfaces; weekly + monthly PDF auto-email envelopes.
+Phase 1 ships deterministic mock data so the frontend can be built and pinned
+by tests; real DB aggregation lands in Phase 2 / Step 8.
+
+#### Files Created
+
+| Path | Purpose |
+| --- | --- |
+| `label_studio/reports/__init__.py` | App marker + Phase 1 status note |
+| `label_studio/reports/apps.py` | Django `ReportsConfig` |
+| `label_studio/reports/api.py` | 8 admin-only DRF endpoints (JSON + PDF + CSV) |
+| `label_studio/reports/urls.py` | URL routes mounted by `core/urls.py` |
+| `label_studio/reports/services/__init__.py` | Service barrel |
+| `label_studio/reports/services/founder_weekly.py` | `build_founder_weekly_snapshot(week_start)` — all sections |
+| `label_studio/reports/services/leaderboard.py` | `build_leaderboard(period, filters)` + Hall of Fame |
+| `label_studio/reports/services/cohort_analyzer.py` | `compute_cohort_metrics(definition)` — retention / productivity / earnings / drop-off |
+| `label_studio/reports/services/project_roi.py` | `compute_project_roi(id)` + `compute_all_project_roi()` |
+| `label_studio/reports/services/pdf_renderer.py` | Hand-rolled minimal PDF 1.4 — zero new deps |
+| `label_studio/reports/jobs/__init__.py` | Auto-email job barrel |
+| `label_studio/reports/jobs/email_weekly_summary.py` | Monday 09:00 IST cron (not scheduled in Phase 1) |
+| `label_studio/reports/jobs/email_monthly_summary.py` | 1st-of-month cron (not scheduled in Phase 1) |
+| `label_studio/reports/tests/__init__.py` | Test package marker |
+| `label_studio/reports/tests/test_reports.py` | 58 tests — services + API + PDF + CSV + email + founder-mobile scan |
+| `web/apps/labelstudio/src/pages/Admin/Reports/ReportsHub.tsx` | `/admin/reports` index with 4 link cards |
+| `web/apps/labelstudio/src/pages/Admin/Reports/FounderDashboard.tsx` | `/admin/reports/founder` — full weekly snapshot |
+| `web/apps/labelstudio/src/pages/Admin/Reports/Leaderboard.tsx` | `/admin/reports/leaderboard` — period pills, filters, Hall of Fame, CSV export |
+| `web/apps/labelstudio/src/pages/Admin/Reports/CohortAnalysis.tsx` | `/admin/reports/cohorts` — overview heatmap + per-cohort detail |
+| `web/apps/labelstudio/src/pages/Admin/Reports/ProjectROI.tsx` | `/admin/reports/project-roi` — table + drilldown panel + per-project PDF |
+| `web/apps/labelstudio/src/pages/Admin/Reports/MetricCard.tsx` | KPI tile (mirrors DashboardWidget contract) |
+| `web/apps/labelstudio/src/pages/Admin/Reports/TrendChart.tsx` | Pure-SVG line chart, no external lib |
+| `web/apps/labelstudio/src/pages/Admin/Reports/CohortHeatmap.tsx` | 4-column retention heatmap |
+| `web/apps/labelstudio/src/pages/Admin/Reports/Reports.module.css` | Shared module CSS |
+| `web/apps/labelstudio/src/pages/Admin/Reports/types.ts` | TS contracts mirroring backend services |
+| `web/apps/labelstudio/src/pages/Admin/Reports/index.ts` | Barrel |
+| `web/apps/labelstudio/src/pages/Admin/Reports/__tests__/ReportsHub.test.tsx` | 5 tests — link cards, RoleGate, i18n |
+| `web/apps/labelstudio/src/pages/Admin/Reports/__tests__/FounderDashboard.test.tsx` | 8 tests — KPI tiles, cohort heatmap, PDF anchor, loading/error |
+| `web/apps/labelstudio/src/pages/Admin/Reports/__tests__/Leaderboard.test.tsx` | 11 tests — period pills, table rows, HoF, CSV anchor, filters |
+| `web/apps/labelstudio/src/pages/Admin/Reports/__tests__/CohortAnalysis.test.tsx` | 8 tests — heatmap cells, definition pills, detail sections |
+| `web/apps/labelstudio/src/pages/Admin/Reports/__tests__/ProjectROI.test.tsx` | 7 tests — table rows, detail panel, PDF anchor, RoleGate |
+
+#### Files Modified
+
+| Path | Change |
+| --- | --- |
+| `label_studio/core/settings/base.py` | Added `'reports'` to `INSTALLED_APPS` (Phase 1 Step 7 marker) |
+| `label_studio/core/urls.py` | Wired `include('reports.urls')` after payments include |
+| `web/apps/labelstudio/src/pages/index.js` | Registered `ReportsHub`, `FounderDashboard`, `Leaderboard`, `CohortAnalysis`, `ProjectROI` in `Pages` |
+| `web/apps/labelstudio/src/config/ApiConfig.js` | Added 5 endpoints: `adminReportsFounderWeekly`, `adminReportsLeaderboard`, `adminReportsCohorts`, `adminReportsProjectROIList`, `adminReportsProjectROIDetail` |
+| `web/libs/app-common/src/locales/en/common.json` | Promoted `admin.reports` from a flat string into a section; added 86 keys |
+| `web/libs/app-common/src/locales/hi/common.json` | Mirror; 86 keys parity-locked |
+
+#### Endpoints Added
+
+8 endpoints under `/api/v1/admin/reports/*`, all admin-only via
+`@require_role(['admin'])`:
+
+* `GET /api/v1/admin/reports/founder-weekly`                                 (JSON)
+* `GET /api/v1/admin/reports/founder-weekly.pdf`                             (`application/pdf` stream)
+* `GET /api/v1/admin/reports/leaderboard?period=&state=&tier=&language=…`    (JSON)
+* `GET /api/v1/admin/reports/leaderboard.csv?period=…`                       (UTF-8 BOM CSV — Hindi-safe in Excel)
+* `GET /api/v1/admin/reports/cohorts?cohort_definition=…`                    (JSON)
+* `GET /api/v1/admin/reports/project-roi`                                    (JSON list)
+* `GET /api/v1/admin/reports/project-roi/<id>`                               (JSON detail)
+* `GET /api/v1/admin/reports/project-roi/<id>.pdf`                           (`application/pdf` stream)
+
+#### Frontend Routes Added
+
+5 routes total, all RoleGate-restricted to admin:
+
+* `/admin/reports`             → `ReportsHub`         (4 link cards)
+* `/admin/reports/founder`     → `FounderDashboard`   (weekly snapshot, all sections + PDF)
+* `/admin/reports/leaderboard` → `Leaderboard`        (period pills + filters + HoF + CSV)
+* `/admin/reports/cohorts`     → `CohortAnalysis`     (3 definition pills + heatmap + detail)
+* `/admin/reports/project-roi` → `ProjectROI`         (table + drilldown + per-project PDF)
+
+#### Migration Number
+
+None — Phase 1 services are pure mock data; no Django models touched. Real
+schema lands in Phase 2 / Step 8 alongside the SUBMISSIONS / PAYMENTS /
+TRAINERS aggregation work.
+
+#### i18n Keys (EN+HI parity)
+
+- `admin.reports.*` — 86 keys (promoted from flat string into a section)
+- **EN+HI parity verified:** 545 keys both sides, 0 missing on either.
+
+#### Test Count
+
+- **Backend:** `pytest reports/tests/test_reports.py -v` → **58 passed in 30.39s**
+  - Founder weekly service: 5
+  - Leaderboard service: 11
+  - Cohort analyzer: 7
+  - Project ROI service: 5
+  - PDF renderer: 3
+  - API (RBAC + shape + content-type): 21
+  - Email jobs + founder-mobile scan: 6
+- **Sibling regression:** `pytest payments/tests/ peer_review/tests/test_consensus.py core/tests/test_dashboard_snapshot.py core/tests/test_heatmap.py` → **83 passed in 65.00s** — zero regression.
+- **Frontend:** 39 tests authored across 5 `__tests__` files (5 + 8 + 11 + 8 + 7). The repo doesn't ship a docker-based FE test runner in this dev env, so the assertion is "tests authored + exercise all visual states + the JSON file passes the i18n parity-lock the existing suite already validates".
+
+#### Phase 1 vs Phase 2 wiring note
+
+- **Mocked in Phase 1** (clearly marked with TODOs):
+  - All 4 service layers return deterministic stubs. The contract is pinned by `test_reports.py` so the Phase 2 swap is a one-file replace per service.
+  - PDF renderer falls back to a hand-rolled PDF 1.4 byte stream so no new deps (weasyprint / reportlab) are required. The renderer probes for both at import time; once a dep gets added to `pyproject.toml` in Phase 2 the renderer auto-upgrades.
+  - Weekly + Monthly cron jobs are callable + dry-run tested but NOT scheduled. Phase 2 wires a `django_rq` periodic tick (same pattern as `peer_review.timeout_sweep` and `payments.flush_pending_payouts`).
+- **Real already** in Phase 1:
+  - 8 admin-only endpoints — 21 API tests assert 200/403/401 + content-type + shape.
+  - CSV export starts with the UTF-8 BOM so Excel renders Hindi trainer names correctly (Naqsh of MEMORY.md → founder uses Excel on Windows).
+  - PDF response is a real `%PDF-1.4` byte stream (begins with magic, ends `%%EOF`), so the founder mailbox attachment opens in any PDF reader.
+  - Leaderboard rank ordering is monotone + stable; Hall of Fame computed on the UNFILTERED roster so the active filter never accidentally hides the founder's top 10 trainers.
+  - Filter validation silently drops unknown values rather than 400'ing — keeps the founder dashboard always-renderable on a slow Indian network.
+
+#### Founder rules honoured
+
+- **One-shot root-cause fix** (`MEMORY.md → feedback_one_shot_root_fix.md`): Reports + BI is built around a single mock-replaceable seam per service. The frontend talks only to `/api/v1/admin/reports/*` — Phase 2's real DB aggregation swap is a per-service one-file change with the contract pinned by the API tests, so the same UI never needs a regression patch.
+- **No founder personal number in outbound** (`MEMORY.md → feedback_no_founder_personal_number.md`): Two explicit scan tests (`test_no_founder_mobile_in_weekly_envelope`, `test_no_founder_mobile_in_monthly_envelope`) walk every variant of `+91 8764001234` across the weekly + monthly email envelope's subject, body, recipients, and PDF filename. Tests pass.
+- **Plain-Hindi bug-fix recap** (`MEMORY.md → feedback_bug_fix_plain_explanation.md`): 3-line founder recap below.
+
+#### NOT in this step (deferred)
+
+- **Real DB aggregation** — Phase 2 / Step 8 with the SUBMISSIONS / PAYMENTS / TRAINERS schema. The mock + contract stay; only the inner ``build_*`` function bodies change.
+- **Weasyprint / Reportlab** PDF — current minimal renderer is functional but visually plain. Phase 2 adds `weasyprint` to `pyproject.toml` so the auto-email PDFs gain branded layout + charts.
+- **Cron scheduling** — `send_weekly_summary` + `send_monthly_summary` callable, but not yet hooked into `django_rq.scheduler`. Phase 2 schedules Mon 09:00 IST + 1st-of-month 09:00 IST.
+- **Snapshot caching** — Phase 2 introduces a `WeeklySnapshotCache` model keyed on `week_start` so the founder dashboard hits Postgres once per week rather than rebuilding on every page load.
+- **CSV export for project-ROI table** — only leaderboard ships a CSV in this step; project-ROI ships PDF only. Trivial to add — same `csv.writer` + UTF-8 BOM block.
+
+#### Container note
+
+Same pattern as prior Step 4.2-* / Step 6 / Step 6.4 / Step 14 deliveries:
+copied `label_studio/reports/` (whole app dir) + the updated
+`core/urls.py` + `core/settings/base.py` into
+`trainplex-studio-dev:/label-studio/label_studio/...` via `docker cp`.
+Ran the test suite via `/label-studio/.venv/bin/python -m pytest reports/tests/test_reports.py` — 58/58 pass in 30.39s. Sibling regression `pytest payments/tests/ peer_review/tests/test_consensus.py core/tests/test_dashboard_snapshot.py core/tests/test_heatmap.py`: 83/83 pass in 65.00s — zero regression.
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Founder ke paas ek bhi consolidated reporting surface nahi tha. Daily dashboard (Step 4.2-1) sirf "aaj" dikhata tha, weekly trends / monthly ROI / cohort retention / project-by-project break-even ka koi single screen nahi tha. Trainer leaderboard nahi tha — top performer kaun, kis state se, kis tier se yeh founder ko Slack me trainers se manually puchhna padta tha. CSV export nahi tha — Excel me Hindi naam paste karne pe `???` aata tha (UTF-8 BOM nahi tha). PDF reports nahi the — week-end me kisi bhi external stakeholder (investor / client) ke saath share karne ka koi shippable artifact nahi tha. Auto-email cron nahi tha — founder ko har Monday subah manually dashboard kholna padta tha.
+- Usse kya ho rha tha: Founder ka strategic-review loop 1 ghante ka 4-screen-jugaad ban gaya tha. Trends manually trace karne padte the — submissions kal vs aaj vs is hafte vs pichhle hafte, separate-separate filters. Project ROI ka concept hi structured nahi tha — "KYC OCR" pay hua ya nahi pata karne ke liye `payments/wallet` + manually-calculated infra cost + Razorpay statement saare 3 alag jagah dekhne padte the. Cohort retention to bilkul nahi pata tha — "Wave 3 ke trainers ne 90 din baad bhi kaam karna jari rakha kya?" yeh sawaal answer hi nahi ho sakta tha. Weekly-monthly summary email kabhi gaya nahi tha — investor weekly check-in ke pehle ek-do ghante panic mode me dashboard screenshots banane padte the.
+- Ab fix ke baad kya hoga: `reports` Django app banaya gaya — 4 service layers (`founder_weekly`, `leaderboard`, `cohort_analyzer`, `project_roi`) + PDF renderer + 8 admin-only endpoints + 2 auto-email jobs. Founder ek hi URL `/admin/reports` se 4 sub-surfaces pe jata hai: Founder Weekly (saare KPI + 3 trend charts + cohort heatmap + project ROI summary + state-wise + language-wise + quality KPIs + top-10 problematic trainers — sab ek scroll me), Leaderboard (period pills daily/weekly/monthly + state/tier/language/project_type dropdowns + 30 trainers rank-sorted + Hall of Fame lifetime + Hall of Fame this-month + CSV export with UTF-8 BOM so Excel me Hindi naam saaf aate hain), Cohort Analysis (3 definitions — signup wave / registration week / tier promotion month — har cohort ka 4-point retention heatmap + 7-stage drop-off + 12-week cumulative earnings), Project ROI (har project ka cost breakdown trainer-payout + reviewer-payout + infra + revenue + profit + roi% + cost-per-quality-task + time-to-complete + quality-score — table me click karke detail panel + per-project PDF export). Phase 1 me data mock hai (real DB Phase 2 me) lekin contract test-pinned hai. PDF endpoints zero-dep hand-rolled `%PDF-1.4` byte stream se shippable — koi naya weasyprint dep nahi joda. CSV UTF-8 BOM se Excel-Windows pe Hindi naam preserve hote hain — founder rules me ek MEMORY.md line bhi yahi tha. Weekly + Monthly auto-email envelope built + dry-run tested — Phase 2 me Monday 9 AM IST cron schedule lagega; founder mobile (MEMORY.md rule) email body / subject / recipients / PDF filename kahin bhi nahi aata — explicit scan test passed. EN+HI dono locales me 86 naye keys parity-locked (545 keys each side). 58 backend tests pass, 39 frontend tests authored, 83 sibling tests pe zero regression.
+
+---
+
 ## Log Update Rules
 
 - Every new file → `Files Created` table

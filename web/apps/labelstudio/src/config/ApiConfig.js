@@ -181,6 +181,18 @@ export const API_CONFIG = {
     adminPayoutQueue: "GET:/v1/payments/payout-queue",
     adminPayoutRetry: "POST:/v1/payments/payout-queue/:payout_id/retry",
     adminPaymentStatus: "GET:/v1/admin/payment-status",
+
+    // TrainPlex — Phase 1 Step 7: Reports + BI suite.
+    // All endpoints admin-only (@require_role(['admin'])); data is MOCK in
+    // Phase 1; real DB aggregation lands in Phase 2 / Step 8.
+    // PDF endpoints stream `application/pdf` directly; CSV endpoint streams
+    // `text/csv; charset=utf-8` with a UTF-8 BOM so Excel renders Hindi
+    // trainer names correctly.
+    adminReportsFounderWeekly: "GET:/v1/admin/reports/founder-weekly",
+    adminReportsLeaderboard: "GET:/v1/admin/reports/leaderboard",
+    adminReportsCohorts: "GET:/v1/admin/reports/cohorts",
+    adminReportsProjectROIList: "GET:/v1/admin/reports/project-roi",
+    adminReportsProjectROIDetail: "GET:/v1/admin/reports/project-roi/:project_id",
   },
   alwaysExpectJSON: false,
 };

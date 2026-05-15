@@ -258,6 +258,12 @@ INSTALLED_APPS = [
     #   dispute → hold remains (payment frozen, QA escalates)
     #   rejected → refund hold (no payout)
     'payments',
+    # TrainPlex Phase 1 Step 7 — Reports + BI suite.
+    # Founder dashboard + Trainer leaderboard + Cohort analysis + Project ROI
+    # + Weekly/Monthly auto-email PDFs. No models yet (Phase 1 services return
+    # mock data); real DB aggregation lands in Phase 2 / Step 8.
+    # Endpoints under /api/v1/admin/reports/* — all admin-only via @require_role.
+    'reports',
 ]
 
 MIDDLEWARE = [

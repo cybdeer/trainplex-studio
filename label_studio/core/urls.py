@@ -24,6 +24,7 @@ from core.views_alerts import (
     AdminQualityAlertsStatsAPI,
 )
 from core.views_audit import AdminAuditLogAPI
+from core.views_search import AdminGlobalSearchAPI
 from core.views_broadcast import (
     AdminWhatsAppBroadcastAPI,
     AdminWhatsAppBroadcastHistoryAPI,
@@ -109,6 +110,13 @@ urlpatterns = [
     # /api/v1/admin/payment-status (admin-only)
     # Connects to peer_review via ConsensusResult.post_save signal.
     re_path(r'^', include('payments.urls')),
+    # TrainPlex Phase 1 Step 7 — Reports + BI suite.
+    # All endpoints admin-only (@require_role(['admin'])); data MOCK in Phase 1.
+    # /api/v1/admin/reports/founder-weekly[.pdf]
+    # /api/v1/admin/reports/leaderboard[.csv]
+    # /api/v1/admin/reports/cohorts
+    # /api/v1/admin/reports/project-roi[/<id>[.pdf]]
+    re_path(r'^', include('reports.urls')),
     re_path(r'version/', views.version_page, name='version'),  # html page
     re_path(r'api/version/', views.version_page, name='api-version'),  # json response
     # TrainPlex — Phase 1 Step 4.2-1: Admin dashboard snapshot (mock data, real wiring in Phase 2)
@@ -151,6 +159,15 @@ urlpatterns = [
         'api/v1/admin/audit/log',
         AdminAuditLogAPI.as_view(),
         name='admin-audit-log',
+    ),
+    # TrainPlex — Phase 1 Step 14: Admin Global Search (Cmd+K command palette).
+    # Searches trainers, projects, submissions, audit logs, tasks. Admin-only.
+    # Mock data in Phase 1; real Postgres FTS (GIN indexes via migration
+    # 0006_fulltext_search_indexes) lands in Phase 2 / Step 8.
+    path(
+        'api/v1/admin/search',
+        AdminGlobalSearchAPI.as_view(),
+        name='admin-global-search',
     ),
     # TrainPlex — Phase 1 Step 4.2-6: Admin India geographic heatmap.
     # Per-state active trainers + submissions + earnings for the requested period.

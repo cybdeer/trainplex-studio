@@ -25,3 +25,30 @@ document.documentElement.lang = i18n.language || "en";
 import "./app/App";
 import "./utils/service-worker";
 import "./utils/state-registry-lso";
+
+// TrainPlex Phase 1 Step 14 — Global Search (Cmd+K) command palette.
+// Mounted as a SEPARATE React root in document.body so the overlay sits on
+// top of the main app tree and survives in-app navigations. The component
+// itself is RoleGate'd to `admin` — non-admins never see the palette and
+// the keyboard listener never binds for them. See `./CommandPaletteMount.tsx`
+// for the details of the cross-tree wiring (uses `window.LSH` for navigation
+// and `APP_SETTINGS.user` for the role).
+import { createRoot } from "react-dom/client";
+import { CommandPaletteMount } from "./CommandPaletteMount";
+
+function mountCommandPalette() {
+  // Idempotent — if HMR re-runs this module, reuse the existing host node.
+  let host = document.getElementById("tp-command-palette-root");
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "tp-command-palette-root";
+    document.body.appendChild(host);
+  }
+  createRoot(host).render(<CommandPaletteMount />);
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", mountCommandPalette, { once: true });
+} else {
+  mountCommandPalette();
+}
