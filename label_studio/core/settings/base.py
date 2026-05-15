@@ -249,6 +249,15 @@ INSTALLED_APPS = [
     # Endpoints: /api/v1/reviewer/queue, /api/v1/reviewer/submit-review,
     # /api/v1/qa/disputes, /api/v1/qa/disputes/<id>/resolve.
     'peer_review',
+    # TrainPlex Phase 1 Step 6.4 + Step 1.4-G — consensus-driven payment release.
+    # Tables: htx_payment_hold, htx_payout_queue, htx_wallet_txn.
+    # Endpoints: /api/v1/payments/wallet, /api/v1/payments/payout-queue,
+    # /api/v1/payments/payout-queue/<id>/retry, /api/v1/admin/payment-status.
+    # Listens for peer_review.ConsensusResult.post_save and dispatches:
+    #   approved/flagged → release + queue Razorpay payout (mock in Phase 1)
+    #   dispute → hold remains (payment frozen, QA escalates)
+    #   rejected → refund hold (no payout)
+    'payments',
 ]
 
 MIDDLEWARE = [

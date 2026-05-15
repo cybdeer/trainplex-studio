@@ -169,6 +169,18 @@ export const API_CONFIG = {
     trainerSessionRevoke: "DELETE:/v1/users/me/sessions/:session_id",
     trainerLoginHistory: "GET:/v1/users/me/login-history",
     trainerPasswordChange: "POST:/v1/users/me/password/change",
+
+    // TrainPlex — Phase 1 Step 6.4 + 4.2-5: Payment Release Flow + Wallet.
+    // /payments/wallet — trainer-only, self (self-only enforced server-side).
+    // /payments/payout-queue and /admin/payment-status — admin-only.
+    // /payments/payout-queue/<id>/retry — admin manual retry surface.
+    // Razorpay X is MOCKED in Phase 1 (no razorpay-python dep yet); real
+    // wiring with prod credentials lands Phase 2. Wallet response carries
+    // decimal strings ("150.00") so the frontend never re-formats.
+    trainerWallet: "GET:/v1/payments/wallet",
+    adminPayoutQueue: "GET:/v1/payments/payout-queue",
+    adminPayoutRetry: "POST:/v1/payments/payout-queue/:payout_id/retry",
+    adminPaymentStatus: "GET:/v1/admin/payment-status",
   },
   alwaysExpectJSON: false,
 };

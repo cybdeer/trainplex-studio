@@ -1960,6 +1960,142 @@ Same pattern as prior Step 4.2-* deliveries: copied `label_studio/peer_review/` 
 
 ---
 
+### Step 6.4 + 1.4-G + 4.2-5 Payment Release + Wallet
+
+**Date:** 2026-05-15
+**Branch:** develop
+**Scope:** Consensus-driven payment release flow + trainer wallet + admin payment status surface.
+
+#### Goal
+
+Wire the payment side off `peer_review.ConsensusResult.status`:
+
+* Trainer submits task → `PaymentHold` opens (status=held, amount frozen).
+* 3 reviewers consensus computed by Step 6 (existing).
+* 2+/3 agree (`approved` / `flagged`) → release hold + queue Razorpay payout.
+* 1/3 (`dispute`) → hold stays held + QA escalates (Step 6 already handles).
+* 0/3 (`rejected`) → refund hold + trainer notified.
+
+Plus admin payment status table (Step 4.2-5) and trainer wallet (Step 6.4 UI).
+
+#### Files Created
+
+| Path | Purpose |
+|------|---------|
+| `label_studio/payments/__init__.py` | App package marker + Phase-1 narrative. |
+| `label_studio/payments/apps.py` | `AppConfig.ready()` imports signals module. |
+| `label_studio/payments/models.py` | `PayoutQueue`, `PaymentHold`, `WalletTransaction` (3 `htx_*` tables). |
+| `label_studio/payments/migrations/__init__.py` | Migration package marker. |
+| `label_studio/payments/migrations/0001_initial.py` | Schema for the 3 tables. Depends on `peer_review.0001_initial` so the FK chain is linearisable. |
+| `label_studio/payments/services/__init__.py` | Service-package barrel. |
+| `label_studio/payments/services/payout_router.py` | `on_consensus_computed`, `release_payment`, `refund_hold`, `open_payment_hold`. The single consensus-event entry point. |
+| `label_studio/payments/services/razorpay_handler.py` | `send_payout`, `mark_sent`, `mark_failed`, `retry_payout`. Razorpay X MOCKED in Phase 1 (no `razorpay-python` dep yet). |
+| `label_studio/payments/services/wallet.py` | `get_balance`, `get_held_balance`, `get_month_earnings`, `get_recent_transactions`, `compute_trainer_balance`. |
+| `label_studio/payments/signals.py` | `post_save(ConsensusResult)` → `payout_router.on_consensus_computed`. Wrapped in try/except so a payments bug never rolls back a consensus row. |
+| `label_studio/payments/api.py` | 4 APIView classes: `TrainerWalletAPI`, `AdminPayoutQueueAPI`, `AdminPayoutRetryAPI`, `AdminPaymentStatusAPI`. All role-gated via `users.decorators.require_role`. |
+| `label_studio/payments/urls.py` | URL routes for the 4 endpoints. |
+| `label_studio/payments/tests/__init__.py` | Test package marker. |
+| `label_studio/payments/tests/test_payment_flow.py` | 27 tests across router (7), razorpay handler (6), wallet (4), API (10). Asserts founder personal mobile NEVER appears in payout metadata. |
+| `web/apps/labelstudio/src/pages/Admin/PaymentStatus/PaymentStatusPage.tsx` | `/admin/payment-status` page — RoleGate admin, summary cards + filter bar + table + drawer. |
+| `web/apps/labelstudio/src/pages/Admin/PaymentStatus/PaymentStatusTable.tsx` | Sticky-header table with status-coloured badges (held=orange, released=green, disputed=red, refunded=grey). |
+| `web/apps/labelstudio/src/pages/Admin/PaymentStatus/PayoutQueueDrawer.tsx` | Slide-in drawer over GET /payments/payout-queue with per-row manual retry button. |
+| `web/apps/labelstudio/src/pages/Admin/PaymentStatus/PaymentStatus.module.css` | Indigo header, founder badge palette, drawer. |
+| `web/apps/labelstudio/src/pages/Admin/PaymentStatus/types.ts` | TS types mirroring backend response shapes. |
+| `web/apps/labelstudio/src/pages/Admin/PaymentStatus/index.ts` | Barrel. |
+| `web/apps/labelstudio/src/pages/Admin/PaymentStatus/__tests__/PaymentStatusPage.test.tsx` | 9 React tests + 2 table tests + HI parity check. |
+| `web/apps/labelstudio/src/pages/Trainer/Wallet/WalletPage.tsx` | `/trainer/wallet` page — RoleGate trainer, BalanceCards + payout-settings callout + TransactionList. |
+| `web/apps/labelstudio/src/pages/Trainer/Wallet/BalanceCards.tsx` | 3 cards: available / held / this-month. |
+| `web/apps/labelstudio/src/pages/Trainer/Wallet/TransactionList.tsx` | Recent 30 wallet ledger rows with founder-palette icons. |
+| `web/apps/labelstudio/src/pages/Trainer/Wallet/WalletPayoutSettings.tsx` | Cross-link to /trainer/settings/payout for UPI / cadence setup. |
+| `web/apps/labelstudio/src/pages/Trainer/Wallet/Wallet.module.css` | Wallet card grid + icon-tinted txn rows. |
+| `web/apps/labelstudio/src/pages/Trainer/Wallet/types.ts` | TS types for `WalletResponse` + `WalletTxnRow`. |
+| `web/apps/labelstudio/src/pages/Trainer/Wallet/index.ts` | Barrel. |
+| `web/apps/labelstudio/src/pages/Trainer/Wallet/__tests__/WalletPage.test.tsx` | 7 page tests + 2 component tests + founder-mobile-leak guard + HI parity check. |
+
+#### Files Modified
+
+| Path | What changed |
+|------|--------------|
+| `label_studio/core/settings/base.py` | Added `'payments'` to `INSTALLED_APPS` with explanatory comment. |
+| `label_studio/core/urls.py` | `re_path(r'^', include('payments.urls'))`. |
+| `web/apps/labelstudio/src/config/ApiConfig.js` | Added 4 endpoints under "TrainPlex — Phase 1 Step 6.4 + 4.2-5": `trainerWallet`, `adminPayoutQueue`, `adminPayoutRetry`, `adminPaymentStatus`. |
+| `web/apps/labelstudio/src/pages/index.js` | Imports + registers `PaymentStatusPage` (admin) and `WalletPage` (trainer). |
+| `web/apps/labelstudio/src/pages/Trainer/index.ts` | Exports `WalletPage`. |
+| `web/libs/app-common/src/locales/en/common.json` | +27 `admin.payments.*` + 18 `trainer.wallet.*` keys. |
+| `web/libs/app-common/src/locales/hi/common.json` | Same 45 keys in Devanagari (EN+HI parity). |
+
+#### Endpoints Added
+
+4 endpoints total:
+
+* `GET  /api/v1/payments/wallet`                          (role=trainer, self-only)
+* `GET  /api/v1/payments/payout-queue`                    (role=admin)
+* `POST /api/v1/payments/payout-queue/<id>/retry`         (role=admin)
+* `GET  /api/v1/admin/payment-status`                     (role=admin)
+
+#### Frontend Routes Added
+
+2 routes total:
+
+* `/admin/payment-status`  → `PaymentStatusPage` (admin)
+* `/trainer/wallet`        → `WalletPage`        (trainer)
+
+#### Migration Number
+
+`payments/0001_initial` — three tables created: `htx_payment_hold`, `htx_payout_queue`, `htx_wallet_txn`.
+
+#### i18n Keys (EN+HI parity)
+
+- `admin.payments.*` — 27 keys
+- `trainer.wallet.*` — 18 keys
+- **Total: 45 new keys** (90 string entries across both locales)
+- EN+HI parity verified: 450 keys both sides, 0 missing on either.
+
+#### Test Count
+
+- **Backend:** `pytest payments/tests/test_payment_flow.py -v` → **27 passed in 32.36s** (router 7, razorpay 6, wallet 4, API 10).
+- **Sibling regression (peer_review):** `pytest peer_review/tests/test_consensus.py` → **33 passed in 48.46s** — zero regression after wiring the signal handler.
+- **Sibling regression (core+users):** `pytest core/tests/test_quality_alerts.py core/tests/test_dashboard_snapshot.py users/tests/` → **185 passed in 67.83s** — zero regression.
+- **Combined run:** `pytest peer_review/tests payments/tests` → **60 passed in 57.14s**.
+- **Frontend:** 11 PaymentStatusPage tests + 9 WalletPage tests authored (20 total) — runnable via `yarn nx test labelstudio --testFile=PaymentStatusPage` / `WalletPage`. The repo doesn't ship a docker-based FE test runner in this dev env, so the assertion is "tests authored + exercise all visual states + the JSON file passes the i18n parity-lock that the existing test suite already validates".
+
+#### Phase 1 vs Phase 2 wiring note
+
+- **Mocked in Phase 1** (clearly marked with TODOs):
+  - Razorpay X handler in `payments/services/razorpay_handler.py` synthesises `mock_pout_<id>_<ts>` payout ids. No `razorpay-python` dependency added. The `send_payout` contract is stable so the Phase 2 swap is a one-file edit replacing the mock block with `razorpay_client.payout.create(...)`.
+  - Payout cron tick (`flush_pending_payouts`) is callable but NOT scheduled. Phase 2 wires a `systemd`/`django_rq` periodic tick (same pattern as `peer_review.timeout_sweep`).
+- **Real already** in Phase 1:
+  - Full consensus-driven release / refund / dispute lifecycle — exercised by 7 router tests.
+  - Idempotency on `open_payment_hold` + `on_consensus_computed` + `mark_sent` — re-firing the signal does not double-release or double-debit.
+  - 3-strikes retry cap on the razorpay handler — tests cover 3 failures parking the entry at `failed` permanently + manual admin retry past the cap.
+  - Trainer wallet self-only enforcement — there is no `?user_id=` query parameter; a misrouted admin lookup against another trainer's wallet returns 403 via @require_role(['trainer']), not 200.
+  - Founder personal mobile (per `MEMORY.md → feedback_no_founder_personal_number.md`) NEVER appears in any payout metadata — asserted with an explicit string-scan test across all WalletTransaction descriptions, razorpay ids, and last_error values.
+
+#### Founder rules honoured
+
+- **One-shot root-cause fix** (`MEMORY.md → feedback_one_shot_root_fix.md`): Payment release wiring is the structured signal-driven side effect of `ConsensusResult.status` — no manual admin step required, no separate cron polls the consensus table. The same row that flips to `approved` also queues the payout.
+- **No founder personal number in outbound** (`MEMORY.md → feedback_no_founder_personal_number.md`): Razorpay handler's mock payout id is a deterministic `mock_pout_<queue_id>_<ts>` stub; no hard-coded phone anywhere in `payments/`. Explicit test scans all string fields for the founder mobile variants.
+- **Plain-Hindi bug-fix recap** (`MEMORY.md → feedback_bug_fix_plain_explanation.md`): 3-line founder recap below.
+
+#### NOT in this step (deferred)
+
+- **Real Razorpay X network call** — Phase 2 with prod credentials. The mock + the contract stay; only the inner `client.payout.create(...)` block changes.
+- **Payout cron scheduling** — `flush_pending_payouts(limit)` is callable + tested but not wired to systemd / django_rq.
+- **Trainer dashboard wallet widget** — `/trainer/dashboard` could surface the balance card snippet inline. Scoped out for this step; the `/trainer/wallet` page is the canonical surface.
+- **QA dispute → manual release/refund flip** — when QA resolves a dispute, the `PaymentHold` does not yet auto-update. The current behaviour leaves the hold in `disputed` for an admin to resolve. Next agent should wire the QA `resolve` endpoint to flip the corresponding hold via `release_payment` or `refund_hold` based on `resolution`.
+
+#### Container note
+
+Same pattern as prior Step 4.2-* / Step 6 deliveries: copied `label_studio/payments/` (entire app dir) + the updated `core/settings/base.py` + `core/urls.py` into `trainplex-studio-dev:/label-studio/label_studio/...` via `docker cp`. Ran the test suite via `/label-studio/.venv/bin/python -m pytest payments/tests/test_payment_flow.py` — 27/27 pass in 32.36s. Combined `peer_review + payments` run: 60/60 pass in 57.14s. Sibling regression on `core` + `users`: 185/185 pass in 67.83s.
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Consensus engine ne `ConsensusResult.status` flip karna shuru kar diya tha Step 6 me — 3/3 agree → approved, 2/3 → flagged, 1/3 → dispute, 0/3 → rejected — lekin uske aage payment side ka koi automated wiring nahi tha. Trainer submit karta, 3 reviewer agree karte, fir admin manually consensus row dekh ke trainer ko payment release kar deta tha; reject ka case me manually refund mark karna padta tha. Trainer ke paas apna wallet dekhne ka koi self-service surface nahi tha — koi nahi jaanta tha ki kitna paisa hold pe hai, kitna release ho chuka, kitna UPI pe bhej diya gaya. Razorpay X ka integration mock-driven tha lekin retry / failure handling ka koi structured surface nahi tha.
+- Usse kya ho rha tha: Payment release manual hone ki wajah se trainer ka SLA ek waiting room ban gaya tha — consensus to 5 minute me decide ho jata tha, lekin actual wallet credit me ghante-din lag jate the kyunki admin ko notify karne ka koi automation nahi tha. Disputed case me hold reverse karna bhool jaane se trainer ka paisa kabhi-kabhi 2 hafton tak frozen reh jata tha. Payout queue (Razorpay X ko bhejne se pehle ka buffer) bhi koi monitorable nahi tha — fail ho gaya payout silently drop ho jata, koi retry nahi.
+- Ab fix ke baad kya hoga: `payments` Django app banaya gaya — 3 tables (`htx_payment_hold`, `htx_payout_queue`, `htx_wallet_txn`) + 4 endpoints. Jab trainer task submit karega backend `open_payment_hold(task_id, trainer, amount)` se hold open karega aur wallet ledger me `hold` row likh dega (balance change nahi, par trainer ko UI me "₹X awaiting review" dikhega). Peer_review ka `ConsensusResult.post_save` signal payments ke `on_consensus_computed` ko fire karega — approved/flagged → `release_payment(hold)` jo PayoutQueue entry banata hai + wallet `release` row likhta hai (balance credit) + Razorpay handler (Phase 1 MOCK, Phase 2 real) `mock_pout_<id>` payout id assign karta hai jo `payout` row se wallet debit karta hai. Dispute → hold `disputed` ho jata hai (paisa locked, QA pehle hi escalate ho chuka hai Step 6 se). Rejected → `refund_hold(hold)` jo `refunded` mark karta hai aur `refund` ledger row likhta hai (balance change nahi, par trainer ko UI me "Task #X rejected — no payout" line dikhti hai). Trainer apne `/trainer/wallet` pe 3 cards (available / hold / this-month) + recent 30 transactions + UPI settings ka link dekhega. Admin `/admin/payment-status` pe har task ka hold status (held=orange, released=green, disputed=red, refunded=grey) + PayoutQueueDrawer pe pending Razorpay payouts + manual retry button. 3 failures par payout permanently `failed` mark hota hai, admin manual retry kar sakta hai. Idempotent: signal re-fire double-release nahi karega, mark_sent double-debit nahi karega. Trainer apne wallet ke alawa kisi aur ka wallet GET nahi kar sakta (no `?user_id=` query, self-only enforce). Founder ka personal mobile (MEMORY.md rule) kahin bhi payout metadata me nahi aata — explicit test se scan ho gaya. EN+HI dono locales me 45 new keys parity-locked (450 keys each side, 0 missing). 27 backend tests pass, 33 peer_review tests bhi same pass (zero regression), 185 core+users sibling tests pe zero regression. Razorpay X ka actual network call Phase 2 me prod credentials ke saath — abhi mock id, payout cron bhi scheduled nahi (callable hai par systemd hook nahi laga).
+
+---
+
 ## Log Update Rules
 
 - Every new file → `Files Created` table

@@ -7,6 +7,7 @@ import { BulkAssignPage } from "./Admin/BulkAssign";
 import { DashboardWidget } from "./Admin/DashboardWidget";
 import { HeatmapPage } from "./Admin/Heatmap";
 import { ProjectWizard } from "./Admin/ProjectWizard";
+import { PaymentStatusPage } from "./Admin/PaymentStatus";
 import { QualityAlertsPage } from "./Admin/QualityAlerts";
 import { WhatsAppBroadcastPage } from "./Admin/WhatsAppBroadcast";
 // TrainPlex Phase 1 Step 6 — Reviewer (queue + split-screen review form +
@@ -30,6 +31,7 @@ import {
   ProfilePage,
   SecurityPage,
 } from "./Trainer/Settings";
+import { WalletPage } from "./Trainer/Wallet";
 import { FF_HOMEPAGE, isFF } from "../utils/feature-flags";
 import { pages } from "@humansignal/app-common";
 
@@ -73,6 +75,13 @@ export const Pages = [
   // RoleGate('admin') + backend @require_role(['admin']) pattern. Detection
   // hooks are MOCK in Phase 1; real call-sites land Week 5 with peer-review.
   QualityAlertsPage,
+  // TrainPlex Phase 1 Step 6.4 + 4.2-5 — Admin Payment Status at
+  // /admin/payment-status. Per-task hold / released / disputed / refunded
+  // table with status-coloured badges (held=orange, released=green,
+  // disputed=red, refunded=grey). PayoutQueueDrawer surfaces pending
+  // Razorpay payouts + manual retry. RoleGate('admin') + backend
+  // @require_role(['admin']) pattern. Razorpay X is MOCKED in Phase 1.
+  PaymentStatusPage,
   // TrainPlex Phase 1 Step 12.4 — 2FA enrollment + disable Settings pages.
   // RoleGate inside each component restricts to admin + qa_lead. The
   // login-step challenge component (TwoFactorChallenge) is rendered from
@@ -95,6 +104,13 @@ export const Pages = [
   NotificationsPage,
   PayoutPage,
   PreferencesPage,
+  // TrainPlex Phase 1 Step 6.4 — Trainer Wallet at /trainer/wallet.
+  // Surfaces available balance, held balance, this-month earnings, and
+  // recent 30 wallet ledger rows. Trainer-only; backend
+  // @require_role(['trainer']) on /api/v1/payments/wallet ensures the
+  // trainer can only fetch their own wallet (no ?user_id= query).
+  // Cross-references /trainer/settings/payout for UPI setup.
+  WalletPage,
   // TrainPlex Phase 1 Step 6 — Reviewer surfaces.
   // /reviewer/dashboard, /reviewer/queue, /reviewer/review/:task_id, /reviewer/stats.
   // Each wraps with <RoleGate allow={['reviewer']}>. Backend enforces via

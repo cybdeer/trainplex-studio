@@ -9,6 +9,7 @@
  *     /trainer/settings/notifications
  *     /trainer/settings/payout
  *     /trainer/settings/preferences
+ * - Step 6.4 (Wallet): /trainer/wallet
  */
 
 export { BatchPage } from "./Batch";
@@ -19,3 +20,4 @@ export {
   PayoutPage,
   PreferencesPage,
 } from "./Settings";
+export { WalletPage } from "./Wallet";

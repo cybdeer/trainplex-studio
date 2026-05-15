@@ -1,0 +1,243 @@
+/*
+ * Wallet styles — TrainPlex Phase 1 Step 6.4.
+ *
+ * Visual language
+ * ---------------
+ * - 3 balance cards (available / held / this-month) at the top.
+ * - Transaction list below in a card-style layout.
+ * - Status badges per txn type:
+ *     hold    → orange  (frozen, awaiting review)
+ *     release → green   (landed in wallet)
+ *     payout  → blue    (sent to UPI)
+ *     refund  → grey    (rejected, no payout)
+ */
+
+.walletRoot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-4, 16px);
+  padding: var(--tp-space-4, 16px);
+  font-family: var(--tp-font-ui, 'Inter', system-ui, sans-serif);
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.walletTitle {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--tp-color-indigo-700, #121242);
+  font-family: var(--tp-font-display, 'Inter Tight', 'Inter', system-ui, sans-serif);
+}
+
+/* ── Balance cards ─────────────────────────────────────────────── */
+
+.balanceCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--tp-space-3, 12px);
+}
+
+.balanceCard {
+  background: #FFFFFF;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-top: 3px solid var(--tp-color-indigo-500, #1A1A5E);
+  border-radius: var(--tp-radius-sm, 2px);
+  padding: var(--tp-space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.balanceCardHeld {
+  border-top-color: #F59E0B;
+}
+
+.balanceCardMonth {
+  border-top-color: #16A34A;
+}
+
+.balanceCardLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.balanceCardAmount {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--tp-color-indigo-700, #121242);
+  font-variant-numeric: tabular-nums;
+}
+
+.balanceCardHelper {
+  font-size: 0.75rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+/* ── Transactions list ─────────────────────────────────────────── */
+
+.txnCard {
+  background: #FFFFFF;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.txnCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  border-bottom: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+}
+
+.txnCardTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.txnNextPayout {
+  font-size: 0.875rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.txnList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.txnRow {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: var(--tp-space-3, 12px);
+  align-items: center;
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  border-bottom: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+}
+
+.txnRow:last-child {
+  border-bottom: none;
+}
+
+.txnIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.txnIconHold    { background: #F59E0B; }
+.txnIconRelease { background: #16A34A; }
+.txnIconPayout  { background: #1A1A5E; }
+.txnIconRefund  { background: #6B7280; }
+
+.txnDescription {
+  display: flex;
+  flex-direction: column;
+}
+
+.txnLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.txnTime {
+  font-size: 0.75rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.txnAmount {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.txnAmountHold    { color: #92400E; }
+.txnAmountRelease { color: #166534; }
+.txnAmountPayout  { color: #1A1A5E; }
+.txnAmountRefund  { color: #6B7280; }
+
+.txnBalance {
+  font-size: 0.75rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+/* ── Payout settings link ──────────────────────────────────────── */
+
+.payoutSettings {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  background: var(--tp-color-indigo-50, #E8E8F0);
+  border: 1px solid var(--tp-color-indigo-100, #DEDEEC);
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.payoutSettingsText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.payoutSettingsTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.payoutSettingsHint {
+  font-size: 0.75rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.payoutSettingsLink {
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+  border: 0;
+  padding: 6px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 2px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.payoutSettingsLink:hover {
+  background: var(--tp-color-indigo-700, #121242);
+}
+
+/* ── Empty / loading / error ───────────────────────────────────── */
+
+.loadingBox,
+.errorBox,
+.emptyBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: var(--tp-space-6, 24px);
+  background: #FFFFFF;
+  border: 1px dashed var(--tp-color-indigo-100, #DEDEEC);
+  border-radius: var(--tp-radius-sm, 2px);
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.errorBox {
+  color: #DC2626;
+  border-color: #FEE2E2;
+}

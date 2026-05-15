@@ -102,6 +102,13 @@ urlpatterns = [
     # Endpoints under /api/v1/reviewer/* (role=reviewer) and /api/v1/qa/*
     # (role=qa_lead) enforced via @require_role. Models live in peer_review app.
     re_path(r'^', include('peer_review.urls')),
+    # TrainPlex Phase 1 Step 6.4 + 4.2-5 — Payment Release Flow.
+    # /api/v1/payments/wallet (trainer-only, self)
+    # /api/v1/payments/payout-queue (admin-only)
+    # /api/v1/payments/payout-queue/<id>/retry (admin-only)
+    # /api/v1/admin/payment-status (admin-only)
+    # Connects to peer_review via ConsensusResult.post_save signal.
+    re_path(r'^', include('payments.urls')),
     re_path(r'version/', views.version_page, name='version'),  # html page
     re_path(r'api/version/', views.version_page, name='api-version'),  # json response
     # TrainPlex — Phase 1 Step 4.2-1: Admin dashboard snapshot (mock data, real wiring in Phase 2)
