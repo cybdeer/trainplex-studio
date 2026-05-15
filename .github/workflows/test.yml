@@ -1,0 +1,179 @@
+name: "TrainPlex Studio - Test"
+
+# Runs on every PR + push to develop/main per Phase 1 Step 10.
+# - lint-backend  : black + ruff on label_studio/
+# - lint-frontend : biome (eslint/prettier-style) on web/
+# - test-backend  : pytest on SQLite (no Postgres required)
+# - test-frontend : yarn unit tests
+# - build-docker  : verify Dockerfile still builds (no push)
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
+
+# Cancel any in-flight run for the same PR / branch so we don't burn CI minutes.
+concurrency:
+  group: trainplex-test-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.10"
+  NODE_VERSION: "18"
+  POETRY_VERSION: "2.3.2"
+  DJANGO_SETTINGS_MODULE: core.settings.label_studio
+  DJANGO_DB: sqlite
+  COLLECT_ANALYTICS: "false"
+  LABEL_STUDIO_TEST_ENVIRONMENT: "false"
+  SENTRY_RATE: "0"
+  JSON_LOG: "0"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  lint-backend:
+    name: "Lint Backend (black + ruff)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install lint dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "black==24.10.0" "ruff==0.7.4"
+
+      - name: Run black --check
+        run: black --check --diff label_studio
+
+      - name: Run ruff
+        run: ruff check label_studio
+
+  # ---------------------------------------------------------------------------
+  lint-frontend:
+    name: "Lint Frontend (eslint + prettier)"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "yarn"
+          cache-dependency-path: web/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --prefer-offline --ignore-engines
+
+      # Repo uses biome (eslint + prettier in one). `yarn lint` runs biome check.
+      # Fall back to eslint/prettier directly if biome is ever swapped out.
+      - name: Run lint (biome / eslint + prettier)
+        run: yarn lint --no-errors-on-unmatched
+
+  # ---------------------------------------------------------------------------
+  test-backend:
+    name: "Test Backend (pytest SQLite)"
+    runs-on: ubuntu-latest
+    env:
+      SENTRY_ENVIRONMENT: ci-test-backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install poetry
+        run: pipx install "poetry==${{ env.POETRY_VERSION }}"
+
+      - name: Cache Poetry virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry/virtualenvs
+          key: poetry-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('poetry.lock') }}
+
+      - name: Install OS dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libffi8 libldap2-dev libsasl2-dev libssl-dev libxml2-dev libxslt-dev python3-dev
+
+      - name: Install Python dependencies
+        run: poetry install --with test
+
+      - name: Generate version file
+        run: poetry run python label_studio/core/version.py
+
+      - name: Run unit tests (skip integration markers)
+        working-directory: label_studio
+        run: poetry run pytest -v -m "not integration_tests" --disable-warnings --durations=30 -n auto
+
+  # ---------------------------------------------------------------------------
+  test-frontend:
+    name: "Test Frontend (yarn unit)"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    env:
+      CI: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "yarn"
+          cache-dependency-path: web/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --prefer-offline --ignore-engines
+
+      # Repo uses nx for unit tests. `yarn test:unit` runs them with no watch.
+      # Fall back to `yarn test --watchAll=false` if test script is renamed.
+      - name: Run unit tests
+        run: yarn test:unit --watchAll=false || yarn test --watchAll=false
+
+  # ---------------------------------------------------------------------------
+  build-docker:
+    name: "Build Docker Image (verify Dockerfile)"
+    runs-on: ubuntu-latest
+    # Don't gate this on lint/test — it can run in parallel for fast feedback.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: false
+          tags: trainplex-studio:ci-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION_OVERRIDE=ci
+            BRANCH_OVERRIDE=${{ github.ref_name }}

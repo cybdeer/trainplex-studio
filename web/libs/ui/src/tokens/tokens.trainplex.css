@@ -1,0 +1,146 @@
+/*
+ * TrainPlex Studio — Brand override layer
+ *
+ * Loaded AFTER tokens.prefix.css (generated upstream).
+ * Overrides primary palette to TrainPlex Indigo + adds Accent Orange.
+ * Plan ref: Step 5.1 (UI/UX Design System)
+ *
+ * DO NOT regenerate this file — it is hand-authored.
+ * Source of truth for brand colors: this file.
+ */
+
+:root {
+  /* ── TrainPlex brand colors ─────────────────────────────────── */
+
+  /* Primary: Brand Indigo #1A1A5E (deep, trustworthy) */
+  --tp-color-indigo-50:  #E8E8F0;
+  --tp-color-indigo-100: #C7C7DA;
+  --tp-color-indigo-200: #9F9FBF;
+  --tp-color-indigo-300: #7777A5;
+  --tp-color-indigo-400: #4F4F8A;
+  --tp-color-indigo-500: #1A1A5E;  /* base */
+  --tp-color-indigo-600: #161650;
+  --tp-color-indigo-700: #121242;
+  --tp-color-indigo-800: #0E0E34;
+  --tp-color-indigo-900: #0A0A26;
+
+  /* Accent: Brand Orange #FF6B35 (energetic, India vibe) */
+  --tp-color-orange-50:  #FFEFE8;
+  --tp-color-orange-100: #FFD4C2;
+  --tp-color-orange-200: #FFB597;
+  --tp-color-orange-300: #FF966B;
+  --tp-color-orange-400: #FF7B4F;
+  --tp-color-orange-500: #FF6B35;  /* base */
+  --tp-color-orange-600: #E55A26;
+  --tp-color-orange-700: #BF4818;
+  --tp-color-orange-800: #993610;
+  --tp-color-orange-900: #732409;
+
+  /* Semantic colors */
+  --tp-color-success: #16A34A;
+  --tp-color-success-bg: #DCFCE7;
+  --tp-color-warn: #F59E0B;
+  --tp-color-warn-bg: #FEF3C7;
+  --tp-color-error: #DC2626;
+  --tp-color-error-bg: #FEE2E2;
+
+  /* Tier colors */
+  --tp-color-bronze: #CD7F32;
+  --tp-color-silver: #94A3B8;
+  --tp-color-gold:   #EAB308;
+  --tp-color-platinum: #06B6D4;
+
+  /* ── Override upstream tokens to TrainPlex brand ─────────────── */
+  /* These override the grape-based primary palette from tokens.prefix.css */
+
+  --color-primary-surface:        var(--tp-color-indigo-500);
+  --color-primary-surface-hover:  var(--tp-color-indigo-400);
+  --color-primary-surface-active: var(--tp-color-indigo-700);
+  --color-primary-surface-content: #FFFFFF;
+  --color-primary-surface-content-subtle: var(--tp-color-indigo-100);
+  --color-primary-surface-icon:   var(--tp-color-indigo-100);
+  --color-primary-content:        var(--tp-color-indigo-500);
+  --color-primary-content-hover:  var(--tp-color-indigo-400);
+  --color-primary-content-subtle: var(--tp-color-indigo-300);
+  --color-primary-icon:           var(--tp-color-indigo-500);
+  --color-primary-background:     var(--tp-color-indigo-50);
+
+  /* ── Typography: India-tuned font stack ──────────────────────── */
+  --tp-font-ui:      'Inter', 'Hind', 'Noto Sans Devanagari', system-ui, -apple-system, sans-serif;
+  --tp-font-display: 'Inter Tight', 'Inter', 'Hind', system-ui, sans-serif;
+  --tp-font-mono:    'JetBrains Mono', 'Courier New', monospace;
+
+  /* ── Spacing scale (4px base grid) ───────────────────────────── */
+  --tp-space-0: 0;
+  --tp-space-1: 4px;
+  --tp-space-2: 8px;
+  --tp-space-3: 12px;
+  --tp-space-4: 16px;
+  --tp-space-6: 24px;
+  --tp-space-8: 32px;
+  --tp-space-12: 48px;
+  --tp-space-16: 64px;
+
+  /* ── Radius: TrainPlex sharp-edge style ──────────────────────── */
+  --tp-radius-none: 0;        /* default for cards, buttons */
+  --tp-radius-sm:   2px;      /* tight UI elements */
+  --tp-radius-full: 9999px;   /* pills, badges */
+
+  /* ── Shadow: subtle flat design ──────────────────────────────── */
+  --tp-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --tp-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --tp-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+
+  /* ── Touch targets (Indian mobile users) ─────────────────────── */
+  --tp-tap-min: 44px;  /* WCAG AAA minimum touch target */
+
+  /* ── Z-index scale ───────────────────────────────────────────── */
+  --tp-z-dropdown: 100;
+  --tp-z-sticky:   200;
+  --tp-z-modal:    300;
+  --tp-z-toast:    400;
+  --tp-z-tooltip:  500;
+}
+
+/* Dark mode prep (skipped Phase 1 per plan, tokens ready for future) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Phase 2 (Wave 22+): dark mode tokens here */
+  }
+}
+
+/* ── Accessibility: focus visible ────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid var(--tp-color-indigo-500);
+  outline-offset: 2px;
+}
+
+/* ── Devanagari font tuning ──────────────────────────────────────── */
+[lang="hi"], [lang="hi-IN"] {
+  /* Hindi text needs extra line-height for matras */
+  line-height: 1.75;
+}
+
+[lang="hi"] :is(h1, h2, h3, h4, h5, h6) {
+  line-height: 1.5;
+}
+
+/* ── Touch target enforcement (mobile) ───────────────────────────── */
+@media (pointer: coarse) {
+  button, a[role="button"], [role="button"], input[type="button"], input[type="submit"] {
+    min-height: var(--tp-tap-min);
+    min-width:  var(--tp-tap-min);
+  }
+}
+
+/* ── Slow-net optimization: image lazy + skeleton bg ────────────── */
+img[loading="lazy"] {
+  background: linear-gradient(90deg, var(--tp-color-indigo-50) 0%, transparent 50%, var(--tp-color-indigo-50) 100%);
+  background-size: 200% 100%;
+  animation: tp-skeleton-shimmer 1.5s infinite;
+}
+
+@keyframes tp-skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

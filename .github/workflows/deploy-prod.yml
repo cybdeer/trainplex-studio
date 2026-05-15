@@ -1,0 +1,237 @@
+name: "TrainPlex Studio - Deploy Production"
+
+# Runs on every push to main. Gated by GitHub Environment 'production' which
+# must be configured with required reviewers in repo Settings -> Environments.
+# Flow: backup DB -> build+push image -> SSH deploy -> run migrations ->
+# restart with health check -> auto-rollback on failure -> notify.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+concurrency:
+  group: trainplex-deploy-prod
+  cancel-in-progress: false # never cancel a production deploy mid-flight
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/trainplex-studio
+  PROD_URL: ${{ vars.PROD_URL || 'https://app.trainplex.studio' }}
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Stage 1: manual approval + DB backup. The 'production' environment carries
+  # the required-reviewers protection rule, so this job blocks until approved.
+  # ---------------------------------------------------------------------------
+  approval-and-backup:
+    name: "Approval + DB Backup"
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PROD_URL || 'https://app.trainplex.studio' }}
+    outputs:
+      backup_id: ${{ steps.backup.outputs.backup_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---------------------------------------------------------------------
+      # Required secrets:
+      #   PROD_SSH_KEY      — private SSH key (PEM) for prod deploy user
+      #   PROD_HOST         — production server hostname or IP
+      #   PROD_USER         — SSH user (default: deploy)
+      #   PROD_SSH_PORT     — SSH port (default: 22)
+      # ---------------------------------------------------------------------
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p "${{ secrets.PROD_SSH_PORT || '22' }}" -H "${{ secrets.PROD_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Backup production database
+        id: backup
+        env:
+          SSH_USER: ${{ secrets.PROD_USER || 'deploy' }}
+          SSH_HOST: ${{ secrets.PROD_HOST }}
+          SSH_PORT: ${{ secrets.PROD_SSH_PORT || '22' }}
+        run: |
+          BACKUP_ID="pre-deploy-${{ github.sha }}-$(date -u +%Y%m%dT%H%M%SZ)"
+          echo "backup_id=${BACKUP_ID}" >> "$GITHUB_OUTPUT"
+          ssh -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" \
+            "/opt/trainplex-studio/scripts/backup-db.sh '${BACKUP_ID}'"
+
+  # ---------------------------------------------------------------------------
+  # Stage 2: build + push the prod-tagged image to GHCR.
+  # ---------------------------------------------------------------------------
+  build-and-push:
+    name: "Build & Push Production Image"
+    runs-on: ubuntu-latest
+    needs: approval-and-backup
+    outputs:
+      image_tag_sha: ${{ steps.meta.outputs.image_tag_sha }}
+      previous_tag: ${{ steps.meta.outputs.previous_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need history to resolve previous prod SHA
+
+      - name: Compute image tags
+        id: meta
+        run: |
+          IMG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          echo "image_tag_sha=${IMG}:prod-${{ github.sha }}"     >> "$GITHUB_OUTPUT"
+          echo "image_tag_latest=${IMG}:prod-latest"             >> "$GITHUB_OUTPUT"
+          PREV_SHA="$(git rev-parse HEAD~1 2>/dev/null || echo '')"
+          if [ -n "$PREV_SHA" ]; then
+            echo "previous_tag=${IMG}:prod-${PREV_SHA}" >> "$GITHUB_OUTPUT"
+          else
+            echo "previous_tag=${IMG}:prod-latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_tag_sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:prod-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION_OVERRIDE=prod-${{ github.sha }}
+            BRANCH_OVERRIDE=main
+
+  # ---------------------------------------------------------------------------
+  # Stage 3: deploy, migrate, health-check, auto-rollback on failure.
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: "Deploy to Production"
+    runs-on: ubuntu-latest
+    needs: [approval-and-backup, build-and-push]
+    environment:
+      name: production
+      url: ${{ vars.PROD_URL || 'https://app.trainplex.studio' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p "${{ secrets.PROD_SSH_PORT || '22' }}" -H "${{ secrets.PROD_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Pull, migrate, restart
+        id: rollout
+        env:
+          SSH_USER: ${{ secrets.PROD_USER || 'deploy' }}
+          SSH_HOST: ${{ secrets.PROD_HOST }}
+          SSH_PORT: ${{ secrets.PROD_SSH_PORT || '22' }}
+          IMAGE_TAG_SHA: ${{ needs.build-and-push.outputs.image_tag_sha }}
+        run: |
+          ssh -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" bash -se <<EOF
+            set -euo pipefail
+            cd /opt/trainplex-studio
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u "${{ github.actor }}" --password-stdin
+            # Record current image so we can roll back.
+            CURRENT_IMG=\$(docker compose images app --format '{{.Repository}}:{{.Tag}}' || echo "")
+            echo "\$CURRENT_IMG" > .previous_image
+            export TRAINPLEX_IMAGE="${IMAGE_TAG_SHA}"
+            docker pull "\$TRAINPLEX_IMAGE"
+            # Run migrations in a one-shot container before swapping traffic.
+            docker compose run --rm app \
+              python label_studio/manage.py migrate --noinput
+            # Restart the app service with the new image.
+            docker compose up -d --remove-orphans app
+          EOF
+
+      - name: Health check (60s window)
+        id: healthcheck
+        continue-on-error: true
+        run: |
+          set +e
+          for i in $(seq 1 12); do
+            STATUS=$(curl -k -s -o /tmp/health.out -w "%{http_code}" "${{ env.PROD_URL }}/health" || echo "000")
+            echo "attempt $i/12: HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "healthy=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "healthy=false" >> "$GITHUB_OUTPUT"
+          cat /tmp/health.out || true
+          exit 1
+
+      - name: Auto-rollback on health-check failure
+        if: steps.healthcheck.outputs.healthy != 'true'
+        env:
+          SSH_USER: ${{ secrets.PROD_USER || 'deploy' }}
+          SSH_HOST: ${{ secrets.PROD_HOST }}
+          SSH_PORT: ${{ secrets.PROD_SSH_PORT || '22' }}
+          PREVIOUS_TAG: ${{ needs.build-and-push.outputs.previous_tag }}
+        run: |
+          echo "Health check FAILED -- rolling back to ${PREVIOUS_TAG}"
+          ssh -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" bash -se <<EOF
+            set -euo pipefail
+            cd /opt/trainplex-studio
+            PREV_IMG=\$(cat .previous_image 2>/dev/null || echo "${PREVIOUS_TAG}")
+            if [ -z "\$PREV_IMG" ] || [ "\$PREV_IMG" = ":" ]; then
+              PREV_IMG="${PREVIOUS_TAG}"
+            fi
+            echo "Rolling back to: \$PREV_IMG"
+            export TRAINPLEX_IMAGE="\$PREV_IMG"
+            docker pull "\$PREV_IMG" || true
+            docker compose up -d --remove-orphans app
+          EOF
+          # Fail the workflow so the WhatsApp notification fires.
+          exit 1
+
+      - name: Notify WhatsApp on success
+        if: success()
+        env:
+          WA_WEBHOOK: ${{ secrets.WA_NOTIFY_WEBHOOK }}
+        run: |
+          if [ -z "${WA_WEBHOOK}" ]; then
+            echo "WA_NOTIFY_WEBHOOK not configured -- skipping success notification."
+            exit 0
+          fi
+          MSG="TrainPlex Studio PROD deploy OK. SHA=${{ github.sha }} Backup=${{ needs.approval-and-backup.outputs.backup_id }}"
+          curl -fsSL -X POST "${WA_WEBHOOK}" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\":\"${MSG}\"}" || echo "WA notify failed; non-blocking."
+
+      - name: Notify WhatsApp on failure / rollback
+        if: failure()
+        env:
+          WA_WEBHOOK: ${{ secrets.WA_NOTIFY_WEBHOOK }}
+        run: |
+          if [ -z "${WA_WEBHOOK}" ]; then
+            echo "WA_NOTIFY_WEBHOOK not configured -- skipping failure notification."
+            exit 0
+          fi
+          MSG="TrainPlex Studio PROD deploy FAILED & ROLLED BACK. SHA=${{ github.sha }} Backup=${{ needs.approval-and-backup.outputs.backup_id }} Run=${{ github.run_id }}"
+          curl -fsSL -X POST "${WA_WEBHOOK}" \
+            -H "Content-Type: application/json" \
+            -d "{\"text\":\"${MSG}\"}" || echo "WA notify failed; non-blocking."

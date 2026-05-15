@@ -1,5 +1,12 @@
 version: 2
+
+# TrainPlex Studio dependabot config.
+# - github-actions : keep workflow action versions current
+# - pip            : Python deps (Poetry-managed; dependabot reads pyproject.toml)
+# - npm            : web/ frontend deps (yarn lockfile)
+
 updates:
+  # -------------------------------------------------------------------------
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -12,3 +19,51 @@ updates:
       - "bot"
     commit-message:
       prefix: "ci:"
+    open-pull-requests-limit: 5
+
+  # -------------------------------------------------------------------------
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      timezone: "Europe/London"
+      time: "09:00"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "python"
+      - "bot"
+    commit-message:
+      prefix: "deps(py):"
+    open-pull-requests-limit: 10
+    # Group patch updates so we don't drown in PRs.
+    groups:
+      python-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # -------------------------------------------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      timezone: "Europe/London"
+      time: "09:00"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "javascript"
+      - "bot"
+    commit-message:
+      prefix: "deps(web):"
+    open-pull-requests-limit: 10
+    groups:
+      web-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
