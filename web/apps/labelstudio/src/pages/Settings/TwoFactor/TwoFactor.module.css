@@ -1,0 +1,168 @@
+/*
+ * TwoFactor pages styles — TrainPlex Phase 1 Step 12.4 wire-in.
+ *
+ * Uses the brand tokens defined in `web/libs/ui/src/tokens/tokens.trainplex.css`
+ * (Indigo for header, Orange for primary CTA). Layout is single-column,
+ * narrow-form to read well on Indian mobile devices the founder + ops team
+ * use day-to-day.
+ */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-6, 24px);
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--tp-space-6, 24px);
+  font-family: var(--tp-font-ui, "Inter", system-ui, sans-serif);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: var(--tp-font-display, "Inter Tight", "Inter", system-ui, sans-serif);
+  color: var(--tp-color-indigo-500, #1a1a5e);
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--tp-color-text-muted, #555);
+}
+
+.stepIndicator {
+  display: flex;
+  gap: var(--tp-space-2, 8px);
+  font-size: 0.85rem;
+  color: var(--tp-color-text-muted, #555);
+}
+
+.stepIndicator > span[data-active="true"] {
+  font-weight: 700;
+  color: var(--tp-color-indigo-500, #1a1a5e);
+}
+
+/* ── Secret box (plain-text fallback for QR) ──────────────────── */
+
+.qrFallback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-2, 8px);
+  padding: var(--tp-space-4, 16px);
+  border: 1px solid var(--tp-color-border, #ddd);
+  border-radius: var(--tp-radius-md, 6px);
+  background: var(--tp-color-bg-subtle, #fafafa);
+  word-break: break-all;
+}
+
+.qrFallback label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--tp-color-text-muted, #555);
+}
+
+.secret {
+  font-family: var(--tp-font-mono, "JetBrains Mono", "Courier New", monospace);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--tp-color-indigo-700, #14143d);
+  user-select: all;
+}
+
+.provisioningUri {
+  font-family: var(--tp-font-mono, "JetBrains Mono", "Courier New", monospace);
+  font-size: 0.75rem;
+  color: var(--tp-color-text-muted, #555);
+  user-select: all;
+}
+
+/* ── Code input ───────────────────────────────────────────────── */
+
+.codeRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-2, 8px);
+}
+
+.codeInput {
+  font-family: var(--tp-font-mono, "JetBrains Mono", "Courier New", monospace);
+  font-size: 1.25rem;
+  letter-spacing: 0.5em;
+  text-align: center;
+  padding: var(--tp-space-3, 12px);
+  border: 1px solid var(--tp-color-border, #ddd);
+  border-radius: var(--tp-radius-md, 6px);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.codeInput:focus {
+  outline: 2px solid var(--tp-color-indigo-500, #1a1a5e);
+  outline-offset: 1px;
+}
+
+/* ── Backup codes ─────────────────────────────────────────────── */
+
+.backupCodes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--tp-space-2, 8px);
+  padding: var(--tp-space-4, 16px);
+  border: 1px solid var(--tp-color-border, #ddd);
+  border-radius: var(--tp-radius-md, 6px);
+  background: var(--tp-color-bg-subtle, #fafafa);
+}
+
+.backupCode {
+  font-family: var(--tp-font-mono, "JetBrains Mono", "Courier New", monospace);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  user-select: all;
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  background: #fff;
+  border: 1px solid var(--tp-color-border, #ddd);
+  border-radius: var(--tp-radius-sm, 2px);
+  text-align: center;
+}
+
+.warning {
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  border-left: 4px solid var(--tp-color-orange-500, #ff7a18);
+  background: var(--tp-color-orange-50, #fff5e6);
+  font-size: 0.9rem;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.error {
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  border-left: 4px solid #d33;
+  background: #fff5f5;
+  color: #802222;
+  font-size: 0.9rem;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+
+.actions {
+  display: flex;
+  gap: var(--tp-space-3, 12px);
+  justify-content: flex-end;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  color: var(--tp-color-indigo-500, #1a1a5e);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.linkButton:hover {
+  color: var(--tp-color-indigo-700, #14143d);
+}

@@ -19,6 +19,10 @@ Including another URLconf
 from core import views
 from core.utils.static_serve import serve
 from core.views_dashboard import AdminDashboardSnapshotAPI
+from core.views_template_gallery import (
+    AdminProjectWizardCreateAPI,
+    AdminTemplateCatalogAPI,
+)
 from django.conf import settings
 from django.conf.urls import include
 from django.contrib import admin
@@ -76,6 +80,18 @@ urlpatterns = [
         'api/v1/admin/dashboard/snapshot',
         AdminDashboardSnapshotAPI.as_view(),
         name='admin-dashboard-snapshot',
+    ),
+    # TrainPlex — Phase 1 Step 4.2-2: Admin Project Wizard
+    # Step 1 catalog (50 LS native + 10 TrainPlex India custom) + create endpoint.
+    path(
+        'api/v1/admin/templates/catalog',
+        AdminTemplateCatalogAPI.as_view(),
+        name='admin-template-catalog',
+    ),
+    path(
+        'api/v1/admin/projects/wizard',
+        AdminProjectWizardCreateAPI.as_view(),
+        name='admin-project-wizard-create',
     ),
     re_path(r'health/', views.health, name='health'),
     re_path(r'metrics/', views.metrics, name='metrics'),

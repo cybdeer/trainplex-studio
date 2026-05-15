@@ -98,6 +98,15 @@ export const API_CONFIG = {
 
     // TrainPlex — Phase 1 Step 4.2-1: Admin dashboard snapshot (mock data in Phase 1)
     adminDashboardSnapshot: "GET:/v1/admin/dashboard/snapshot",
+
+    // TrainPlex — Phase 1 Step 4.2-2: Admin 3-step Project Wizard
+    adminTemplateCatalog: "GET:/v1/admin/templates/catalog",
+    adminProjectWizardCreate: "POST:/v1/admin/projects/wizard",
+
+    // TrainPlex — Phase 1 Step 12.4: TOTP 2FA endpoints (admin + qa_lead only).
+    twoFactorEnrollStart: "POST:/v1/users/me/2fa/enroll/start",
+    twoFactorEnrollConfirm: "POST:/v1/users/me/2fa/enroll/confirm",
+    twoFactorDisable: "POST:/v1/users/me/2fa/disable",
   },
   alwaysExpectJSON: false,
 };

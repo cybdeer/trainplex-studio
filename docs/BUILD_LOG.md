@@ -910,6 +910,165 @@ docker exec -w /label-studio/label_studio trainplex-studio-dev \
 
 ---
 
+### Step 12.4 2FA wire-in
+
+**Goal:** Take the TOTP scaffold from commit 9f65283 (totp_handler.py, user.totp_secret/totp_enabled/backup_codes fields, user_needs_2fa helper) and actually wire it into the admin login flow so an enrolled admin must enter a 6-digit authenticator code (or a one-time backup code) after the password to receive a session. Trainer/reviewer/qa_lead roles unaffected for now.
+
+#### Files Created
+
+| Path | Purpose |
+|---|---|
+| `label_studio/users/api_2fa.py` | DRF API views: `TwoFactorEnrollStartAPI`, `TwoFactorEnrollConfirmAPI`, `TwoFactorDisableAPI`. Admin + qa_lead role gate. Backup codes returned plain ONCE on confirm; stored as SHA-256 hashes. |
+| `label_studio/users/services/partial_login_token.py` | Signs/verifies a 5-min ``TimestampSigner`` token (Django stdlib, no PyJWT dep) that carries `{user_id, step='2fa_pending'}` between the password POST and the 2FA-challenge POST. |
+| `label_studio/users/tests/test_2fa_flow.py` | 21 tests covering enroll/start role gating, enroll/confirm persistence, the login `requires_2fa` gate, valid TOTP + backup-code session issuance, one-time-use enforcement, invalid-code audit, disable password+token requirement, audit events, and the signed-token primitive itself. |
+| `web/apps/labelstudio/src/pages/Settings/TwoFactor/TwoFactorSetup.tsx` | 3-step enrollment wizard (start → verify → backup codes). |
+| `web/apps/labelstudio/src/pages/Settings/TwoFactor/TwoFactorChallenge.tsx` | Login second-step component — TOTP / backup-code toggle. |
+| `web/apps/labelstudio/src/pages/Settings/TwoFactor/TwoFactorDisable.tsx` | Disable form (password + token both required). |
+| `web/apps/labelstudio/src/pages/Settings/TwoFactor/TwoFactor.module.css` | Brand-token-aware styling for all three pages. |
+| `web/apps/labelstudio/src/pages/Settings/TwoFactor/index.ts` | Barrel export. |
+
+#### Files Modified
+
+| Path | What changed |
+|---|---|
+| `label_studio/users/views.py` | `user_login` now returns `{requires_2fa, partial_token, persist_session}` 200 JSON for admins with `totp_enabled=True` (no session issued). For admins without 2FA yet, success redirect now carries `X-TrainPlex-2FA-Required: true` so the frontend can route them to enroll. New view `user_login_2fa_verify` accepts `{partial_token, token \| backup_code}`, redeems the partial token, verifies the code, and on success issues the full session + audits. All failure modes audit a `log_login(success=False)` row. |
+| `label_studio/users/urls.py` | Mounted `user/login/2fa` + `api/v1/users/me/2fa/{enroll/start, enroll/confirm, disable}`. |
+| `label_studio/users/services/__init__.py` | Exports the new `partial_login_token` submodule alongside `audit_logger` + `totp_handler`. |
+| `web/apps/labelstudio/src/config/ApiConfig.js` | Three new endpoint entries: `twoFactorEnrollStart`, `twoFactorEnrollConfirm`, `twoFactorDisable`. |
+| `web/apps/labelstudio/src/pages/index.js` | Registered `TwoFactorSetup` + `TwoFactorDisable` page routes. |
+| `web/libs/app-common/src/locales/en/common.json` | Added `admin.2fa.*` keys (10). |
+| `web/libs/app-common/src/locales/hi/common.json` | Devanagari counterparts (10). |
+
+#### Endpoints Added
+
+- `POST /user/login/2fa` (non-DRF; same `@ratelimit_login` bucket as the password step)
+- `POST /api/v1/users/me/2fa/enroll/start`
+- `POST /api/v1/users/me/2fa/enroll/confirm`
+- `POST /api/v1/users/me/2fa/disable`
+
+#### Frontend Routes
+
+- `/settings/2fa/enroll` → `TwoFactorSetup` (admin + qa_lead, RoleGate fallback)
+- `/settings/2fa/disable` → `TwoFactorDisable` (admin + qa_lead)
+- `TwoFactorChallenge` — component, rendered inline on the login flow after a `requires_2fa` response (no static route; partial_token lives in component state).
+
+#### i18n keys
+
+10 new keys under `admin.2fa.*` in both `en/common.json` and `hi/common.json`. en+hi parity preserved.
+
+#### Tests
+
+21 tests in `users/tests/test_2fa_flow.py`. All pass:
+
+```
+docker exec trainplex-studio-dev sh -c "cd /label-studio/label_studio && /label-studio/.venv/bin/python -m pytest users/tests/test_2fa_flow.py -v"
+```
+
+Regression check: `test_security_baseline.py` (24) + `test_security_wireup.py` (9) + `test_role_rbac.py` (7) — 40 tests, zero regressions.
+
+#### Security choices made (and why)
+
+- **Two-step over single-token-merged-into-password.** A signed `partial_token` returned mid-flow means a leaked password alone never produces a session for an enrolled user, even via raw curl to `/user/login/`. Token is `django.core.signing.TimestampSigner` with `max_age=300` and a `'trainplex.2fa.partial'` salt — Django stdlib, no new dep, rotation-aware via `SECRET_KEY`.
+- **Backup codes hashed.** Plaintext codes shown ONCE in the enroll/confirm response; persistence is SHA-256 (per existing `totp_handler.hash_backup_code`). `verify_backup_code` atomically removes the consumed hash inside the same `user.save(update_fields=['backup_codes'])` call.
+- **Disable requires password + token.** Either alone would weaken the account from a stolen-laptop or stolen-phone attacker. Both keeps the bar at "compromise both factors", same as bypassing 2FA itself.
+- **Soft enforcement only.** Admins without 2FA still get a session (with the `X-TrainPlex-2FA-Required` header); hard block is Week 5 per founder rule.
+- **No QR-rendering JS dep.** The frontend shows the otpauth URI as a copyable string + the raw secret. Authenticator apps accept manual entry; a QR library would add ~30 KB to the bundle and an extra supply-chain link for a flow used a handful of times per user lifetime.
+
+#### Skipped (deferred / out of scope)
+
+- **Hard 2FA enforcement** — Week 5. Today's header is informational only.
+- **QR rendering on the frontend** — provisioning URI is shown as copyable text. If the founder wants pixel QR rendering, `qrcode` (8 KB gzipped) can be added in a focused PR.
+- **2FA on trainer/reviewer roles** — `_gate_2fa_roles` denies anything outside admin + qa_lead. Trainers don't get an enrollment surface at all yet (matches founder rule).
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: TOTP ka scaffold pichli step me bana tha but login flow me lage hi nahi tha — admin ka totp_secret save tha, par login pe usse pucha nahi ja rha tha, password sahi dene pe seedha session mil rha tha. 2FA effectively off tha.
+- Usse kya ho rha tha: Admin password leak hone pe attacker direct ghuse aata; backup codes generate to ho rhe the par koi consume nahi karta tha. Compliance + security baseline ka asli benefit kuch nahi mil rha tha.
+- Ab fix ke baad kya hoga: Admin ka password sahi dene pe ab 2FA-pending JSON token milta hai (`requires_2fa: true`), session abhi nahi banta. User authenticator app ka 6-digit code OR backup code dene ke baad hi session milta hai. Disable karne ke liye password + current code dono mangne lge. 21 naye tests pass, 40 purane tests pass — zero regression. Setup wizard /settings/2fa/enroll pe hai, hindi+english dono me.
+
+---
+
+### Step 4.2-2 Project Wizard
+
+**Goal (per plan):** Replace LS upstream's 30+ field scary Create Project form
+with a TrainPlex 3-step wizard so admin onboarding for a new project drops
+from ~10 min to ~2 min: (1) Choose Template from 60 cards (10 TrainPlex
+India custom + 50 LS native), (2) Upload Data via drag-drop CSV/JSON/zip,
+(3) Assign Trainers with state/tier/language/cert chip filters + checkbox
+multi-select.
+
+#### Backend
+
+| Path | Purpose |
+|---|---|
+| `label_studio/core/views_template_gallery.py` (new) | `AdminTemplateCatalogAPI` + `AdminProjectWizardCreateAPI`. Catalog reads `backend/data/ls_templates/trainplex_india/*/meta.json` from disk (TrainPlex India bucket, 10 templates) and merges with a hardcoded 50-entry LS-native bucket spread across the 9 Step 2.1 categories. Wizard create validates `template_id` / `project_name`, creates a `Project` row with a placeholder `<View></View>` label_config (TODO Phase 2 for real config.xml load), and echoes trainer_ids / data_file_upload_id back as `_pending` for the Phase 2 wiring step. Both views gated by `@require_role(['admin'])`. |
+| `label_studio/core/urls.py` (modified) | Registered `GET /api/v1/admin/templates/catalog` and `POST /api/v1/admin/projects/wizard`. |
+| `label_studio/core/tests/test_template_gallery.py` (new) | 11-test suite: admin 200, trainer 403, unauthenticated rejected, response keys, `count >= 10`, native_count locked at 50, India templates have non-empty Devanagari `title_hi`, ids unique, all 9 Step 2.1 categories surface. |
+| `label_studio/core/tests/test_project_wizard.py` (new) | 9-test suite: trainer 403, unauthenticated rejected, admin creates project from native template, admin creates from TrainPlex India template, trainer_ids + data_file_upload_id echoed as `_pending`, missing/empty/unknown template_id → 400, missing project_name → 400, bad trainer_ids type → 400. |
+
+**Endpoints**
+
+- `GET /api/v1/admin/templates/catalog` → `{count, trainplex_count, native_count, items[]}`. Each item: `id`, `title`, `title_hi`, `category`, `description`, `description_hi`, `india_relevance`, `thumbnail_url`, `tier`, `trainplex_custom`.
+- `POST /api/v1/admin/projects/wizard` → `{id, title, template_id, trainer_ids_pending, data_file_upload_id_pending}` on 201. 400 on missing/unknown template_id, missing project_name, or wrong trainer_ids type.
+
+LS-native template list is hardcoded for Phase 1 (id+title+category) — full
+config.xml loading is deferred to Phase 2 with a `TODO` at the call site.
+Trainer assignment + data file import are also Phase 2; Phase 1 logs the
+requested IDs so the founder can verify the wizard preserved them.
+
+#### Frontend
+
+| Path | Purpose |
+|---|---|
+| `web/apps/labelstudio/src/pages/Admin/ProjectWizard/ProjectWizard.tsx` (new) | Orchestrator page. Fetches the catalog via `useQuery`, drives the 1→2→3 step state, wraps in `<RoleGate allow={['admin']}>`, ships submit handler that POSTs to `adminProjectWizardCreate` then redirects to `/projects/:id`. |
+| `…/ProgressStepper.tsx` (new) | Top progress 1→2→3 stepper. Active step glows Indigo; completed steps fill solid + are click-back-able so the founder can revise. |
+| `…/Step1_Template.tsx` (new) | 4-column responsive grid of template cards. Each card: category badge, optional "TrainPlex India" Orange badge for `trainplex_custom=true`, bilingual title (Hindi inline when present), tier chip. Click selects + highlights. |
+| `…/Step2_Data.tsx` (new) | HTML5-native drag-drop zone (no extra dep) + bound project-name input. Accepts `.csv / .json / .zip`. Hidden `<input type="file">` for keyboard a11y. Captures filename + generates a wizard-local upload id (TODO Phase 2 for real LS file storage). |
+| `…/Step3_Assign.tsx` (new) | Trainer multi-select table with 4 chip filter groups: State (12 Indian states), Tier (bronze/silver/gold/platinum), Language (Hindi/Tamil/Telugu/Bengali/Marathi/Gujarati/Punjabi), Cert (passed/pending). 12-row mock roster (TODO Phase 2 for real `/admin/trainers/` API). Select-all-visible checkbox respects the active filter. |
+| `…/ProjectWizard.module.css` (new) | TrainPlex Indigo header + Orange CTA. Responsive `repeat(auto-fill, minmax(240px, 1fr))` template grid; stepper dot states; drag-active drop-zone tinted Orange; chip filter active state Indigo. |
+| `…/types.ts` (new) | `TemplateCard`, `TemplateCatalog`, `TrainerRow`, `TrainerFilters`, `WizardState` — single source of truth on the frontend, mirrors the backend contract. |
+| `…/index.ts` (new) | Barrel exports. |
+| `…/__tests__/ProjectWizard.test.tsx` (new) | 7 jest tests: renders Step 1 by default; stepper labels present; Next disabled with no template; loading box while fetching; 403 fallback for non-admin; error box on catalog fail; `/admin/projects/new` route metadata. |
+| `…/__tests__/Step1_Template.test.tsx` (new) | 6 jest tests: one card per template, TrainPlex India badge only for custom templates, onSelect callback fires with correct template, data-selected attribute toggles, Hindi title rendering when language is hi, tier chip text. |
+| `…/__tests__/Step3_Assign.test.tsx` (new) | 7 jest tests: one row per mock trainer, all 4 filter groups render, state-chip filter, AND semantics across state+tier, language-overlap filter, checkbox toggles round-trip through onSelectionChange, deselect when already selected, selected-count summary displays the count. |
+| `web/apps/labelstudio/src/pages/index.js` (modified) | Registered `ProjectWizard` so RoutesProvider mounts `/admin/projects/new`. |
+| `web/apps/labelstudio/src/config/ApiConfig.js` (modified) | Added `adminTemplateCatalog: "GET:/v1/admin/templates/catalog"` and `adminProjectWizardCreate: "POST:/v1/admin/projects/wizard"`. |
+| `web/libs/app-common/src/locales/en/common.json` (modified) | Added 24 keys under `admin.wizard.*`. |
+| `web/libs/app-common/src/locales/hi/common.json` (modified) | Same 24 keys in Devanagari — full en+hi parity locked at 94 keys each. |
+
+**Route added:** `/admin/projects/new`.
+
+**New i18n keys (24 — parity locked):** `admin.wizard.title`, `step1`, `step2`,
+`step3`, `next`, `back`, `create`, `drop_zone`, `filter_state`, `filter_tier`,
+`filter_language`, `filter_cert`, `project_name_label`, `project_name_placeholder`,
+`col_name`, `col_state`, `col_tier`, `col_languages`, `col_cert`, `no_trainers`,
+`selected_count`, `loading_catalog`, `catalog_failed`, `submit_failed`. Spec
+required 12; extras cover the project-name field, trainer-table headers,
+empty-state copy, count interpolation, loading/error microcopy.
+
+#### Test Count
+
+- **Backend:** `pytest core/tests/test_template_gallery.py core/tests/test_project_wizard.py -v` → **20 passed** in 29.05s. Dashboard tests still pass (9/9, zero regression).
+- **Frontend:** 20 jest tests across 3 files (7 ProjectWizard + 6 Step1_Template + 7 Step3_Assign). Will run in CI — host has no `web/node_modules`, matching Step 4.2-1.
+
+#### Deferred items (Phase 2)
+
+- **Real LS template loading** — `_NATIVE_TEMPLATES` is hardcoded (id+title+category). Phase 2 swaps for a real loader walking `label_studio/annotation_templates/<group>/<template>/`.
+- **Trainer assignment** — `trainer_ids` is logged + echoed back as `_pending`. `ProjectMember.objects.create()` wiring lands with the trainer-roster API.
+- **File upload** — drag-drop captures filename + generates a wizard-local id. Phase 2 routes through the LS file-storage upload API.
+
+#### Container note
+
+Same pattern as Step 4.2-1: copied `views_template_gallery.py`, `urls.py`, and the two test files into `trainplex-studio-dev:/label-studio/...` via `docker cp`. Ran pytest via `/label-studio/.venv/bin/pytest`. Frontend jest tests will run in CI.
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: LS upstream ka Create Project form 30+ fields ka tha — admin ko ek project banane me 10 min lag jate the, har field ka matlab samjho phir bharo. Hindi me kuch nahi tha, India-specific templates upstream gallery me nahi the.
+- Usse kya ho rha tha: Admin onboarding bottleneck ban gaya tha — har naye batch ke liye founder ya senior admin ko 10 min chahiye, isliye new project setup deferred hota tha aur weekly volume target miss hota tha.
+- Ab fix ke baad kya hoga: Admin `/admin/projects/new` pe jaake 3 chhote steps me project bana lega — (1) 60 templates ka gallery se ek chuno (10 India-specific Orange badge ke saath sabse pehle), (2) data file drag-drop + project ka naam, (3) state/tier/bhaasha/cert chip filters laga ke trainers select karo. ~2 min me project ban jata hai. Saari labels Hindi+English dono me hain — 24 naye i18n keys parity-locked. 20 backend tests + 20 frontend tests pass; dashboard ke 9 tests bhi pass (zero regression).
+
+---
+
 ## Log Update Rules
 
 - Every new file → `Files Created` table

@@ -1,0 +1,471 @@
+/*
+ * ProjectWizard styles — TrainPlex Phase 1 Step 4.2-2.
+ *
+ * Uses the brand tokens from `web/libs/ui/src/tokens/tokens.trainplex.css`:
+ *   - Indigo for active stepper / titles / selected card border
+ *   - Orange for the primary CTA (Next / Create Project)
+ *
+ * Layout principles
+ * -----------------
+ * - Template grid: responsive `repeat(auto-fill, minmax(240px, 1fr))` so the
+ *   60 cards reflow cleanly from desktop down to phone.
+ * - Drop zone: 200px tall dashed-border target with a clear hover/drag-over
+ *   state. Hidden file input keeps keyboard a11y intact.
+ * - Trainer table: same monospace numeric treatment as the dashboard so the
+ *   visual language is consistent.
+ */
+
+.wizardRoot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-6, 24px);
+  font-family: var(--tp-font-ui, 'Inter', system-ui, sans-serif);
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+
+.wizardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--tp-space-4, 16px) var(--tp-space-6, 24px);
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.wizardTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: var(--tp-font-display, 'Inter Tight', 'Inter', system-ui, sans-serif);
+}
+
+/* ── Progress stepper ───────────────────────────────────────────── */
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-3, 12px) 0;
+}
+
+.stepperItem {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-2, 8px);
+}
+
+.stepperDot {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--tp-radius-full, 9999px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--tp-color-indigo-50, #E8E8F0);
+  background: #FFFFFF;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: not-allowed;
+  transition: all 120ms ease-out;
+}
+
+.stepperDotActive {
+  border-color: var(--tp-color-indigo-500, #1A1A5E);
+  color: var(--tp-color-indigo-700, #121242);
+  box-shadow: 0 0 0 4px rgba(26, 26, 94, 0.08);
+}
+
+.stepperDotComplete {
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  border-color: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+  cursor: pointer;
+}
+
+.stepperLabel {
+  font-size: 0.875rem;
+  color: var(--tp-color-indigo-700, #121242);
+  font-weight: 500;
+}
+
+.stepperTrack {
+  width: 48px;
+  height: 2px;
+  background: var(--tp-color-indigo-50, #E8E8F0);
+  display: inline-block;
+}
+
+.stepperTrackDone {
+  background: var(--tp-color-indigo-500, #1A1A5E);
+}
+
+@media (max-width: 640px) {
+  .stepperTrack { width: 24px; }
+  .stepperLabel { display: none; } /* dots only on phones */
+}
+
+/* ── Step heading ───────────────────────────────────────────────── */
+
+.stepHeading {
+  margin: 0 0 var(--tp-space-3, 12px) 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+/* ── Step 1 — template grid ────────────────────────────────────── */
+
+.step1Root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-3, 12px);
+}
+
+.templateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--tp-space-3, 12px);
+}
+
+.templateCard {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-2, 8px);
+  padding: var(--tp-space-3, 12px);
+  background: #FFFFFF;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  box-shadow: var(--tp-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+  cursor: pointer;
+  transition: all 120ms ease-out;
+  min-height: 120px;
+}
+
+.templateCard:hover {
+  border-color: var(--tp-color-indigo-400, #4F4F8A);
+  box-shadow: var(--tp-shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1));
+}
+
+.templateCardSelected {
+  border-color: var(--tp-color-indigo-500, #1A1A5E);
+  border-width: 2px;
+  box-shadow: 0 0 0 3px rgba(26, 26, 94, 0.08);
+}
+
+.templateCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--tp-space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.templateCategoryBadge {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  background: var(--tp-color-indigo-50, #E8E8F0);
+  padding: 2px 6px;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.templateIndiaBadge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  background: var(--tp-color-orange-500, #FF6B35);
+  padding: 2px 6px;
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.templateCardTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.templateCardSubtitle {
+  font-size: 0.8125rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.templateCardFooter {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tierChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--tp-radius-full, 9999px);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--tp-color-indigo-50, #E8E8F0);
+  color: var(--tp-color-indigo-700, #121242);
+  text-transform: capitalize;
+}
+
+.tier_bronze { background: #F5E1C9; color: #8B5A1C; }
+.tier_silver { background: #E5E7EB; color: #4B5563; }
+.tier_gold { background: #FEF3C7; color: #B45309; }
+.tier_platinum { background: #DBEAFE; color: #1E40AF; }
+
+/* ── Step 2 — drop zone ────────────────────────────────────────── */
+
+.step2Root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-4, 16px);
+}
+
+.projectNameField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-2, 8px);
+}
+
+.projectNameLabel {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.projectNameInput {
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  font-size: 1rem;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  background: #FFFFFF;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.projectNameInput:focus {
+  outline: none;
+  border-color: var(--tp-color-indigo-500, #1A1A5E);
+  box-shadow: 0 0 0 3px rgba(26, 26, 94, 0.08);
+}
+
+.dropZone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tp-space-3, 12px);
+  height: 200px;
+  border: 2px dashed var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  background: #FFFFFF;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  cursor: pointer;
+  transition: all 120ms ease-out;
+}
+
+.dropZone:hover {
+  border-color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.dropZoneActive {
+  border-color: var(--tp-color-orange-500, #FF6B35);
+  background: rgba(255, 107, 53, 0.04);
+  color: var(--tp-color-orange-600, #E55A26);
+}
+
+.dropZoneFileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.dropZoneIcon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.dropZoneText {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-align: center;
+  padding: 0 var(--tp-space-4, 16px);
+}
+
+.uploadStatus {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-2, 8px);
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  background: var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-size: 0.875rem;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.uploadStatusName { font-weight: 600; }
+.uploadStatusSize { color: var(--tp-color-indigo-400, #4F4F8A); }
+
+.uploadClearBtn {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--tp-color-error, #DC2626);
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* ── Step 3 — trainer table + filters ──────────────────────────── */
+
+.step3Root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-4, 16px);
+}
+
+.filtersBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-3, 12px);
+  background: #FFFFFF;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-2, 8px);
+}
+
+.filterGroupLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.filterChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tp-space-2, 8px);
+}
+
+.filterChip {
+  padding: 4px 10px;
+  border-radius: var(--tp-radius-full, 9999px);
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  background: #FFFFFF;
+  color: var(--tp-color-indigo-700, #121242);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 120ms ease-out;
+}
+
+.filterChip:hover {
+  border-color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.filterChipActive {
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  border-color: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+}
+
+.trainerTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  background: #FFFFFF;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+}
+
+.trainerTable th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  border-bottom: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+}
+
+.trainerTable td {
+  padding: var(--tp-space-3, 12px);
+  border-bottom: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.trainerTable tr:last-child td { border-bottom: 0; }
+
+.trainerRowSelected td {
+  background: rgba(26, 26, 94, 0.04);
+}
+
+.emptyRow {
+  text-align: center;
+  font-style: italic;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.selectedSummary {
+  font-size: 0.875rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+/* ── Wizard footer (Back / Next / Create) ──────────────────────── */
+
+.wizardActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--tp-space-3, 12px);
+  border-top: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+}
+
+.ctaPrimary {
+  background: var(--tp-color-orange-500, #FF6B35);
+  border-color: var(--tp-color-orange-500, #FF6B35);
+  color: #FFFFFF;
+}
+
+.ctaPrimary:hover {
+  background: var(--tp-color-orange-600, #E55A26);
+  border-color: var(--tp-color-orange-600, #E55A26);
+}
+
+/* ── Loading / error ───────────────────────────────────────────── */
+
+.loadingBox {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-6, 24px);
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.errorBox {
+  padding: var(--tp-space-4, 16px);
+  background: var(--tp-color-error-bg, #FEE2E2);
+  color: var(--tp-color-error, #DC2626);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-weight: 500;
+}
