@@ -35,6 +35,7 @@ from core.views_bulk_assign import (
 )
 from core.views_dashboard import AdminDashboardSnapshotAPI
 from core.views_heatmap import AdminHeatmapStateActivityAPI
+from core.views_submissions_preview import AdminSubmissionsPreviewAPI
 from core.views_template_gallery import (
     AdminProjectWizardCreateAPI,
     AdminTemplateCatalogAPI,
@@ -177,6 +178,16 @@ urlpatterns = [
         'api/v1/admin/quality-alerts/<int:alert_id>/review',
         AdminQualityAlertReviewAPI.as_view(),
         name='admin-quality-alert-review',
+    ),
+    # TrainPlex — Phase 1 Step 4.2-9: Admin Submissions Preview drawer.
+    # Recent N submissions (default 10, cap 50) with task/answer/reviewer
+    # preview so admin can spot-check fraud / quality at random. Filterable
+    # by project_id, trainer_id, status. Mock data in Phase 1; real DB
+    # wiring lands in Phase 2 / Step 8.
+    path(
+        'api/v1/admin/submissions/preview',
+        AdminSubmissionsPreviewAPI.as_view(),
+        name='admin-submissions-preview',
     ),
     re_path(r'health/', views.health, name='health'),
     re_path(r'metrics/', views.metrics, name='metrics'),

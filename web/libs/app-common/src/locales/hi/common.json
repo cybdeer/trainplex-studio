@@ -182,6 +182,25 @@
       "rate_limited": "अधिकतम 5 बल्क assign प्रति घंटा",
       "assign_failed": "Tasks assign नहीं हो सके। फिर कोशिश करें।"
     },
+    "submissions": {
+      "title": "हाल के जमा कार्य",
+      "col_task": "कार्य",
+      "col_trainer": "ट्रेनर",
+      "col_answer": "उत्तर",
+      "col_scores": "रिव्यूअर स्कोर",
+      "col_time": "समय",
+      "score_agreed": "सहमत",
+      "score_disagreed": "असहमत",
+      "no_recent": "कोई हाल का जमा नहीं",
+      "open_drawer": "हाल के जमा कार्य",
+      "filter_status": "स्थिति",
+      "status_submitted": "जमा हुआ",
+      "status_under_review": "समीक्षा में",
+      "status_approved": "स्वीकृत",
+      "status_rejected": "अस्वीकृत",
+      "loading": "हाल के जमा कार्य लोड हो रहे…",
+      "fetch_failed": "हाल के जमा कार्य लोड नहीं हो सके।"
+    },
     "alerts": {
       "title": "गुणवत्ता अलर्ट",
       "severity_low": "कम",

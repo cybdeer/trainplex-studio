@@ -1,0 +1,374 @@
+/*
+ * SubmissionsPreview styles — TrainPlex Phase 1 Step 4.2-9.
+ *
+ * Drawer-only component (no full-page surface). Opens from the right when
+ * an admin clicks the "Recent Submissions" button on the dashboard widget.
+ *
+ * Visual language
+ * ---------------
+ * - TrainPlex Indigo drawer header (matches the rest of the admin shell)
+ * - Submission cards are roomy on desktop but collapse to single-column on
+ *   narrow screens — admin reviews on a phone as often as on laptop.
+ * - 3-reviewer consensus visualisation: 3 dots, green = agreed, red =
+ *   disagreed, grey = no verdict yet. Reads at a glance.
+ *
+ * Layout
+ * ------
+ *   Drawer backdrop (fixed inset, dark, click-to-close)
+ *   ├── Drawer (slide-in from right)
+ *   │   ├── Header (Indigo strip: title + close)
+ *   │   ├── Status filter row
+ *   │   └── Body
+ *   │       ├── Loading | Error | Empty | List
+ *   │       └── List → repeated SubmissionCard (image / answer / scores)
+ */
+
+.drawerBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 50;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drawer {
+  width: min(620px, 100vw);
+  background: #FFFFFF;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12);
+  animation: subPreviewSlideIn 200ms ease-out;
+  font-family: var(--tp-font-ui, 'Inter', system-ui, sans-serif);
+}
+
+@keyframes subPreviewSlideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.drawerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--tp-space-4, 16px);
+  background: var(--tp-color-indigo-500, #1A1A5E);
+  color: #FFFFFF;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.drawerTitle {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  font-family: var(--tp-font-display, 'Inter Tight', 'Inter', system-ui, sans-serif);
+}
+
+.drawerCloseBtn {
+  background: transparent;
+  border: 0;
+  color: #FFFFFF;
+  cursor: pointer;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 8px;
+}
+
+.drawerCloseBtn:focus {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 2px;
+}
+
+.drawerToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  background: #FAFAFC;
+  border-bottom: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+}
+
+.toolbarField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-1, 4px);
+  min-width: 140px;
+}
+
+.toolbarLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.toolbarSelect {
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  font-size: 0.875rem;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  background: #FFFFFF;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.toolbarSelect:focus {
+  outline: none;
+  border-color: var(--tp-color-indigo-500, #1A1A5E);
+  box-shadow: 0 0 0 3px rgba(26, 26, 94, 0.08);
+}
+
+.drawerBody {
+  padding: var(--tp-space-3, 12px) var(--tp-space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-3, 12px);
+  flex: 1;
+}
+
+/* ── Submission card ────────────────────────────────────────────── */
+
+.submissionCard {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: var(--tp-space-3, 12px);
+  padding: var(--tp-space-3, 12px);
+  background: #FFFFFF;
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  box-shadow: var(--tp-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+}
+
+@media (max-width: 520px) {
+  .submissionCard {
+    grid-template-columns: 1fr;
+  }
+}
+
+.taskPane {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.taskThumb {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: var(--tp-radius-sm, 2px);
+  background: var(--tp-color-indigo-50, #E8E8F0);
+}
+
+.taskTextSnippet {
+  width: 100%;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--tp-color-indigo-700, #121242);
+  background: var(--tp-color-indigo-50, #E8E8F0);
+  padding: var(--tp-space-2, 8px);
+  border-radius: var(--tp-radius-sm, 2px);
+  max-height: 120px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+.contentPane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-2, 8px);
+  min-width: 0; /* allow flex children to shrink so long answers wrap */
+}
+
+.cardHeaderRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--tp-space-2, 8px);
+}
+
+.trainerName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.trainerRole {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  margin-left: 6px;
+}
+
+.cardWhen {
+  font-size: 0.75rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.answerLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.answerSnippet {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--tp-color-indigo-700, #121242);
+  background: #FAFAFC;
+  padding: var(--tp-space-2, 8px);
+  border-radius: var(--tp-radius-sm, 2px);
+  word-break: break-word;
+  font-family: var(--tp-font-mono, ui-monospace, monospace);
+  max-height: 80px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.scoresRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--tp-space-2, 8px);
+  padding-top: var(--tp-space-2, 8px);
+  border-top: 1px dashed var(--tp-color-indigo-50, #E8E8F0);
+}
+
+.scoresLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.scoreDotsWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scoreDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid var(--tp-color-indigo-100, #D8D8E5);
+  background: #FFFFFF;
+  display: inline-block;
+}
+
+.scoreDotAgreed {
+  background: #16A34A;
+  border-color: #15803D;
+}
+
+.scoreDotDisagreed {
+  background: #DC2626;
+  border-color: #B91C1C;
+}
+
+.scoreSummary {
+  font-size: 0.75rem;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  font-variant-numeric: tabular-nums;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: var(--tp-radius-full, 9999px);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.statusSubmitted {
+  background: rgba(26, 26, 94, 0.10);
+  color: var(--tp-color-indigo-700, #121242);
+}
+
+.statusUnderReview {
+  background: rgba(245, 158, 11, 0.15);
+  color: #B45309;
+}
+
+.statusApproved {
+  background: rgba(16, 185, 129, 0.10);
+  color: #047857;
+}
+
+.statusRejected {
+  background: rgba(220, 38, 38, 0.15);
+  color: #B91C1C;
+}
+
+/* ── Loading / error / empty ────────────────────────────────────── */
+
+.stateBox {
+  padding: var(--tp-space-6, 24px);
+  text-align: center;
+  color: var(--tp-color-indigo-400, #4F4F8A);
+  font-style: italic;
+}
+
+.errorBox {
+  padding: var(--tp-space-4, 16px);
+  background: var(--tp-color-error-bg, #FEE2E2);
+  color: var(--tp-color-error, #DC2626);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-weight: 500;
+}
+
+.forbiddenBox {
+  padding: var(--tp-space-4, 16px);
+  background: var(--tp-color-error-bg, #FEE2E2);
+  color: var(--tp-color-error, #DC2626);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-weight: 500;
+}
+
+/* ── Trigger button (mounted on dashboard widget) ───────────────── */
+
+.triggerButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--tp-space-2, 8px) var(--tp-space-3, 12px);
+  background: #FFFFFF;
+  color: var(--tp-color-indigo-700, #121242);
+  border: 1px solid var(--tp-color-indigo-50, #E8E8F0);
+  border-radius: var(--tp-radius-sm, 2px);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 100ms ease-out;
+}
+
+.triggerButton:hover {
+  border-color: var(--tp-color-indigo-400, #4F4F8A);
+}
+
+.triggerButton:focus {
+  outline: none;
+  border-color: var(--tp-color-indigo-500, #1A1A5E);
+  box-shadow: 0 0 0 3px rgba(26, 26, 94, 0.08);
+}

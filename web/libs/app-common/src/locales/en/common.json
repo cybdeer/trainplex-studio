@@ -182,6 +182,25 @@
       "rate_limited": "Max 5 bulk assigns per hour",
       "assign_failed": "Couldn't assign the tasks. Please try again."
     },
+    "submissions": {
+      "title": "Recent Submissions",
+      "col_task": "Task",
+      "col_trainer": "Trainer",
+      "col_answer": "Answer",
+      "col_scores": "Reviewer scores",
+      "col_time": "Time",
+      "score_agreed": "Agreed",
+      "score_disagreed": "Disagreed",
+      "no_recent": "No recent submissions",
+      "open_drawer": "Recent Submissions",
+      "filter_status": "Status",
+      "status_submitted": "Submitted",
+      "status_under_review": "Under review",
+      "status_approved": "Approved",
+      "status_rejected": "Rejected",
+      "loading": "Loading recent submissions…",
+      "fetch_failed": "Couldn't load recent submissions."
+    },
     "alerts": {
       "title": "Quality Alerts",
       "severity_low": "Low",

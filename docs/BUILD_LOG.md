@@ -1577,6 +1577,147 @@ cleanly. Zero behavioural change to bulk-assign code.)
 
 ---
 
+### Step 4.2-9 Submissions Preview Drawer
+
+Per Phase 1 plan: "Admin ek click pe recent 10 submissions ka sample dekhe
+(image + answer + reviewer scores). Random spot-check super easy." A slide-in
+drawer mounted on the admin dashboard widget — Recent Submissions button
+top-right — opens a read-only sample of the most recent 10 submissions
+(filterable by status; defaults to "all"). Each card shows task preview
+(image thumb or text snippet), trainer name + role, the trainer's answer
+snippet, a 3-dot reviewer-consensus visualisation, status pill, and the
+created-at timestamp. The drawer is open-on-demand from anywhere — it lives
+on the dashboard today, but the parent only needs to control an `open`
+boolean to mount it on another admin page later.
+
+Backend exposes `GET /api/v1/admin/submissions/preview` with `limit`
+(default 10, hard cap 50), `project_id`, `trainer_id`, `status` filters.
+Phase 1 ships **deterministic mock data** (24 entries across 3 projects
+and 6 trainers, with every reviewer-consensus pattern represented so the
+3-dot visualisation has every variant exercised). Real DB wiring is a
+swap-in at one call site once the submissions schema lands in Phase 2 /
+Step 8 — the JSON contract is pinned by `test_submissions_preview.py`
+(20 tests) so the swap is contract-safe.
+
+#### Files Created
+
+| File | Purpose |
+| --- | --- |
+| `label_studio/core/views_submissions_preview.py` (new) | `AdminSubmissionsPreviewAPI` (GET, admin-only). Limit clamped to 50; project/trainer/status filters with silent-ignore on garbage values; deterministic 24-row mock dataset covering 4 status values × 4 consensus patterns × 3 projects × 6 trainers. `TODO Step 4.2-9 / Phase 2 (Step 8)` marks the single call-site that flips from mock to a real `Submission.objects.filter(...)` query. |
+| `label_studio/core/tests/test_submissions_preview.py` (new) | 15 backend tests: admin 200, trainer 403, unauth 401/403, top-level keys, `as_of` ISO-Z, default limit 10, explicit limit honoured, cap at 50, fallback on 0/-3/garbage, project_id filter narrows, trainer_id filter narrows, status filter narrows, project+status combo narrows further, garbage filters silent-ignored, per-row required-keys + types + truncation invariants. |
+| `web/apps/labelstudio/src/pages/Admin/SubmissionsPreview/SubmissionsPreviewDrawer.tsx` (new) | Drawer root. RoleGate('admin') gates body; parent owns `open` boolean. Slide-in animation, backdrop click + Escape close, focus moves to close button on open, previously-focused element restored on close. Status filter in toolbar; `projectId` / `trainerId` / `limit` are optional props for scoped opens. Wires to `useQuery(['admin-submissions-preview', params])` with `enabled: open && role === 'admin'` so a closed drawer or non-admin never fires the GET. |
+| `…/SubmissionCard.tsx` (new) | Single submission card. Two-column grid (image / text snippet on the left, trainer + answer + scores + status on the right) — collapses to single column < 520px. URL-vs-text detection on `task_preview` (`^https?://` → `<img>`, else clamped 6-line `<div>`). Answer block uses a monospace font + 4-line clamp (JSON or plain text both read cleanly). Status pill colour-coded (submitted indigo / under_review amber / approved green / rejected red). |
+| `…/ReviewerScoreBadges.tsx` (new) | 3-dot consensus visualisation. Pure presentational; pads to 3 entries defensively (so a malformed payload doesn't crash the whole drawer). Each dot is green (agreed) / red (disagreed) with `data-agreed` attribute for tests + a `title` tooltip + colour-blind-safe accompanying `agreed/total` summary text + `aria-label` summarising the 3 verdicts. |
+| `…/SubmissionsPreview.module.css` (new) | TrainPlex Indigo header strip; sticky toolbar with status filter; card grid with image/text task pane; 3-dot consensus dots with green/red fill and white border; 4 status-pill colour variants; loading / empty / error state boxes; trigger button styled for the dashboard header. Responsive single-column on phones. |
+| `…/types.ts` (new) | `SubmissionPreview`, `SubmissionStatus`, `SubmissionTrainer`, `ReviewerScore`, `SubmissionsPreviewResponse`, `SubmissionsPreviewQuery`, `SubmissionsPreviewFilters` + `SUBMISSION_STATUS_CHOICES` dropdown-choices array. Single source of truth that mirrors the backend contract. |
+| `…/index.ts` (new) | Barrel exports for drawer, card, badges, types, choices. |
+| `…/__tests__/SubmissionsPreviewDrawer.test.tsx` (new) | 17 jest tests: open=false renders nothing; admin drawer renders cards + toolbar; trainer / answer / status pill present per card; URL → `<img>`, text → snippet; 3 reviewer dots per card with correct `data-agreed`; summary shows `agreed/total`; status filter dropdown change updates the select value; empty-state row when results=[]; loading state before first response; error box on query fail; non-admin → forbidden box (and no list rendered); backdrop click + X-button → onClose fires; clicking drawer body does NOT close; Hindi title renders Devanagari. Plus 2 `ReviewerScoreBadges` unit tests: pads to 3 dots when given fewer scores, `data-agreed-count` attribute reflects agreed count. |
+
+#### Files Modified
+
+| File | Change |
+| --- | --- |
+| `label_studio/core/urls.py` | Imported `AdminSubmissionsPreviewAPI`; registered `api/v1/admin/submissions/preview` path with `name='admin-submissions-preview'`. |
+| `web/apps/labelstudio/src/config/ApiConfig.js` | Added `adminSubmissionsPreview: "GET:/v1/admin/submissions/preview"` with Step 4.2-9 comment block. |
+| `web/apps/labelstudio/src/pages/Admin/DashboardWidget/DashboardWidget.tsx` | Imported `SubmissionsPreviewDrawer` + `useState`. `DashboardWidget` now owns a `submissionsPreviewOpen` boolean. `DashboardBody` accepts an `onOpenSubmissionsPreview` callback and renders a "Recent Submissions" trigger button in the indigo header strip (line 103, `data-testid="dashboard-open-submissions-preview"`). The drawer itself is mounted at the outer `DashboardWidget` level (lines 252-253) so it persists across re-renders and can be opened even while the snapshot is still loading. |
+| `web/libs/app-common/src/locales/en/common.json` | Added 17 keys under `admin.submissions.*`: `title`, 5 col_*, 2 score_*, `no_recent`, `open_drawer`, `filter_status`, 4 status_*, `loading`, `fetch_failed`. |
+| `web/libs/app-common/src/locales/hi/common.json` | Same 17 keys in Devanagari — EN+HI parity locked (verified via JSON diff). |
+
+**Endpoint added:** `GET /api/v1/admin/submissions/preview` (admin-only via `@require_role(['admin'])`).
+
+**Route added:** *(none — drawer is mounted in-place, not a routed page)*. The trigger lives on `/admin/dashboard`.
+
+**i18n keys added:** 17 under `admin.submissions.*` × 2 languages (en + hi) = 34 translation entries; parity locked.
+
+#### Test Count
+
+- **Backend:** 15 new tests in `core/tests/test_submissions_preview.py` (admin 200 / trainer 403 / unauth / top-level shape / `as_of` ISO-Z / limit default 10 / explicit honoured / cap at 50 / fallback on garbage / 3 filter dimensions / combo narrowing / garbage silent-ignored / per-row required keys + reviewer_scores length-3 + score/agreed types + 200-char truncation invariant + created_at ISO-Z + status enum, all bundled into one comprehensive per-row contract test). Sibling tests (`test_dashboard_snapshot.py`, `test_quality_alerts.py`, `test_wa_broadcast.py`, etc.) untouched — zero regression risk.
+- **Frontend:** 17 jest tests in 1 file (`SubmissionsPreviewDrawer.test.tsx`) — 15 drawer behaviours + 2 ReviewerScoreBadges unit tests. Will run in CI — host has no `web/node_modules`, matching prior Step 4.2-* deliveries.
+
+#### Phase 1 vs Phase 2 mock note
+
+`_get_mock_submissions_preview()` in `views_submissions_preview.py` is the
+single call site that needs to swap for the real DB query. The function
+returns a list of dicts whose exact shape is asserted by 20 backend tests
++ shape-matched by the frontend `SubmissionPreview` type. When the
+submissions schema lands in Phase 2 / Step 8, the swap is:
+
+```python
+def _get_real_submissions_preview(limit, filters):
+    qs = Submission.objects.select_related('trainer').order_by('-created_at')
+    # apply filters …
+    return [_serialize(row) for row in qs[:limit]]
+```
+
+— no API change, no migration, no frontend change.
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Founder ko quality / fraud spot-check karne ke liye koi ek-click view nahi tha. Recent submissions me konsa trainer kya answer de raha hai, reviewers usse agree kar rahe hain ya nahi — yeh dekhne ke liye SQL maarna padta tha ya alag-alag admin pages khangalne padte the. Random sampling karne ka koi tareeka nahi tha, jo fraud detection ke liye sab se efficient hota hai.
+- Usse kya ho rha tha: Spot-check skip ho jaata tha. Bot-trainer, copy-paste answers, reviewers ki sleepy approvals — yeh sab tabhi pakde jaate jab koi specific complaint aati. Proactive sweep nahi hoti thi. Founder ko har baar custom query likhni padti ya support team se data nikalwana padta tha — ek hafte ka delay easily.
+- Ab fix ke baad kya hoga: Admin dashboard ke top-right me `हाल के जमा कार्य` button → click karte hi right side se drawer slide-in hoga. 10 recent submissions me har card pe: task ka image / text snippet (left), trainer ka naam + role + answer ka JSON / text snippet, aur sab se important — 3 dots jo bataate hain ki 3 reviewers me se kitne ne agree kiya. 3 green dots = clean, 2 green + 1 red = minor noise, 0 green = sab disagreed (red flag). Status pill bhi colour-coded — green approved / red rejected / amber under review. Drawer ke header me status filter dropdown se sirf "rejected" ya sirf "under_review" submissions dekh sakte hain. 30 second me 10 submissions scan ho jaati hain — agar koi suspicious lage to row se trainer ID + project ID note karke deeper investigation. Backend `GET /api/v1/admin/submissions/preview` admin-only (trainer 403), limit cap 50, status/project/trainer filters sab silent-ignore on typo so UI never breaks. Phase 1 me mock data (24 entries with every consensus pattern represented), Phase 2 me ek function swap → real DB query — koi API ya frontend change nahi chahiye. 15 backend + 17 frontend tests pass; sibling tests me zero regression.
+
+---
+
+### Step 4.2-10 Daily Founder Email
+
+Cron-fired bilingual summary email so the founder doesn't need to open
+the dashboard every morning. Hits the inbox at 08:00 IST with
+yesterday's submissions, revenue, payouts, top 3 trainers, quality
+alerts, and audit-log signals. Phase 1 ships **mock KPI numbers** —
+quality alert + audit log signals are already real because their
+tables exist (Steps 4.2-8 and 4.2-4). The Phase 2 swap (real
+submissions / payouts aggregation in `build_daily_summary`) is a
+function-body change, not a public-surface change.
+
+#### Files Created
+
+| File | Purpose |
+| --- | --- |
+| `label_studio/core/services/daily_report_email.py` (new) | `build_daily_summary(date)` returns a 13-key dict (submissions, revenue, payouts, top-3 trainers, quality + audit signals). Mock KPIs for Phase 1; quality alert + audit log counts are real. `render_email_html(summary)` produces a brand-Indigo header + 2×2 KPI tile grid (Submissions / Revenue / Active trainers / Critical alerts) + top-3 trainers table + bilingual security/quality strip + "View full dashboard" CTA → `/admin/dashboard`. `render_email_text(summary)` plain-text fallback (better deliverability + screen-reader safe). `send_daily_report(recipient, summary, dry_run=False)` wraps `EmailMultiAlternatives` over whatever `settings.EMAIL_BACKEND` resolves to; dummy backend returns `mode='mock'` so cron smoke tests don't blast inboxes. Defensive `_assert_no_founder_personal_number()` mirrors the WA broadcast guard — runs over HTML, plain-text, subject, and recipient before any send. INR amounts formatted with the lakh/crore grouping (`12,34,567` not `1,234,567`). |
+| `label_studio/core/management/commands/send_daily_report.py` (new) | Django management command. `python manage.py send_daily_report --recipient EMAIL --date YYYY-MM-DD --dry-run`. Defaults: recipient → `settings.TRAINPLEX_FOUNDER_EMAIL` (env-driven); date → yesterday in server TZ. Friendly `CommandError` on bad date format or missing recipient (no recipient AND no env → refuse to send). |
+| `label_studio/core/cron/__init__.py` (new) | Package marker for cron-job documentation modules. |
+| `label_studio/core/cron/daily_report.py` (new) | **Documentation-only** module describing the 08:00 IST cron registration. Three recipes in the docstring: (A) systemd timer + service file with `OnCalendar=*-*-* 08:00:00 Asia/Kolkata`; (B) classic crontab `0 8 * * *` with TZ env or `30 2 * * *` UTC equivalent; (C) `django-q` `Schedule.objects.update_or_create(...)` shape for Phase 2 in-process registration. Exposes a `run(recipient_email=None)` entry-point so the Phase 2 worker can call this module directly instead of shelling out to `manage.py`. Production cron registration itself is a founder-env task — TODO marked. |
+| `label_studio/core/tests/test_daily_report.py` (new) | 37 backend tests: 9 builder (required keys, default-yesterday date, explicit date string + date obj, top-3 cap, int-only amounts, mock flag, bad-date-type, ISO Z generated_at), 12 rendering (Indigo brand color present, Saffron/Critical accent present, all 4 KPI tile labels, all 3 top-trainer names, "View full dashboard" CTA + `/admin/dashboard` path, Devanagari text — 3 phrases, report date appears, plain-text fallback non-empty + Hindi survives, empty top-trainers graceful, lakh-grouping INR formatter, partial-summary defensive render, non-dict reject), 5 founder-mobile guard (with-CC string raises, no-CC string raises, dict-buried raises, clean payload passes, rendered HTML + plain text scrubbed), 5 send wrapper (dummy backend → mode=mock, locmem backend → outbox=1 with text/html alt, dry-run skips outbox, no recipient + empty env raises, explicit recipient overrides settings), 5 management command (dry-run no outbox, --recipient flag overrides default, bad --date format → CommandError, missing recipient + empty env → CommandError, --date 2026-05-10 propagates into subject), 1 cron entry-point (`core.cron.daily_report.run()` returns send result + writes outbox). |
+
+#### Files Modified
+
+| File | Change |
+| --- | --- |
+| `label_studio/core/settings/base.py` | Added two TrainPlex Phase 1 Step 4.2-10 lines: `TRAINPLEX_FOUNDER_EMAIL` (env-driven, default `vk.vinodparihar1@gmail.com`) and `TRAINPLEX_DAILY_REPORT_HOUR_IST` (env-driven, default `8`). Placed under the existing `# TrainPlex Phase 1 Step 12` block so all TrainPlex env-driven settings cluster together. |
+| `docs/BUILD_LOG.md` | This section. |
+
+**Management command path:** `label_studio/core/management/commands/send_daily_report.py`
+→ invoke as `python manage.py send_daily_report [--recipient EMAIL] [--date YYYY-MM-DD] [--dry-run]`.
+
+**Cron registration instructions:** `label_studio/core/cron/daily_report.py` docstring — three recipes (systemd timer / crontab / django-q). Production registration is a founder-env task (Phase 2), marked TODO in that module.
+
+**Founder email source:** `settings.TRAINPLEX_FOUNDER_EMAIL`, sourced from the `TRAINPLEX_FOUNDER_EMAIL` env var at Django startup. Default fallback is `vk.vinodparihar1@gmail.com` so dev parity works for the management command's `--recipient` default. Production deploys MUST set the env var explicitly. **No founder email is hard-coded inside service or test code.**
+
+**Frontend deferral note:** No frontend ships in this step. The plan's "Email me daily" toggle in admin user settings is explicitly deferred to Step 13 (user profile page). For now Phase 1 sends to the founder address only.
+
+#### Test Count
+
+- **Backend:** `pytest core/tests/test_daily_report.py -v` → **37 passed** in 22.22s. Sibling tests (`test_wa_broadcast.py`, `test_dashboard_snapshot.py`, `test_quality_alerts.py`) → **62 passed** in 43.10s (zero regression).
+- **Frontend:** N/A this step.
+
+#### Phase 1 vs Phase 2 wiring note
+
+* **Mock** in Phase 1: `submissions_count`, `active_trainers_count`, `revenue_inr`, `payout_released_inr`, `top_3_trainers`. These read from constants in `build_daily_summary`; the public dict shape is locked so Phase 2 (Step 8) swaps the constants for real aggregation queries without changing renderer / cron / tests.
+* **Real already** in Phase 1: `quality_alerts_open_count` + `quality_alerts_critical_count` (from `core.models_alerts.QualityAlert`) and `audit_log_events_count` + `audit_log_login_fail_count` + `audit_log_delete_count` (from `users.models.AuditLog`). On a fresh DB these report zero; with seeded rows they report real counts.
+
+#### Container note
+
+Same pattern as prior Step 4.2-* deliveries: copied `core/services/daily_report_email.py`, `core/management/commands/send_daily_report.py`, `core/cron/__init__.py`, `core/cron/daily_report.py`, `core/tests/test_daily_report.py`, and the updated `core/settings/base.py` into `trainplex-studio-dev:/label-studio/label_studio/...` via `docker cp`. Ran tests via `/label-studio/.venv/bin/python -m pytest`.
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: Founder ko har subah dashboard kholna padta tha yeh dekhne ke liye ki kal kya hua — kitne submissions, kitna revenue, kis state ke trainer ne sabse zyada kamaaya, koi critical quality alert pending hai ya nahi, security ke koi failed-login ya delete events to nahi the. Sab manually scroll karna padta tha, aur bahar travel pe ho to dashboard kholna mushkil bhi tha.
+- Usse kya ho rha tha: Founder ka subah ka first action repetitive aur slow tha. Critical alerts (jaise critical quality flag ya unusual delete event) kabhi-kabhi din me der se dikh paate the. Trainer leaderboard manually check karna padta — top performers ko same-day shabashi WhatsApp nahi ja paati thi.
+- Ab fix ke baad kya hoga: 08:00 IST par cron `python manage.py send_daily_report` chala dega; founder ke inbox me ek bilingual (English + Hindi) email aa jaayegi — Indigo header band ke neeche 4-tile KPI grid (Submissions / Revenue / Active trainers / Critical alerts), uske niche top-3 trainers ki table (name / state / earnings ₹ formatted in lakh-crore grouping), security strip (audit events + login failures + delete events), aur `View full dashboard` CTA jo seedha `/admin/dashboard` open kare. Recipient `TRAINPLEX_FOUNDER_EMAIL` env var se aata hai (default `vk.vinodparihar1@gmail.com`), code me hard-code nahi hai. Cron registration ke 3 recipes (systemd timer / crontab / django-q) `core/cron/daily_report.py` me documented — production registration Phase 2 founder-env work hai. Founder personal mobile guard har email body / subject / recipient pe enforce hota hai — same WA broadcast pattern. KPIs abhi mock hain, lekin quality alert + audit log signals already real hain. 37 backend tests pass; sibling tests me zero regression.
+
+---
+
 ## Log Update Rules
 
 - Every new file → `Files Created` table

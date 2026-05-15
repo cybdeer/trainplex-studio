@@ -135,6 +135,13 @@ export const API_CONFIG = {
     adminQualityAlertsStats: "GET:/v1/admin/quality-alerts/stats",
     adminQualityAlertReview: "POST:/v1/admin/quality-alerts/:alert_id/review",
 
+    // TrainPlex — Phase 1 Step 4.2-9: Admin Submissions Preview drawer.
+    // Recent N submissions (default 10, cap 50) with task / answer / 3-reviewer
+    // score preview so admin can spot-check fraud / quality at random.
+    // Filters: project_id, trainer_id, status. Mock data in Phase 1; real DB
+    // wiring lands in Phase 2 / Step 8.
+    adminSubmissionsPreview: "GET:/v1/admin/submissions/preview",
+
     // TrainPlex — Phase 1 Step 12.4: TOTP 2FA endpoints (admin + qa_lead only).
     twoFactorEnrollStart: "POST:/v1/users/me/2fa/enroll/start",
     twoFactorEnrollConfirm: "POST:/v1/users/me/2fa/enroll/confirm",

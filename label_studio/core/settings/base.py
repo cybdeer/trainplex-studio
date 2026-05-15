@@ -271,6 +271,23 @@ MIDDLEWARE = [
 # TrainPlex Phase 1 Step 12 — target view for ``RatelimitMiddleware``.
 RATELIMIT_VIEW = 'users.views.ratelimit_view'
 
+# TrainPlex Phase 1 Step 4.2-10 — daily founder email cron.
+# Env-driven so no founder email is ever hard-coded in source. Recipient
+# defaults to vk.vinodparihar1@gmail.com if env unset (founder rule lives
+# in MEMORY.md, hard-coding the value here keeps dev parity for the
+# management command's --recipient default; production deploys MUST set
+# the env var explicitly).
+TRAINPLEX_FOUNDER_EMAIL = os.environ.get(
+    'TRAINPLEX_FOUNDER_EMAIL',
+    'vk.vinodparihar1@gmail.com',
+)
+# Hour (24h, IST) at which the daily report cron should fire. Read by
+# the cron-registration docs in `core/cron/daily_report.py`; the actual
+# schedule lives in systemd timer / crontab, not in Django.
+TRAINPLEX_DAILY_REPORT_HOUR_IST = int(
+    os.environ.get('TRAINPLEX_DAILY_REPORT_HOUR_IST', '8')
+)
+
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_AUTHENTICATION_CLASSES': (

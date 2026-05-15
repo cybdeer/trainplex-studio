@@ -30,10 +30,12 @@
 import { Button, RoleGate, Spinner } from "@humansignal/ui";
 import { useTranslation } from "@humansignal/app-common";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@humansignal/core/providers/AuthProvider";
 import { useAPI } from "../../../providers/ApiProvider";
 import type { Page } from "../../types/Page";
+import { SubmissionsPreviewDrawer } from "../SubmissionsPreview";
 import { MetricCard } from "./MetricCard";
 import { TopTrainersTable } from "./TopTrainersTable";
 import type { DashboardSnapshot } from "./types";
@@ -74,9 +76,11 @@ function DashboardSkeleton({ loadingLabel }: { loadingLabel: string }) {
 
 interface DashboardBodyProps {
   data: DashboardSnapshot;
+  /** Parent toggles the submissions-preview drawer. */
+  onOpenSubmissionsPreview: () => void;
 }
 
-function DashboardBody({ data }: DashboardBodyProps) {
+function DashboardBody({ data, onOpenSubmissionsPreview }: DashboardBodyProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language || "en";
   const totalAlerts =
@@ -88,9 +92,32 @@ function DashboardBody({ data }: DashboardBodyProps) {
     <>
       <header className={styles.dashboardHeader}>
         <h2 className={styles.dashboardTitle}>{t("admin.dashboard.today_snapshot")}</h2>
-        <span className={styles.asOf} data-testid="as-of">
-          {new Date(data.as_of).toLocaleString(locale === "hi" ? "hi-IN" : "en-IN")}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* TrainPlex Phase 1 Step 4.2-9 — Recent Submissions trigger.
+              Opens a slide-in drawer with the most-recent 10 submissions so
+              admin can spot-check fraud / quality at random. The drawer is
+              admin-gated both client- and server-side. */}
+          <button
+            type="button"
+            onClick={onOpenSubmissionsPreview}
+            data-testid="dashboard-open-submissions-preview"
+            style={{
+              padding: "6px 12px",
+              background: "#FFFFFF",
+              color: "#121242",
+              border: "1px solid #FFFFFF",
+              borderRadius: "2px",
+              fontSize: "0.8125rem",
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            {t("admin.submissions.open_drawer")}
+          </button>
+          <span className={styles.asOf} data-testid="as-of">
+            {new Date(data.as_of).toLocaleString(locale === "hi" ? "hi-IN" : "en-IN")}
+          </span>
+        </div>
       </header>
 
       {/* 4-tile KPI row */}
@@ -175,6 +202,10 @@ export const DashboardWidget: Page = () => {
   const api = useAPI();
   const { t } = useTranslation();
   const { user } = useAuth();
+  // Step 4.2-9 — submissions-preview drawer is owned by the widget so it
+  // can be opened from anywhere on the dashboard (currently the header's
+  // "Recent Submissions" button).
+  const [submissionsPreviewOpen, setSubmissionsPreviewOpen] = useState(false);
 
   const { data, isFetching, isError } = useQuery<DashboardSnapshot>({
     queryKey: QUERY_KEY,
@@ -211,8 +242,17 @@ export const DashboardWidget: Page = () => {
             {t("admin.dashboard.snapshot_failed")}
           </div>
         ) : (
-          <DashboardBody data={data} />
+          <DashboardBody
+            data={data}
+            onOpenSubmissionsPreview={() => setSubmissionsPreviewOpen(true)}
+          />
         )}
+        {/* Step 4.2-9 — submissions preview drawer. Self-contained; only
+            renders when `open`. Admin-gated client + server side. */}
+        <SubmissionsPreviewDrawer
+          open={submissionsPreviewOpen}
+          onClose={() => setSubmissionsPreviewOpen(false)}
+        />
       </RoleGate>
     </main>
   );
