@@ -537,6 +537,119 @@ Backend serializer change is hot-reloadable inside `trainplex-studio-dev` (Djang
 
 ---
 
+### Step 1.4-C Hindi UI integration (Week 3 continued)
+
+Wires the existing `@humansignal/app-common` i18n framework (en + hi, 32 keys) into the running labelstudio app so the HindiToggle in the top bar actually flips visible UI between English and Hindi, and `<html lang>` stays in sync with the active language so the `[lang="hi"]` CSS in `tokens.trainplex.css` (Devanagari line-height) kicks in automatically. First batch of t() wrapping demonstrates the pattern on 4 high-traffic components (Home / Projects / People / DangerZone) — full sweep deferred to Week 4 per task scope.
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `web/libs/app-common/src/i18n/__tests__/integration.test.ts` | 6 Jest tests covering en-default, hi switch + en round-trip, English interpolation (`trainer.task_locked_tier`), the newly-added `admin.add_members` + `home.welcome` keys in both locales, and a runtime parity check that `getResourceBundle('en','common')` and `getResourceBundle('hi','common')` have identical key sets. Complements the existing `config.test.ts` (which already covers init + Hindi switch) — no existing test file touched. |
+
+#### Files Modified
+
+| File | Change |
+|------|--------|
+| `web/apps/labelstudio/src/main.tsx` | Side-effect import `@humansignal/app-common/i18n/config` to trigger `i18n.init()` BEFORE `./app/App` (the React entry). Added `i18n.on('languageChanged', ...)` that mirrors the active language onto `document.documentElement.lang`, plus an initial-sync line so the very first render already has the right `<html lang>` (matters because `LanguageDetector` resolves synchronously during init from `localStorage.tp_lang` / cookie). |
+| `web/apps/labelstudio/src/components/Menubar/Menubar.jsx` | Imported `HindiToggle` from `@humansignal/ui` (already re-exported there) and rendered it in the top bar inside a `<div className="ml-2 mr-2">` wrapper, positioned right after `<ThemeToggle />` and right before the user-account `Dropdown.Trigger` — so the language switch sits next to the user menu, matching task spec. |
+| `web/apps/labelstudio/src/pages/Home/HomePage.tsx` | `useTranslation()` wired into `HomePage`. Wrapped 7 user-facing strings: `home.welcome`, `home.lets_get_started`, `home.recent_projects`, `home.view_all`, `home.create_first_project`, `admin.create_project` (both the empty-state button label + its `aria-label`), and `home.resources` (Resources card title). The static `actions` array switched from a hardcoded `title: "Create Project"` shape to `titleKey: "admin.create_project"` so the label resolves at render-time (and re-renders when the user flips language). |
+| `web/apps/labelstudio/src/pages/Projects/Projects.jsx` | `useTranslation()` wired into `ProjectsPage.context` (the function component rendered into the Menubar's context slot via `RoutesProvider`). Wrapped the "Create" project button label + its `aria-label` using `admin.create_project`. |
+| `web/apps/labelstudio/src/pages/Organization/PeoplePage/PeoplePage.jsx` | `useTranslation()` wired into `PeoplePage`. Wrapped the "Add Members" button label + its `aria-label` using the new `admin.add_members` key. |
+| `web/apps/labelstudio/src/pages/Settings/DangerZone.jsx` | `useTranslation()` wired into `DangerZone`. Wrapped the modal-footer "Cancel" button using `common.cancel`. The dynamic destructive labels ("Delete Project", "Reset Cache", "Drop All Tabs") deliberately left in English for now — they're admin-only and the destructive context benefits from unambiguous English copy until Week 4 reviews the Hindi phrasing with a native speaker. |
+| `web/libs/app-common/src/locales/en/common.json` | Added 8 new keys (parity-matched with hi.json — see locale parity check below). New: `admin.add_members`, `admin.invite_members`, `home.welcome`, `home.lets_get_started`, `home.recent_projects`, `home.view_all`, `home.create_first_project`, `home.resources`. Total keys: 32 → 40. |
+| `web/libs/app-common/src/locales/hi/common.json` | Same 8 new keys with Devanagari translations: `सदस्य जोड़ें`, `सदस्य आमंत्रित करें`, `स्वागत है`, `चलिए शुरू करते हैं।`, `हाल के प्रोजेक्ट`, `सभी देखें`, `अपना पहला प्रोजेक्ट बनाएँ`, `संसाधन`. Total keys: 32 → 40. |
+
+#### New i18n keys added (8 keys × 2 locales = 16 entries)
+
+| Key | English | Hindi |
+|-----|---------|-------|
+| `admin.add_members` | Add Members | सदस्य जोड़ें |
+| `admin.invite_members` | Invite Members | सदस्य आमंत्रित करें |
+| `home.welcome` | Welcome | स्वागत है |
+| `home.lets_get_started` | Let's get you started. | चलिए शुरू करते हैं। |
+| `home.recent_projects` | Recent Projects | हाल के प्रोजेक्ट |
+| `home.view_all` | View All | सभी देखें |
+| `home.create_first_project` | Create your first project | अपना पहला प्रोजेक्ट बनाएँ |
+| `home.resources` | Resources | संसाधन |
+
+#### Strings wrapped with t()
+
+13 strings across 4 components:
+
+| Component | Strings wrapped | Keys used |
+|-----------|----------------|-----------|
+| `HomePage.tsx` | 9 (welcome, sub-heading, 2× action button label, recent-projects header, view-all link, empty-state heading, 2× create-project button — label + aria-label, resources card title) | `home.welcome`, `home.lets_get_started`, `admin.create_project`, `admin.invite_members`, `home.recent_projects`, `home.view_all`, `home.create_first_project`, `home.resources` |
+| `Projects.jsx` | 2 (button label + aria-label on the top-bar Create) | `admin.create_project` |
+| `PeoplePage.jsx` | 2 (button label + aria-label on Add Members) | `admin.add_members` |
+| `DangerZone.jsx` | 1 (modal-footer Cancel button) | `common.cancel` |
+
+#### HindiToggle location in header
+
+Rendered inside `Menubar.jsx`, in the top-right cluster, between `<ThemeToggle />` (conditional on `FF_THEME_TOGGLE`) and the user-account `Dropdown.Trigger`. Wrapped in `<div className="ml-2 mr-2">` for spacing. The toggle reads `i18n.language`, displays "हि" when active language is English (suggesting the switch target) and "EN" when active is Hindi, and persists the choice to `localStorage.tp_lang` + cookie via the existing `LanguageDetector` config.
+
+#### i18n init wiring
+
+Order in `main.tsx`:
+1. `registerAnalytics()` — must run before anything else (existing).
+2. `import "@humansignal/app-common/i18n/config"` — side-effect import; resolves the persisted language from `localStorage.tp_lang` → cookie → `navigator.language` (in that order) and resolves `i18n.t()` synchronously before any component mounts.
+3. `i18n.on("languageChanged", ...)` + initial `document.documentElement.lang = i18n.language` — keep `<html lang>` reactive so the `[lang="hi"]` rules in `tokens.trainplex.css` apply automatically.
+4. `import "./app/App"` — React root mount.
+
+This means: on first page load, if the user previously selected Hindi, `<html lang="hi">` is set BEFORE the React tree paints, so the Devanagari CSS rules apply in the first frame (no flash of wrong-language line-height).
+
+#### Locale parity check
+
+```
+$ node -e "..." # see task spec for the one-liner
+en: 40  hi: 40  match: true
+```
+
+Run after every key edit to confirm en.json and hi.json have identical key sets.
+
+#### Skipped — deliberately
+
+| Target | Why skipped |
+|--------|-------------|
+| **Auth pages** (login, signup, password reset) | These are server-rendered Django templates (`label_studio/users/templates/`), not React — they need a separate Django-side i18n pass (django.po files + `{% trans %}` tags) which is a Week 4 task. |
+| **`web/libs/editor/`** | Separately-compiled mobx-state-tree bundle, doesn't use the same `useAuth()` / hook pipeline. Same reason RoleGate isn't wired there yet. Deferred to Week 4. |
+| **Heidi tips copy** | Per task spec — upstream HumanSignal-specific copy is not translated. |
+| **DangerZone destructive button labels** ("Delete Project", "Reset Cache", "Drop All Tabs") | Admin-only, destructive. Want a native Hindi speaker to review the phrasing in Week 4 before shipping translations of irreversible actions; English copy is unambiguous in the meantime. |
+| **`Spinner` / loading text, "can't load projects" error** | Will be wrapped in the Week 4 full sweep alongside other error / empty state copy. |
+
+#### Tests
+
+- `web/libs/app-common/src/i18n/__tests__/integration.test.ts` — 6 tests added. Coverage: en default, hi → en round trip, English interpolation, new `admin.add_members` + `home.welcome` keys in both locales, runtime resource-bundle parity diff.
+- Existing `config.test.ts` untouched (per spec — "only add").
+- No other test files modified.
+
+#### How to verify
+
+```bash
+# Locale parity (fast, no rebuild needed):
+cd C:\TrainPlex\trainplex-studio
+node -e "const en=require('./web/libs/app-common/src/locales/en/common.json'); const hi=require('./web/libs/app-common/src/locales/hi/common.json'); function flat(o,p='',a=[]){Object.keys(o).forEach(k=>typeof o[k]==='object'?flat(o[k],p+k+'.',a):a.push(p+k));return a;} const e=flat(en).sort(),h=flat(hi).sort(); console.log('en:'+e.length,'hi:'+h.length,'match:'+(e.join()===h.join()));"
+# expected: en:40 hi:40 match:true
+
+# Jest (inside container after rebuild, or once node_modules is installed):
+yarn nx test app-common --testPathPattern=i18n
+
+# Manual UI smoke (after yarn build — founder approval required):
+# 1. Open the app — top-right shows the "हि" toggle button.
+# 2. Click it — entire visible UI (Home welcome, Create Project / Add Members buttons, Recent Projects header, Cancel in delete-confirmation modal) flips to Devanagari.
+# 3. Open DevTools → Elements → <html> — lang attribute now reads "hi".
+# 4. Refresh — language persists (localStorage.tp_lang === "hi").
+# 5. Click "EN" — flips back, lang attribute becomes "en", everything reverts.
+```
+
+#### 3-line Hindi recap (founder)
+
+- Kya bug tha: i18n framework, locale JSONs (en/hi), HindiToggle component sab existing the — par kuch bhi wire nahi tha. Toggle button kahin render nahi ho raha tha, `i18n.init()` kabhi call nahi hota tha, aur kisi component ne `t()` use nahi kiya tha — toh app abhi tak 100% English tha.
+- Usse kya ho rha tha: Phase 1 deliverable "Hindi-first UI" promise tooti — backend Hindi-capable, infra ready, par end-user ke screen pe English hi dikhta tha. Plus `[lang="hi"]` ke saath jo Devanagari line-height rules likhe the `tokens.trainplex.css` mein — wo bhi kabhi kick-in nahi karte the kyunki `<html lang>` hamesha "en" rehta tha.
+- Ab fix ke baad kya hoga: Rebuild ke baad — top bar mein "हि" / "EN" toggle button dikhega, click karte hi visible UI (Home welcome / Create Project / Add Members / Cancel modal / Recent Projects) Devanagari mein flip ho jayega. `<html lang>` reactive — Hindi mein switch karte hi Devanagari line-height auto-apply. Choice browser mein persist (localStorage `tp_lang`). 13 strings wrap kiye 4 components mein as proof — full app sweep Week 4 mein.
+
+---
+
 ## Log Update Rules
 
 - Every new file → `Files Created` table

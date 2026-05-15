@@ -37,8 +37,18 @@
   "admin": {
     "dashboard_title": "Admin Dashboard",
     "create_project": "Create Project",
+    "add_members": "Add Members",
+    "invite_members": "Invite Members",
     "trainers": "Trainers",
     "submissions": "Submissions",
     "reports": "Reports"
+  },
+  "home": {
+    "welcome": "Welcome",
+    "lets_get_started": "Let's get you started.",
+    "recent_projects": "Recent Projects",
+    "view_all": "View All",
+    "create_first_project": "Create your first project",
+    "resources": "Resources"
   }
 }

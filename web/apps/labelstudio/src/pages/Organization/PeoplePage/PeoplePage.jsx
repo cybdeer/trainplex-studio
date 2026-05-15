@@ -1,5 +1,6 @@
 import { Button, RoleGate } from "@humansignal/ui";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useTranslation } from "@humansignal/app-common";
 import { useUpdatePageTitle } from "@humansignal/core";
 import { useAuth } from "@humansignal/core/providers/AuthProvider";
 import { HeidiTips } from "../../../components/HeidiTips/HeidiTips";
@@ -20,6 +21,7 @@ export const PeoplePage = () => {
   const apiSettingsModal = useRef();
   const toast = useToast();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [selectedUser, setSelectedUser] = useState(null);
   const [invitationOpen, setInvitationOpen] = useState(false);
 
@@ -72,13 +74,14 @@ export const PeoplePage = () => {
               </Button>
             )}
             {/* TODO: Step 1.4-B — Inviting new members to the org is admin-only. */}
+            {/* Step 1.4-C — button label translated via i18n (admin.add_members). */}
             <RoleGate allow={["admin"]} userRole={user?.role}>
               <Button
                 leading={<IconPlus className="!h-4" />}
                 onClick={() => setInvitationOpen(true)}
-                aria-label="Invite new member"
+                aria-label={t("admin.add_members")}
               >
-                Add Members
+                {t("admin.add_members")}
               </Button>
             </RoleGate>
           </Space>

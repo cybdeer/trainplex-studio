@@ -37,8 +37,18 @@
   "admin": {
     "dashboard_title": "एडमिन डैशबोर्ड",
     "create_project": "नया प्रोजेक्ट",
+    "add_members": "सदस्य जोड़ें",
+    "invite_members": "सदस्य आमंत्रित करें",
     "trainers": "ट्रेनर्स",
     "submissions": "जमा कार्य",
     "reports": "रिपोर्ट"
+  },
+  "home": {
+    "welcome": "स्वागत है",
+    "lets_get_started": "चलिए शुरू करते हैं।",
+    "recent_projects": "हाल के प्रोजेक्ट",
+    "view_all": "सभी देखें",
+    "create_first_project": "अपना पहला प्रोजेक्ट बनाएँ",
+    "resources": "संसाधन"
   }
 }

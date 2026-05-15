@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useParams as useRouterParams } from "react-router";
 import { Redirect } from "react-router-dom";
 import { Button, RoleGate } from "@humansignal/ui";
+import { useTranslation } from "@humansignal/app-common";
 import { Oneof } from "../../components/Oneof/Oneof";
 import { Spinner } from "../../components/Spinner/Spinner";
 import { ApiContext } from "../../providers/ApiProvider";
@@ -163,12 +164,14 @@ ProjectsPage.routes = ({ store }) => [
 ];
 ProjectsPage.context = ({ openModal, showButton }) => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   if (!showButton) return null;
   // TODO: Step 1.4-B — Creating new projects is admin-only.
+  // Step 1.4-C — button label translated via i18n (admin.create_project).
   return (
     <RoleGate allow={["admin"]} userRole={user?.role}>
-      <Button onClick={openModal} size="small" aria-label="Create new project">
-        Create
+      <Button onClick={openModal} size="small" aria-label={t("admin.create_project")}>
+        {t("admin.create_project")}
       </Button>
     </RoleGate>
   );

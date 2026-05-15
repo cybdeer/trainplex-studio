@@ -14,7 +14,7 @@ import {
   IconSlack,
 } from "@humansignal/icons";
 import { LSLogo } from "../../assets/images";
-import { Button, Userpic, ThemeToggle } from "@humansignal/ui";
+import { Button, Userpic, ThemeToggle, HindiToggle } from "@humansignal/ui";
 import { useConfig } from "../../providers/ConfigProvider";
 import { useContextComponent, useFixedLocation } from "../../providers/RoutesProvider";
 import { useAuth } from "@humansignal/core/providers/AuthProvider";
@@ -175,6 +175,11 @@ export const Menubar = ({ enabled, defaultOpened, defaultPinned, children, onSid
           </div>
 
           {ff.isActive(ff.FF_THEME_TOGGLE) && <ThemeToggle />}
+
+          {/* TrainPlex Step 1.4-C — Hindi language toggle, sits next to the user account menu. */}
+          <div className="ml-2 mr-2">
+            <HindiToggle />
+          </div>
 
           <Dropdown.Trigger
             ref={useMenuRef}

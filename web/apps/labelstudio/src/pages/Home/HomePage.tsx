@@ -1,5 +1,6 @@
 import { IconExternal, IconFolderAdd, IconHumanSignal, IconUserAdd, IconFolderOpen } from "@humansignal/icons";
 import { Button, SimpleCard, Spinner, Tooltip, Typography } from "@humansignal/ui";
+import { useTranslation } from "@humansignal/app-common";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -43,14 +44,16 @@ const resources = [
   },
 ];
 
+// Step 1.4-C — actions reference i18n keys instead of hardcoded strings.
+// `titleKey` is resolved through `t(...)` at render-time so language switches re-render properly.
 const actions = [
   {
-    title: "Create Project",
+    titleKey: "admin.create_project",
     icon: IconFolderAdd,
     type: "createProject",
   },
   {
-    title: "Invite Members",
+    titleKey: "admin.invite_members",
     icon: IconUserAdd,
     type: "inviteMembers",
   },
@@ -61,6 +64,7 @@ type Action = (typeof actions)[number]["type"];
 export const HomePage: Page = () => {
   const api = useAPI();
   const location = useLocation();
+  const { t } = useTranslation();
   const [modalIsOpen, setModalIsOpen] = useAtom(creationDialogOpen);
   const [invitationIsOpen, setInvitationIsOpen] = useAtom(invitationOpen);
   const setLocationKey = useSetAtom(locationKeyAtom);
@@ -136,24 +140,25 @@ export const HomePage: Page = () => {
         <section className="flex flex-col gap-6">
           <div className="flex flex-col gap-1">
             <Typography variant="headline" size="small">
-              Welcome 👋
+              {t("home.welcome")} 👋
             </Typography>
             <Typography size="small" className="text-neutral-content-subtler">
-              Let's get you started.
+              {t("home.lets_get_started")}
             </Typography>
           </div>
           <div className="flex justify-start gap-4">
             {actions.map((action) => {
+              const label = t(action.titleKey);
               return (
                 <Button
-                  key={action.title}
+                  key={action.titleKey}
                   look="outlined"
                   align="center"
                   className="flex-grow-0 text-16/24 gap-2 text-primary-content text-left min-w-[250px] [&_svg]:w-6 [&_svg]:h-6 pl-2"
                   onClick={handleActions(action.type)}
                   leading={<action.icon />}
                 >
-                  {action.title}
+                  {label}
                 </Button>
               );
             })}
@@ -163,9 +168,9 @@ export const HomePage: Page = () => {
             title={
               data && data?.count > 0 ? (
                 <>
-                  Recent Projects{" "}
+                  {t("home.recent_projects")}{" "}
                   <a href="/projects" className="text-lg font-normal hover:underline">
-                    View All
+                    {t("home.view_all")}
                   </a>
                 </>
               ) : null
@@ -187,13 +192,17 @@ export const HomePage: Page = () => {
                   <IconFolderOpen />
                 </div>
                 <Typography variant="headline" size="small">
-                  Create your first project
+                  {t("home.create_first_project")}
                 </Typography>
                 <Typography size="small" className="text-neutral-content-subtler">
                   Import your data and set up the labeling interface to start annotating
                 </Typography>
-                <Button className="mt-4" onClick={() => setModalIsOpen(true)} aria-label="Create new project">
-                  Create Project
+                <Button
+                  className="mt-4"
+                  onClick={() => setModalIsOpen(true)}
+                  aria-label={t("admin.create_project")}
+                >
+                  {t("admin.create_project")}
                 </Button>
               </div>
             ) : isSuccess && data && sortedProjects.length > 0 ? (
@@ -207,7 +216,7 @@ export const HomePage: Page = () => {
         </section>
         <section className="flex flex-col gap-6">
           <HeidiTips collection="projectSettings" />
-          <SimpleCard title="Resources" description="Learn, explore and get help" data-testid="resources-card">
+          <SimpleCard title={t("home.resources")} description="Learn, explore and get help" data-testid="resources-card">
             <ul>
               {resources.map((link) => {
                 return (

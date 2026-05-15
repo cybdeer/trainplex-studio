@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useHistory } from "react-router";
 import { Button, RoleGate, Typography, useToast } from "@humansignal/ui";
+import { useTranslation } from "@humansignal/app-common";
 import { useUpdatePageTitle, createTitleFromSegments } from "@humansignal/core";
 import { useAuth } from "@humansignal/core/providers/AuthProvider";
 import { Label } from "../../components/Form";
@@ -19,6 +20,7 @@ export const DangerZone = () => {
   const history = useHistory();
   const toast = useToast();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [processing, setProcessing] = useState(null);
 
   useUpdatePageTitle(createTitleFromSegments([project?.title, "Danger Zone"]));
@@ -63,7 +65,7 @@ export const DangerZone = () => {
               onClick={() => ctrl?.hide()}
               data-testid="danger-zone-cancel-button"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant="negative"
