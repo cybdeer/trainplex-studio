@@ -77,12 +77,18 @@ Pushed to `origin/develop` (cybdeer/trainplex-studio).
 
 | Field | Value |
 |-------|-------|
-| Email | `ceo@cybdeer.com` |
+| Email | `vk.vinodparihar1@gmail.com` |
 | Password | `TrainPlexDev2026!` |
-| User ID | 1 |
+| User ID | 2 |
+| Name | Vinod Parihar |
 | Is superuser | True |
 | Is staff | True |
-| Organization | TrainPlex Dev (id=1) |
+| Organization | TrainPlex Dev (id=1, owner: vk.vinodparihar1@gmail.com) |
+
+**History:**
+- 15:50 IST — `ceo@cybdeer.com` (id=1) created as initial admin (tester account, mistake)
+- 16:25 IST — Founder corrected: real admin = `vk.vinodparihar1@gmail.com`. Created Vinod (id=2), transferred org ownership, deleted ceo (id=1). Total users now: 1 (Vinod only).
+- Verified: Vinod login HTTP 302 + projects page HTTP 200. Old ceo login redirects to login (no auth) — confirmed deleted.
 
 ⚠️ **This password is for local dev container only.** Production will use unique strong passwords via Step 12 (Security Baseline). This file in `docs/` may be gitignored when production credentials get added.
 
