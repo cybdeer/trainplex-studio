@@ -99,7 +99,10 @@ class TestHealthShallow(TestCase):
         """Defence-in-depth: even on failure, response body must not leak
         the founder's personal mobile (memory rule)."""
         resp = self.client.get(self.URL)
-        self.assertNotIn('8764001234', resp.content.decode('utf-8'))
+        from core.services.founder_guard import get_guard_digits_no_cc
+        guard_digits = get_guard_digits_no_cc()
+        if guard_digits:
+            self.assertNotIn(guard_digits, resp.content.decode('utf-8'))
 
 
 # ---------------------------------------------------------------------------

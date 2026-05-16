@@ -56,10 +56,13 @@ User = get_user_model()
 
 
 # Founder personal mobile per MEMORY.md → feedback_no_founder_personal_number.
-_FOUNDER_PERSONAL_MOBILE_VARIANTS = (
-    '+918764001234', '918764001234', '8764001234', '+91 8764001234',
-    '+91-8764001234', '+91 87640 01234',
+# The digits live in ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` (seeded by the test
+# fixture in ``label_studio/conftest.py``); the variant list is derived
+# from that single source so no literal of the number lives in this file.
+from core.services.founder_guard_test_helpers import (  # noqa: E402
+    founder_mobile_variants as _founder_mobile_variants,
 )
+_FOUNDER_PERSONAL_MOBILE_VARIANTS = _founder_mobile_variants()
 
 
 def _make_user(role: str, suffix: str):

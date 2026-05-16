@@ -49,12 +49,27 @@ User = get_user_model()
 
 
 # Founder personal mobile per MEMORY.md → feedback_no_founder_personal_number.
-# We assert this string never appears in any outbound payout metadata.
-_FOUNDER_PERSONAL_MOBILE = '+918764001234'
-_FOUNDER_PERSONAL_MOBILE_VARIANTS = (
-    '+918764001234', '918764001234', '8764001234', '+91 8764001234',
-    '+91-8764001234', '+91 87640 01234',
+# We assert this string never appears in any outbound payout metadata. The
+# actual digits live only in the ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var
+# (set by the ``founder_mobile_guard`` fixture in CI); both the bare
+# 10-digit form and the ``+91``-prefixed form, plus a handful of common
+# punctuation variants, are derived from that single source.
+from core.services.founder_guard_test_helpers import (  # noqa: E402
+    founder_mobile_variants as _founder_mobile_variants,
 )
+
+
+def _get_founder_mobile_variants() -> tuple:
+    return _founder_mobile_variants()
+
+
+def _get_founder_mobile_primary() -> str:
+    variants = _get_founder_mobile_variants()
+    return variants[0] if variants else ''
+
+
+_FOUNDER_PERSONAL_MOBILE_VARIANTS = _get_founder_mobile_variants()
+_FOUNDER_PERSONAL_MOBILE = _get_founder_mobile_primary()
 
 
 # ---------------------------------------------------------------------------

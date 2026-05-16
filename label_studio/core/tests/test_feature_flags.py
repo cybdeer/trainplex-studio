@@ -136,12 +136,18 @@ class TestSetFlag(TestCase):
             ff.set_flag('fflag_bad', rollout_pct=-1)
 
     def test_set_scrubs_founder_mobile(self):
+        from core.services.founder_guard import get_guard_digits_no_cc
+        guard_digits = get_guard_digits_no_cc()
+        # When the env var is unset (dev environment), the scrub becomes a
+        # no-op and there's nothing to assert — skip gracefully.
+        if not guard_digits:
+            self.skipTest('TRAINPLEX_FOUNDER_MOBILE_GUARD not configured')
         ff.set_flag(
             'fflag_scrub',
-            description='Contact founder at +91 8764001234 for details',
+            description=f'Contact founder at +91 {guard_digits} for details',
         )
         row = FeatureFlag.objects.get(name='fflag_scrub')
-        self.assertNotIn('8764001234', row.description)
+        self.assertNotIn(guard_digits, row.description)
         self.assertIn('[REDACTED-MOBILE]', row.description)
 
     def test_cache_invalidated_on_set(self):

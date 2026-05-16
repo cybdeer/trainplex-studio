@@ -141,3 +141,37 @@ jobs:
 
           echo "Running: ${TESTS[*]}"
           poetry run pytest -v --tb=short --disable-warnings "${TESTS[@]}"
+
+  # ---------------------------------------------------------------------------
+  # Codex audit M5 (2026-05-16) — production smoke gate.
+  #
+  # Runs only on main after lint + tests pass. Hits three production URLs
+  # and fails the build if any returns non-200, so a green CI badge means
+  # the deployed surface actually responded.
+  # ---------------------------------------------------------------------------
+  production-smoke:
+    name: "Production smoke (main only)"
+    needs: [lint-trainplex, test-trainplex]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Smoke /label-studio/user/login/
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            "https://app.trainplex.in/label-studio/user/login/")
+          echo "code=$code"
+          [ "$code" = "200" ] || { echo "FAIL /label-studio/user/login/ code=$code"; exit 1; }
+
+      - name: Smoke /label-studio/health
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            "https://app.trainplex.in/label-studio/health")
+          echo "code=$code"
+          [ "$code" = "200" ] || { echo "FAIL /label-studio/health code=$code"; exit 1; }
+
+      - name: Smoke /admin/dashboard
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            "https://app.trainplex.in/admin/dashboard")
+          echo "code=$code"
+          [ "$code" = "200" ] || { echo "FAIL /admin/dashboard code=$code"; exit 1; }
