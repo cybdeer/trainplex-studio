@@ -13,6 +13,8 @@ JSON
 
 PDF (streamed application/pdf)
     GET /api/v1/admin/reports/founder-weekly.pdf
+    GET /api/v1/admin/reports/leaderboard.pdf
+    GET /api/v1/admin/reports/cohorts.pdf
     GET /api/v1/admin/reports/project-roi/<project_id>.pdf
 
 CSV (UTF-8 BOM so Excel renders Hindi names correctly)
@@ -212,6 +214,49 @@ class LeaderboardCSVAPI(APIView):
 
 
 # ---------------------------------------------------------------------------
+# GET /api/v1/admin/reports/leaderboard.pdf   (Step 7.4)
+# ---------------------------------------------------------------------------
+
+
+class LeaderboardPDFAPI(APIView):
+    """Admin-only branded PDF of the trainer leaderboard.
+
+    Same filter contract as ``LeaderboardAPI`` / ``LeaderboardCSVAPI`` —
+    ``period``, ``state``, ``tier``, ``language``, ``project_type``. The
+    PDF renders the top 50 rows in a striped table plus a Hall-of-Fame
+    panel where applicable. Used by the founder to share weekly trainer
+    standings with the team.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(
+        tags=['Admin', 'Reports'],
+        summary='Trainer leaderboard (PDF)',
+        parameters=[
+            OpenApiParameter(name='period', required=False, type=str),
+            OpenApiParameter(name='state', required=False, type=str),
+            OpenApiParameter(name='tier', required=False, type=str),
+            OpenApiParameter(name='language', required=False, type=str),
+            OpenApiParameter(name='project_type', required=False, type=str),
+        ],
+    )
+    @require_role(['admin'])
+    def get(self, request, *args, **kwargs):
+        period = request.query_params.get('period')
+        filters = _collect_leaderboard_filters(request)
+        data = leaderboard_service.build_leaderboard(period, filters)
+
+        payload = pdf_renderer.render_leaderboard_pdf(data)
+        resp = HttpResponse(payload, content_type='application/pdf')
+        resp['Content-Disposition'] = (
+            f'attachment; filename="leaderboard-{data.get("period", "weekly")}.pdf"'
+        )
+        resp['Content-Length'] = str(len(payload))
+        return resp
+
+
+# ---------------------------------------------------------------------------
 # GET /api/v1/admin/reports/cohorts
 # ---------------------------------------------------------------------------
 
@@ -242,6 +287,43 @@ class CohortsAPI(APIView):
             cohort_analyzer.compute_cohort_metrics(cohort_definition),
             status=200,
         )
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/admin/reports/cohorts.pdf   (Step 7.4)
+# ---------------------------------------------------------------------------
+
+
+class CohortsPDFAPI(APIView):
+    """Admin-only branded PDF of the cohort analysis.
+
+    Same query contract as ``CohortsAPI`` — ``cohort_definition``. The
+    PDF renders each cohort with retention curve + cumulative earnings
+    curve in two stacked tables. Used by the founder for board / investor
+    decks where cohort behavior is the headline.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(
+        tags=['Admin', 'Reports'],
+        summary='Cohort analysis (PDF)',
+        parameters=[
+            OpenApiParameter(name='cohort_definition', required=False, type=str),
+        ],
+    )
+    @require_role(['admin'])
+    def get(self, request, *args, **kwargs):
+        cohort_definition = request.query_params.get('cohort_definition')
+        data = cohort_analyzer.compute_cohort_metrics(cohort_definition)
+
+        payload = pdf_renderer.render_cohorts_pdf(data)
+        resp = HttpResponse(payload, content_type='application/pdf')
+        resp['Content-Disposition'] = (
+            f'attachment; filename="cohorts-{data.get("cohort_definition", "signup_wave")}.pdf"'
+        )
+        resp['Content-Length'] = str(len(payload))
+        return resp
 
 
 # ---------------------------------------------------------------------------
