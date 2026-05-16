@@ -249,9 +249,32 @@ describe("WhatsAppBroadcastPage metadata", () => {
 // Both backend code paths (params, response body, log rows) are covered by
 // the python test; this test guards the static frontend surface.
 
+// The actual digits come from the ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var,
+// surfaced to the test runner via Vite's ``process.env.VITE_FOUNDER_MOBILE_GUARD``
+// (or the same variable in jsdom's process.env when running under jest). When
+// the env var is unset (dev / CI without the secret), the leak guard becomes a
+// no-op asserted as ``true`` so the test still runs end-to-end without
+// embedding the real number in this source file.
+const _RAW_GUARD =
+  (typeof process !== "undefined" &&
+    process.env &&
+    (process.env.VITE_FOUNDER_MOBILE_GUARD ||
+      process.env.TRAINPLEX_FOUNDER_MOBILE_GUARD)) ||
+  "";
+const _DIGITS_ONLY = _RAW_GUARD.replace(/\D+/g, "");
+const _NO_CC = _DIGITS_ONLY.length === 12 && _DIGITS_ONLY.startsWith("91")
+  ? _DIGITS_ONLY.slice(2)
+  : _DIGITS_ONLY;
+const _WITH_CC = _NO_CC ? "91" + _NO_CC : "";
+const _BODY = _NO_CC
+  ? _NO_CC.split("").join("[-\s]?")
+  : "";
+
 describe("Founder personal-mobile leak guard", () => {
-  const FOUNDER_DIGITS = "918764001234";
-  const FOUNDER_RE = /(?:\+?91[-\s]?)?(?:8764[-\s]?001234)/;
+  const FOUNDER_DIGITS = _WITH_CC;
+  const FOUNDER_RE = _BODY
+    ? new RegExp("(?:\+?91[-\s]?)?(?:" + _BODY + ")")
+    : null;
 
   it("the rendered DOM never contains the founder personal mobile", () => {
     setMockQuery({ data: TEMPLATES, isLoading: false, isError: false });
@@ -262,7 +285,11 @@ describe("Founder personal-mobile leak guard", () => {
     fireEvent.click(screen.getByTestId("wa-trainer-checkbox-5"));
     const html = document.body.innerHTML;
     const digitsOnly = html.replace(/\D+/g, "");
-    expect(digitsOnly.includes(FOUNDER_DIGITS)).toBe(false);
-    expect(FOUNDER_RE.test(html)).toBe(false);
+    if (FOUNDER_DIGITS) {
+      expect(digitsOnly.includes(FOUNDER_DIGITS)).toBe(false);
+    }
+    if (FOUNDER_RE) {
+      expect(FOUNDER_RE.test(html)).toBe(false);
+    }
   });
 });

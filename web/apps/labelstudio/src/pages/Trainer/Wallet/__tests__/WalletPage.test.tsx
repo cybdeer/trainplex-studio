@@ -75,14 +75,31 @@ import { TransactionList } from "../TransactionList";
 import { BalanceCards } from "../BalanceCards";
 import type { WalletResponse, WalletTxnRow } from "../types";
 
-const FOUNDER_MOBILE = "+918764001234";
-const FOUNDER_MOBILE_VARIANTS = [
-  "+918764001234",
-  "918764001234",
-  "8764001234",
-  "+91 8764001234",
-  "+91-8764001234",
-];
+// The founder mobile literal MUST NOT live in this source tree. The digits
+// come from the ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var, surfaced to the
+// test runner via ``process.env`` (or jsdom's process.env when running under
+// vitest / jest). When the env var is unset the variants list is empty and
+// the leak-guard assertions short-circuit — see callers below.
+const _RAW_GUARD =
+  (typeof process !== "undefined" &&
+    process.env &&
+    (process.env.VITE_FOUNDER_MOBILE_GUARD ||
+      process.env.TRAINPLEX_FOUNDER_MOBILE_GUARD)) ||
+  "";
+const _DIGITS_ONLY = _RAW_GUARD.replace(/\D+/g, "");
+const _NO_CC = _DIGITS_ONLY.length === 12 && _DIGITS_ONLY.startsWith("91")
+  ? _DIGITS_ONLY.slice(2)
+  : _DIGITS_ONLY;
+const FOUNDER_MOBILE = _NO_CC ? `+91${_NO_CC}` : "";
+const FOUNDER_MOBILE_VARIANTS: string[] = _NO_CC
+  ? [
+      `+91${_NO_CC}`,
+      `91${_NO_CC}`,
+      _NO_CC,
+      `+91 ${_NO_CC}`,
+      `+91-${_NO_CC}`,
+    ]
+  : [];
 
 const TXN_HOLD: WalletTxnRow = {
   id: 1,
