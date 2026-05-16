@@ -16,11 +16,12 @@ call without touching the public service surface.
 Founder rule (must never break)
 -------------------------------
 The founder's personal mobile must **NEVER** appear in any outbound,
-template body, log line, or persisted param. The exact detection digits
-live on the `_FOUNDER_PERSONAL_MOBILE_DIGITS_*` constants below; everything
-else in this module references the rule symbolically. We defend the
-invariant with `_assert_no_founder_personal_number()` — every template
-payload + every recorded log row passes through it.
+template body, log line, or persisted param. The actual digits live
+only in the env var ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` and are looked
+up by ``core.services.founder_guard``; everything in this module
+references the rule symbolically. We defend the invariant with
+``_assert_no_founder_personal_number()`` — every template payload +
+every recorded log row passes through it.
 
 Public surface
 --------------
@@ -96,58 +97,36 @@ STATUS_SENT = 'sent'
 STATUS_FAILED = 'failed'
 STATUS_SKIPPED = 'skipped'
 
-# Founder personal number — must never appear in outbound. Stored here so the
-# defensive check is self-contained without importing settings (env var would
-# be the production-grade pattern; for Phase 1 the constants suffice because
-# the test asserts the *absence* of these exact strings from code+templates).
-#
-# Two forms are detected: with the +91 country code prefix and without. The
-# digits-only normalisation strips dashes / spaces / parentheses first.
-_FOUNDER_PERSONAL_MOBILE_DIGITS_WITH_CC = '918764001234'
-_FOUNDER_PERSONAL_MOBILE_DIGITS_NO_CC = '8764001234'
-_FOUNDER_DIGIT_RE = re.compile(r'\D+')
+# Founder-personal-number guard. The exact digits live in the
+# ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var (loaded by
+# ``core.services.founder_guard``) so no literal of the number appears
+# in this file. ``_assert_no_founder_personal_number()`` is kept as a
+# thin local wrapper so internal call sites stay unchanged.
+from core.services.founder_guard import (
+    assert_no_founder_number as _guard_assert,
+    digits_only as _guard_digits_only,
+)
 
 
 def _digits_only(text: str) -> str:
-    """Strip everything but digits so we compare phone numbers consistently."""
-    return _FOUNDER_DIGIT_RE.sub('', text or '')
+    """Backwards-compatible alias → ``founder_guard.digits_only``."""
+    return _guard_digits_only(text)
 
 
 def _assert_no_founder_personal_number(payload: Any) -> None:
-    """Raise if the founder's personal mobile sneaks into a payload.
+    """Raise if the founder's personal mobile sneaks into ``payload``.
 
-    Walks dicts, lists, tuples, strings — anywhere the digits could hide.
-    A defensive check intentionally placed at the boundary between our
-    code and the WA send (and again at the boundary into the DB log) so a
-    bug elsewhere can't leak the founder's private number to a third party.
-
-    Matches the number with OR without the +91 country-code prefix — a
-    careless paste of the last 10 digits is just as dangerous as the full
-    international form.
+    Delegates to the central :mod:`core.services.founder_guard` so the
+    actual digits live in exactly one place (the env var). The original
+    error message is preserved so existing tests / log scrapers still
+    match.
     """
-    if payload is None:
-        return
-    if isinstance(payload, str):
-        digits = _digits_only(payload)
-        if (
-            _FOUNDER_PERSONAL_MOBILE_DIGITS_WITH_CC in digits
-            or _FOUNDER_PERSONAL_MOBILE_DIGITS_NO_CC in digits
-        ):
-            raise ValueError(
-                'WA broadcast aborted: founder personal mobile detected in payload.'
-            )
-        return
-    if isinstance(payload, dict):
-        for v in payload.values():
-            _assert_no_founder_personal_number(v)
-        return
-    if isinstance(payload, (list, tuple, set)):
-        for v in payload:
-            _assert_no_founder_personal_number(v)
-        return
-    # ints / bools / floats — coerce to str so a stray number-typed value
-    # (e.g. an int that happens to match the founder digits) is also checked.
-    _assert_no_founder_personal_number(str(payload))
+    try:
+        _guard_assert(payload, context='WA broadcast')
+    except ValueError as exc:
+        raise ValueError(
+            'WA broadcast aborted: founder personal mobile detected in payload.'
+        ) from exc
 
 
 # ---------------------------------------------------------------------------

@@ -10,7 +10,7 @@ Covers:
 - Empty trainer_ids → 400.
 - Idempotency: same (template, trainer) within 60s = second call's row is
   marked status=skipped.
-- Founder personal mobile +91 8764001234 NEVER appears in any logged params
+- Founder personal mobile (sourced from TRAINPLEX_FOUNDER_MOBILE_GUARD) NEVER appears in any logged params
   or request/response body — regex assertion across stored rows.
 - History endpoint returns the last 100 rows admin-only.
 
@@ -34,17 +34,31 @@ from core.services import wa_broadcast as wa_svc
 
 User = get_user_model()
 
-# Regex used in the leak-check assertion. Matches the founder's personal
-# mobile in any common format (digits only / spaces / dashes / +91 / 91).
-FOUNDER_DIGITS = '918764001234'
-FOUNDER_LEAK_RE = re.compile(r'(?:\+?91[-\s]?)?(?:8764[-\s]?001234)')
+# Leak-check helpers. The digits come from the
+# ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var via
+# ``core.services.founder_guard``; we delegate so this test file contains
+# no literal of the founder's mobile.
+from core.services.founder_guard import (  # noqa: E402
+    assert_no_founder_number as _guard_assert,
+    build_guard_pattern as _guard_build_pattern,
+    digits_only as _guard_digits_only,
+    get_guard_digits_with_cc as _guard_with_cc,
+)
+
+FOUNDER_DIGITS = _guard_with_cc()
+FOUNDER_LEAK_RE = _guard_build_pattern()
 
 
 def _assert_no_founder_number(haystack: str, context: str = '') -> None:
     """Fail if the founder's personal mobile appears in `haystack`."""
-    digits = re.sub(r'\D+', '', haystack or '')
-    assert FOUNDER_DIGITS not in digits, f'Founder number leaked in {context}: {haystack!r}'
-    assert not FOUNDER_LEAK_RE.search(haystack or ''), f'Founder number leaked in {context}: {haystack!r}'
+    digits = _guard_digits_only(haystack)
+    assert FOUNDER_DIGITS and FOUNDER_DIGITS not in digits, (
+        f'Founder number leaked in {context}: {haystack!r}'
+    )
+    if FOUNDER_LEAK_RE is not None:
+        assert not FOUNDER_LEAK_RE.search(haystack or ''), (
+            f'Founder number leaked in {context}: {haystack!r}'
+        )
 
 
 @pytest.mark.django_db
@@ -280,7 +294,7 @@ class TestAdminWhatsAppBroadcast(TestCase):
     # =============================================================
 
     def test_founder_personal_number_never_appears_in_any_payload(self):
-        """+91 8764001234 must not appear in any params, log, or response body."""
+        """The founder personal mobile must not appear in any params, log, or response body."""
         self.client.force_authenticate(user=self.admin)
         # Innocuous params that the admin might attach in real usage.
         resp = self.client.post(

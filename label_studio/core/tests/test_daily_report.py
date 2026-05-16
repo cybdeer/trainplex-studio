@@ -23,7 +23,7 @@ Service (`core/services/daily_report_email.py`):
 - `_assert_no_founder_personal_number(...)` guard raises ValueError
   if the founder's personal mobile shows up in HTML, plain text,
   subject, or recipient string — covers both +91 and no-CC forms.
-- Founder personal mobile +91 8764001234 NEVER appears in any rendered
+- Founder personal mobile (sourced from TRAINPLEX_FOUNDER_MOBILE_GUARD) NEVER appears in any rendered
   body or subject of an organic summary.
 
 Management command (`core/management/commands/send_daily_report.py`):
@@ -57,9 +57,18 @@ from core.services import daily_report_email as svc
 
 User = get_user_model()
 
-FOUNDER_DIGITS_WITH_CC = '918764001234'
-FOUNDER_DIGITS_NO_CC = '8764001234'
-FOUNDER_LEAK_RE = re.compile(r'(?:\+?91[-\s]?)?(?:8764[-\s]?001234)')
+# The digits come from the ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var via
+# ``core.services.founder_guard``; we delegate so this test file contains
+# no literal of the founder's mobile.
+from core.services.founder_guard import (  # noqa: E402
+    build_guard_pattern as _guard_build_pattern,
+    get_guard_digits_no_cc as _guard_no_cc,
+    get_guard_digits_with_cc as _guard_with_cc,
+)
+
+FOUNDER_DIGITS_WITH_CC = _guard_with_cc()
+FOUNDER_DIGITS_NO_CC = _guard_no_cc()
+FOUNDER_LEAK_RE = _guard_build_pattern()
 
 
 def _assert_no_founder_in(haystack: str, context: str = '') -> None:
@@ -286,7 +295,7 @@ class TestFounderNumberGuard(TestCase):
 
     def test_guard_raises_on_no_cc_in_string(self):
         with self.assertRaises(ValueError):
-            svc._assert_no_founder_personal_number('Number 8764001234 ringing')
+            svc._assert_no_founder_personal_number(f'Number {_guard_no_cc()} ringing')
 
     def test_guard_raises_on_value_buried_in_dict(self):
         with self.assertRaises(ValueError):

@@ -78,47 +78,34 @@ DASHBOARD_PATH = '/admin/dashboard'
 
 
 # ---------------------------------------------------------------------------
-# Founder-personal-number guard. Mirrors `core/services/wa_broadcast.py`.
-# Two forms — with and without the +91 country-code prefix.
+# Founder-personal-number guard. Delegates to ``core.services.founder_guard``
+# so the actual digits live only in the ``TRAINPLEX_FOUNDER_MOBILE_GUARD``
+# env var. Mirrors `core/services/wa_broadcast.py`.
 # ---------------------------------------------------------------------------
 
-_FOUNDER_PERSONAL_MOBILE_DIGITS_WITH_CC = '918764001234'
-_FOUNDER_PERSONAL_MOBILE_DIGITS_NO_CC = '8764001234'
-_FOUNDER_DIGIT_RE = re.compile(r'\D+')
+from core.services.founder_guard import (
+    assert_no_founder_number as _guard_assert,
+    digits_only as _guard_digits_only,
+)
 
 
 def _digits_only(text: str) -> str:
-    return _FOUNDER_DIGIT_RE.sub('', text or '')
+    """Backwards-compatible alias for ``founder_guard.digits_only``."""
+    return _guard_digits_only(text)
 
 
 def _assert_no_founder_personal_number(payload: Any) -> None:
-    """Raise if the founder's personal mobile sneaks into a payload.
+    """Raise if the founder's personal mobile sneaks into ``payload``.
 
-    Walks dicts / lists / strings the same way the WhatsApp broadcast guard
-    does. Placed at the email-render boundary so a bug elsewhere can't leak
-    the founder's private number to a third-party inbox.
+    Delegates to the central :mod:`core.services.founder_guard`. The
+    original error message is preserved so existing tests still match.
     """
-    if payload is None:
-        return
-    if isinstance(payload, str):
-        digits = _digits_only(payload)
-        if (
-            _FOUNDER_PERSONAL_MOBILE_DIGITS_WITH_CC in digits
-            or _FOUNDER_PERSONAL_MOBILE_DIGITS_NO_CC in digits
-        ):
-            raise ValueError(
-                'Daily report aborted: founder personal mobile detected in payload.'
-            )
-        return
-    if isinstance(payload, dict):
-        for v in payload.values():
-            _assert_no_founder_personal_number(v)
-        return
-    if isinstance(payload, (list, tuple, set)):
-        for v in payload:
-            _assert_no_founder_personal_number(v)
-        return
-    _assert_no_founder_personal_number(str(payload))
+    try:
+        _guard_assert(payload, context='daily report')
+    except ValueError as exc:
+        raise ValueError(
+            'Daily report aborted: founder personal mobile detected in payload.'
+        ) from exc
 
 
 # ---------------------------------------------------------------------------
