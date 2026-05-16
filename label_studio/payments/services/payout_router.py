@@ -27,7 +27,10 @@ from django.db import transaction
 from django.utils import timezone
 
 from payments.models import PaymentHold, PayoutQueue, WalletTransaction
-from payments.services import razorpay_handler
+# Wave-19 W2-PAYOUT (2026-05-16): route via payout_provider shim so the
+# active provider (Razorpay rollback / ShivGateway active) is one env-var
+# flip away. Public surface matches razorpay_handler 1:1.
+from payments.services import payout_provider
 
 logger = logging.getLogger(__name__)
 
@@ -289,9 +292,9 @@ def flush_pending_payouts(limit: int = 50) -> int:
     attempted = 0
     for entry in pending:
         try:
-            razorpay_handler.send_payout(entry)
+            payout_provider.send_payout(entry)
         except Exception as exc:  # pragma: no cover  (defensive)
             logger.exception('flush_pending_payouts queue_id=%s err=%s', entry.id, exc)
-            razorpay_handler.mark_failed(entry.id, str(exc))
+            payout_provider.mark_failed(entry.id, str(exc))
         attempted += 1
     return attempted

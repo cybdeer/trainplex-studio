@@ -8,7 +8,8 @@ Endpoints
     GET  /api/v1/payments/payout-queue                 (admin-only)
     POST /api/v1/payments/payout-queue/<id>/retry      (admin-only)
     GET  /api/v1/admin/payment-status                  (admin-only)
-    POST /api/v1/payments/razorpay-webhook             (signed, no-auth)
+    POST /api/v1/payments/razorpay-webhook             (signed, no-auth — DEPRECATED rollback only)
+    POST /api/v1/payments/shivgateway-webhook          (signed, no-auth — Wave-19 W2-PAYOUT active)
 """
 
 from django.urls import path
@@ -18,6 +19,7 @@ from payments.api import (
     AdminPayoutQueueAPI,
     AdminPayoutRetryAPI,
     RazorpayWebhookAPI,
+    ShivGatewayWebhookAPI,
     TrainerWalletAPI,
 )
 
@@ -46,5 +48,10 @@ urlpatterns = [
         'api/v1/payments/razorpay-webhook',
         RazorpayWebhookAPI.as_view(),
         name='payments-razorpay-webhook',
+    ),
+    path(
+        'api/v1/payments/shivgateway-webhook',
+        ShivGatewayWebhookAPI.as_view(),
+        name='payments-shivgateway-webhook',
     ),
 ]

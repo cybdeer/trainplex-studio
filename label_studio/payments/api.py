@@ -40,7 +40,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from payments.models import PaymentHold, PayoutQueue, WalletTransaction
-from payments.services import razorpay_handler
+from payments.services import razorpay_handler  # rollback path; do not remove
+from payments.services import payout_provider  # Wave-19 W2-PAYOUT — active provider shim
+from payments.services import shivgateway_handler  # active payout rail
 from payments.services import wallet as wallet_service
 from users.decorators import require_role
 
@@ -255,7 +257,9 @@ class AdminPayoutRetryAPI(APIView):
     )
     @require_role(['admin'])
     def post(self, request, payout_id: int, *args, **kwargs):
-        entry = razorpay_handler.retry_payout(payout_id)
+        # Wave-19 W2-PAYOUT: route via provider shim so retries hit
+        # whichever provider is currently active (default: ShivGateway).
+        entry = payout_provider.retry_payout(payout_id)
         if entry is None:
             return Response({'error': 'payout not found'}, status=404)
         return Response({'ok': True, 'payout': _serialize_payout(entry)}, status=200)
@@ -412,4 +416,72 @@ class RazorpayWebhookAPI(APIView):
 
         result = razorpay_handler.process_webhook_event(event)
         logger.info('payments.razorpay.webhook processed result=%s', result)
+        return Response({'ok': True, 'result': result}, status=200)
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/payments/shivgateway-webhook  (no-auth, signed) — Wave-19 W2-PAYOUT
+# ---------------------------------------------------------------------------
+
+
+class ShivGatewayWebhookAPI(APIView):
+    """Webhook receiver for ShivGateway payout events.
+
+    Drop-in counterpart of :class:`RazorpayWebhookAPI`. Signature scheme is
+    HMAC-SHA256 over the raw body using ``SHIVGATEWAY_WEBHOOK_SECRET``
+    (falls back to ``SHIVGATEWAY_API_SECRET`` if the dedicated webhook
+    secret env var is unset — placeholder until founder confirms scheme).
+
+    Header convention used here: ``X-ShivGateway-Signature``. If the live
+    contract turns out to use a different header, swap the META key below
+    and the handler matches transparently.
+    """
+
+    permission_classes = (AllowAny,)
+    authentication_classes: tuple = ()
+
+    @extend_schema(
+        tags=['Payments'],
+        summary='ShivGateway payout webhook receiver',
+        description=(
+            'Signed by ShivGateway via X-ShivGateway-Signature. Verified '
+            'with HMAC-SHA256 over the raw body using '
+            'SHIVGATEWAY_WEBHOOK_SECRET (or SHIVGATEWAY_API_SECRET '
+            'fallback). 400 on invalid signature, 200 on verified event.'
+        ),
+    )
+    def post(self, request, *args, **kwargs):
+        secret = (
+            os.getenv('SHIVGATEWAY_WEBHOOK_SECRET')
+            or os.getenv('SHIVGATEWAY_API_SECRET')
+            or ''
+        ).strip()
+        signature = (
+            request.META.get('HTTP_X_SHIVGATEWAY_SIGNATURE')
+            or request.META.get('HTTP_X_SHIV_SIGNATURE')
+            or ''
+        )
+        raw_body = request.body.decode('utf-8') if request.body else ''
+
+        if not secret:
+            logger.warning(
+                'payments.shivgateway.webhook misconfig: webhook secret empty'
+            )
+            return Response(
+                {'error': 'webhook secret not configured'}, status=503,
+            )
+
+        if not shivgateway_handler.verify_webhook_signature(
+            body=raw_body, signature=signature, secret=secret,
+        ):
+            logger.warning('payments.shivgateway.webhook invalid signature')
+            return Response({'error': 'invalid signature'}, status=400)
+
+        try:
+            event = json.loads(raw_body) if raw_body else {}
+        except json.JSONDecodeError:
+            return Response({'error': 'invalid json'}, status=400)
+
+        result = shivgateway_handler.process_webhook_event(event)
+        logger.info('payments.shivgateway.webhook processed result=%s', result)
         return Response({'ok': True, 'result': result}, status=200)

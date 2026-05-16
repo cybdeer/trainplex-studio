@@ -2892,7 +2892,7 @@ table when a feature flips from MOCK to REAL.
 | Search (Cmd+K) | REAL | Wave-19 W1 — Postgres FTS + SQLite icontains fallback |
 | Audit log | REAL | Persisted in `users_auditlog` |
 | WA broadcast | MOCK | History persisted, real send still AiSensy sandbox |
-| Razorpay payout | MOCK | Sandbox only — Phase 2 production credentials |
+| ShivGateway payout | MOCK (dry-run) | Wave-19 W2-PAYOUT (2026-05-16) — founder dropped Razorpay X, ShivGateway is the active rail. `TRAINPLEX_PAYOUT_DRY_RUN=true` until founder fills `SHIVGATEWAY_API_KEY` / `SHIVGATEWAY_API_SECRET`. Razorpay X handler kept rollback-only — flip `TRAINPLEX_PAYOUT_PROVIDER=razorpay` to revert. |
 | Bulk assign | MOCK | In-memory roster + plan engine; no real task writes |
 | Reports | REAL | Founder weekly + leaderboard + cohort + project ROI |
 | Reviewer queue | REAL | `peer_review/` app + 3 endpoints |

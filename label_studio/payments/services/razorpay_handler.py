@@ -1,4 +1,12 @@
-"""TrainPlex payments — Razorpay X handler (MOCKED in Phase 1).
+"""TrainPlex payments — Razorpay X handler (DEPRECATED — rollback only).
+
+Wave-19 W2-PAYOUT (2026-05-16): Founder dropped Razorpay X. ShivGateway
+is the active payout rail (see ``shivgateway_handler.py``). This module
+stays in-tree as a **rollback-only** artefact — set
+``TRAINPLEX_PAYOUT_PROVIDER=razorpay`` in ``.env`` to switch back if
+ShivGateway has a production outage before the founder confirms creds.
+Do NOT call functions in this module directly from new code; go through
+``payments.services.payout_provider`` so the provider flip works.
 
 Phase 1 Step 6.4. No ``razorpay-python`` dependency added yet — the real
 network call lands Phase 2 with prod credentials. The contract here is
