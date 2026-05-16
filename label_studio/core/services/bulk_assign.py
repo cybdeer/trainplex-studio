@@ -151,8 +151,24 @@ def _normalise_cert(values: Sequence[str]) -> Optional[bool]:
 
 
 # ---------------------------------------------------------------------------
-# Filter — Phase 1 (in-memory roster)
+# Filter — Phase 2 WAVE-19 (real users.User queryset, honest empty state)
 # ---------------------------------------------------------------------------
+
+
+def _user_has_field(field_name: str) -> bool:
+    """Defensive check — return True iff ``users.User`` has the named field.
+
+    The state / tier / languages / cert_passed columns are a Phase-2 /
+    Step-8 schema add. Until that migration lands we skip the filter that
+    references them and return an empty list (honest empty state, not mock).
+    """
+    from users.models import User
+
+    try:
+        User._meta.get_field(field_name)
+        return True
+    except Exception:
+        return False
 
 
 def filter_trainers(
@@ -161,51 +177,72 @@ def filter_trainers(
     language: Optional[str] = None,
     cert_passed: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    """Return the trainers matching the given filters.
+    """Return trainers matching the given filters from the real User table.
 
-    Parameters
-    ----------
-    state, tier, language : str | None
-        Comma-separated query strings (e.g. ``"Rajasthan,UP"``). Empty /
-        missing means "no filter on this field". Multiple values within
-        one field are OR-combined; different fields are AND-combined.
-    cert_passed : str | None
-        Tri-state filter — see :func:`_normalise_cert`.
-
-    Returns
-    -------
-    list[dict]
-        One dict per matching trainer, each carrying
-        ``{id, name, state, tier, language, languages, cert_passed,
-        current_active_tasks_count}``. The flat ``language`` field is
-        the trainer's primary (first) language for table display; the
-        ``languages`` list is the full set for the filter side.
+    Empty database / unmatched filters / missing schema fields → ``[]``.
+    No mock fallback.
     """
+    from django.db.models import Count, Q
+
+    from users.models import User
+
     states = set(_normalise_csv(state))
     tiers = set(_normalise_csv(tier))
     languages = set(_normalise_csv(language))
     cert_filter = _normalise_cert(_normalise_csv(cert_passed))
 
+    # If the caller filters on a column we don't yet have, return [] honestly.
+    if states and not _user_has_field('state'):
+        return []
+    if tiers and not _user_has_field('tier'):
+        return []
+    if languages and not _user_has_field('languages'):
+        return []
+    if cert_filter is not None and not _user_has_field('cert_passed'):
+        return []
+
+    qs = User.objects.filter(role='trainer')
+    if states and _user_has_field('state'):
+        qs = qs.filter(state__in=states)
+    if tiers and _user_has_field('tier'):
+        qs = qs.filter(tier__in=tiers)
+    if cert_filter is not None and _user_has_field('cert_passed'):
+        qs = qs.filter(cert_passed=cert_filter)
+
+    qs = qs.annotate(
+        current_active_tasks_count=Count(
+            'annotations',
+            filter=Q(annotations__was_cancelled=False),
+            distinct=True,
+        ),
+    )
+
     out: List[Dict[str, Any]] = []
-    for row in _TRAINER_ROSTER:
-        if states and row['state'] not in states:
+    for u in qs.order_by('id'):
+        u_state = getattr(u, 'state', '') or ''
+        u_tier = getattr(u, 'tier', '') or ''
+        u_languages_raw = getattr(u, 'languages', None) or []
+        if isinstance(u_languages_raw, str):
+            u_languages = [s.strip() for s in u_languages_raw.split(',') if s.strip()]
+        else:
+            u_languages = [str(s) for s in u_languages_raw]
+        u_cert = bool(getattr(u, 'cert_passed', False))
+
+        # Final language filter (Python side — JSON contains is portable-tricky).
+        if languages and not any(l in languages for l in u_languages):
             continue
-        if tiers and row['tier'] not in tiers:
-            continue
-        if languages and not any(l in languages for l in row['languages']):
-            continue
-        if cert_filter is not None and bool(row['cert_passed']) != cert_filter:
-            continue
+
+        name = (u.get_full_name() or u.email or f'trainer #{u.id}').strip()
         out.append(
             {
-                'id': row['id'],
-                'name': row['name'],
-                'state': row['state'],
-                'tier': row['tier'],
-                'language': row['languages'][0] if row['languages'] else '',
-                'languages': list(row['languages']),
-                'cert_passed': bool(row['cert_passed']),
-                'current_active_tasks_count': int(row['current_active_tasks_count']),
+                'id': u.id,
+                'name': name,
+                'state': u_state,
+                'tier': u_tier,
+                'language': u_languages[0] if u_languages else '',
+                'languages': u_languages,
+                'cert_passed': u_cert,
+                'current_active_tasks_count': int(u.current_active_tasks_count or 0),
             }
         )
     return out
@@ -274,13 +311,30 @@ def plan_bulk_assignment(
             'Bulk assign: unknown strategy %r, falling back to even.', strategy
         )
 
-    by_id = _roster_by_id()
+    # Phase 2 WAVE-19: real User lookup. Annotates current active task count
+    # via the same logic as filter_trainers.
+    from django.db.models import Count, Q
+
+    from users.models import User
+
+    users_qs = (
+        User.objects.filter(id__in=ids, role='trainer')
+        .annotate(
+            current_active_tasks_count=Count(
+                'annotations',
+                filter=Q(annotations__was_cancelled=False),
+                distinct=True,
+            ),
+        )
+    )
+    by_id: Dict[int, Any] = {u.id: u for u in users_qs}
+
     plan: List[Dict[str, Any]] = []
     total_tasks = 0
 
     for tid in ids:
-        row = by_id.get(tid)
-        if row is None:
+        u = by_id.get(tid)
+        if u is None:
             # Unknown trainer id — record a 0-task line so the admin sees
             # which ids were ignored. Plan-only, no exception.
             plan.append(
@@ -296,20 +350,30 @@ def plan_bulk_assignment(
                 }
             )
             continue
+
+        u_tier = getattr(u, 'tier', '') or ''
+        u_state = getattr(u, 'state', '') or ''
+        u_languages_raw = getattr(u, 'languages', None) or []
+        if isinstance(u_languages_raw, str):
+            u_languages = [s.strip() for s in u_languages_raw.split(',') if s.strip()]
+        else:
+            u_languages = [str(s) for s in u_languages_raw]
+        u_name = (u.get_full_name() or u.email or f'trainer #{u.id}').strip()
+
         if strategy_norm == 'tier-weighted':
-            count = max(0, int(round(tasks_per_trainer * _weight_for_tier(row['tier']))))
+            count = max(0, int(round(tasks_per_trainer * _weight_for_tier(u_tier))))
         else:
             count = max(0, int(tasks_per_trainer))
         total_tasks += count
         plan.append(
             {
                 'trainer_id': tid,
-                'name': row['name'],
-                'tier': row['tier'],
-                'state': row['state'],
-                'language': row['languages'][0] if row['languages'] else '',
+                'name': u_name,
+                'tier': u_tier,
+                'state': u_state,
+                'language': u_languages[0] if u_languages else '',
                 'will_assign': count,
-                'current_active_tasks_count': int(row['current_active_tasks_count']),
+                'current_active_tasks_count': int(u.current_active_tasks_count or 0),
                 'unknown': False,
             }
         )

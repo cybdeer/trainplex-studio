@@ -30,9 +30,11 @@ Founder rules honoured
 ---------------------
 * **One-shot root cause fix** — flag toggling persists in the DB, not a
   process-local cache that drifts between gunicorn workers.
-* **No personal mobile** — `FeatureFlag.description` is scrubbed if a
-  match for ``8764001234`` is found at save time (forced via a Django
-  ``pre_save`` signal in :mod:`core.models_feature_flags`).
+* **No personal mobile** — `FeatureFlag.description` is scrubbed via
+  ``core.services.founder_guard.scrub_text`` at save time (forced via a
+  Django ``pre_save`` signal in :mod:`core.models_feature_flags`). The
+  actual digits live only in the ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env
+  var, never in this source tree.
 * **Sub-agent incremental write** — the audit list is materialised every
   call (no in-memory drift); a killed shell mid-mutation leaves valid DB
   rows or none, never a partial map.
@@ -307,17 +309,19 @@ def set_flag(
 
 
 # ---------------------------------------------------------------------------
-# Founder-rule scrub (no personal mobile in any artefact).
+# Founder-rule scrub (no personal mobile in any artefact). Delegates to
+# ``core.services.founder_guard`` so the digits live only in the env var.
 # ---------------------------------------------------------------------------
 
-_FORBIDDEN_FOUNDER_MOBILE = re.compile(r'(?:\+?91[\s-]?)?8764001234')
+from core.services.founder_guard import scrub_text as _guard_scrub_text
 
 
 def _scrub_mobile(text: str) -> str:
-    """Replace the founder's personal mobile with `[REDACTED-MOBILE]` if
-    present anywhere in the given text. Same regex as the migration
-    script in ``backend/scripts/migrate_ls_to_fork.py`` so the rule is
-    enforced consistently.
+    """Replace the founder's personal mobile with ``[REDACTED-MOBILE]`` if
+    present anywhere in the given text. Delegates to the central
+    :mod:`core.services.founder_guard` module so the actual digits are
+    defined in exactly one place (the ``TRAINPLEX_FOUNDER_MOBILE_GUARD``
+    env var). Same scrub also used by the migration script in
+    ``backend/scripts/migrate_ls_to_fork.py``.
     """
-
-    return _FORBIDDEN_FOUNDER_MOBILE.sub('[REDACTED-MOBILE]', text or '')
+    return _guard_scrub_text(text)

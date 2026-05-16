@@ -1,11 +1,8 @@
-"""TrainPlex Admin India Geographic Activity Heatmap — Phase 1 Step 4.2-6.
+"""TrainPlex Admin India Geographic Activity Heatmap — Phase 2 WAVE-19 real-data wiring.
 
 State-wise admin view of where the trainer base is active right now. Founder
 ek nazar me dekh sakta hai konsa state zyada submissions kar raha hai, kahan
 hiring chahiye, kahan se earnings flow ho rahi hain.
-
-Per plan: "State-wise active trainers, intensity color (dark = zyada activity).
-Geo-distribution at glance, hiring decisions easier."
 
 Endpoint
 --------
@@ -15,24 +12,21 @@ Query
 -----
     period  - 'today' / 'week' / 'month' (default: 'month')
 
-Returns a JSON array — one entry per Indian state where trainers operate. The
-frontend `IndiaMap` paints each polygon by `active_trainers` count; the
-`StateTable` fallback ranks states for non-map viewers.
-
-Week 4 status
--------------
-No submissions / earnings / trainer-state-of-day tables exist in the fork yet
-(real schema lands in Phase 2 / Step 8). For now this view returns deterministic
-MOCK data via `_get_mock_state_activity()` for the 17 Indian states that match
-production trainer geography. The mock data is period-aware so the UI can
-demonstrate `today` / `week` / `month` filter behaviour even before real
-aggregation is wired.
+Phase 2 (WAVE-19) status
+------------------------
+Real Django ORM aggregation grouped by ``users.User.state`` (if column exists).
+Returns ``[]`` if no trainers have submitted in the window. The trainer
+``state`` field is a Phase-2 / Step-8 schema add — until it lands we fall
+back to an empty list (NOT mock).
 """
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any, Dict, List
 
+from django.db.models import Count, Q, Sum
+from django.utils import timezone as dj_timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -47,97 +41,90 @@ _VALID_PERIODS = ('today', 'week', 'month')
 _DEFAULT_PERIOD = 'month'
 
 
-# ---------------------------------------------------------------------------
-# MOCK data — 17 Indian states matching production trainer geography.
-#
-# TODO Step 4.2-6 / Phase 2 (Step 8): REPLACE with real aggregation joining
-# `submissions`, `trainers`, and `payouts` tables once they land. Until then,
-# the JSON contract is pinned by `test_heatmap.py` so the frontend stays
-# stable across the swap.
-#
-# Numbers (active_trainers, submissions_count, total_earnings_inr) are
-# integer-only — UI does no paise / fractional math.
-#
-# State codes use ISO 3166-2:IN-* short codes (e.g. 'RJ' for Rajasthan)
-# so the GeoJSON / SVG layer can join cleanly without a translation table.
-# ---------------------------------------------------------------------------
-
-# Base ("month" period) numbers. The other two periods are derived by simple
-# scaling so the relative ordering of states stays stable — a real query
-# would obviously not just scale, but for the mock the ordering invariant
-# (RJ > UP > MH > KA > GJ etc.) matches what we'd see in production.
-_STATE_ACTIVITY_BASE: List[Dict[str, Any]] = [
-    {'state_code': 'RJ', 'state_name': 'Rajasthan', 'active_trainers': 12,
-     'submissions_count': 87, 'total_earnings_inr': 38000},
-    {'state_code': 'UP', 'state_name': 'Uttar Pradesh', 'active_trainers': 9,
-     'submissions_count': 76, 'total_earnings_inr': 25000},
-    {'state_code': 'MH', 'state_name': 'Maharashtra', 'active_trainers': 8,
-     'submissions_count': 64, 'total_earnings_inr': 22500},
-    {'state_code': 'KA', 'state_name': 'Karnataka', 'active_trainers': 8,
-     'submissions_count': 58, 'total_earnings_inr': 20800},
-    {'state_code': 'GJ', 'state_name': 'Gujarat', 'active_trainers': 7,
-     'submissions_count': 54, 'total_earnings_inr': 18500},
-    {'state_code': 'PB', 'state_name': 'Punjab', 'active_trainers': 6,
-     'submissions_count': 48, 'total_earnings_inr': 15200},
-    {'state_code': 'TN', 'state_name': 'Tamil Nadu', 'active_trainers': 6,
-     'submissions_count': 45, 'total_earnings_inr': 14200},
-    {'state_code': 'MP', 'state_name': 'Madhya Pradesh', 'active_trainers': 5,
-     'submissions_count': 40, 'total_earnings_inr': 12000},
-    {'state_code': 'TG', 'state_name': 'Telangana', 'active_trainers': 5,
-     'submissions_count': 38, 'total_earnings_inr': 11800},
-    {'state_code': 'WB', 'state_name': 'West Bengal', 'active_trainers': 5,
-     'submissions_count': 36, 'total_earnings_inr': 11200},
-    {'state_code': 'BR', 'state_name': 'Bihar', 'active_trainers': 4,
-     'submissions_count': 32, 'total_earnings_inr': 9600},
-    {'state_code': 'KL', 'state_name': 'Kerala', 'active_trainers': 4,
-     'submissions_count': 30, 'total_earnings_inr': 9000},
-    {'state_code': 'JH', 'state_name': 'Jharkhand', 'active_trainers': 3,
-     'submissions_count': 24, 'total_earnings_inr': 7200},
-    {'state_code': 'OR', 'state_name': 'Odisha', 'active_trainers': 3,
-     'submissions_count': 22, 'total_earnings_inr': 6800},
-    {'state_code': 'AP', 'state_name': 'Andhra Pradesh', 'active_trainers': 3,
-     'submissions_count': 21, 'total_earnings_inr': 6400},
-    {'state_code': 'DL', 'state_name': 'Delhi', 'active_trainers': 3,
-     'submissions_count': 19, 'total_earnings_inr': 6000},
-    {'state_code': 'AS', 'state_name': 'Assam', 'active_trainers': 2,
-     'submissions_count': 15, 'total_earnings_inr': 4500},
-]
+def _period_window():
+    """Return (start_datetime, label) for the requested period."""
+    now = dj_timezone.now()
+    return {
+        'today': now - timedelta(days=1),
+        'week': now - timedelta(days=7),
+        'month': now - timedelta(days=30),
+    }
 
 
-# Period scaling — keeps the contract identical regardless of period; only
-# the numbers shift. Real aggregation in Phase 2 will compute these from the
-# DB directly. Scaling factors are chosen so that the relative ordering of
-# states is preserved across periods (so the heatmap colour ramp behaves
-# consistently regardless of which filter the founder picks).
-_PERIOD_SCALE = {
-    'today': 0.05,   # ~ one day of a 30-day month
-    'week':  0.25,   # ~ one week of a 30-day month
-    'month': 1.0,
-}
+def _trainer_has_state_column() -> bool:
+    """Defensive check — return True iff ``users.User`` has a ``state`` column.
 
-
-def _scale_int(value: int, factor: float) -> int:
-    """Scale an integer by `factor`, clamped to >= 0. Returns int (no paise)."""
-    return max(0, int(round(value * factor)))
-
-
-def _get_mock_state_activity(period: str) -> List[Dict[str, Any]]:
-    """Return mock state activity for the requested period.
-
-    Phase 1: deterministic mock. Phase 2 (Step 8): swap for a real GROUP BY
-    state aggregation over `submissions` + `payouts` joined on `trainer.state`.
+    The state column is a Phase-2 / Step-8 add; until that migration lands
+    we cannot GROUP BY state, so we return ``[]`` to the UI (honest empty
+    state, not mock).
     """
-    factor = _PERIOD_SCALE.get(period, _PERIOD_SCALE[_DEFAULT_PERIOD])
-    return [
-        {
-            'state_code': row['state_code'],
-            'state_name': row['state_name'],
-            'active_trainers': _scale_int(row['active_trainers'], factor),
-            'submissions_count': _scale_int(row['submissions_count'], factor),
-            'total_earnings_inr': _scale_int(row['total_earnings_inr'], factor),
-        }
-        for row in _STATE_ACTIVITY_BASE
-    ]
+    from users.models import User
+
+    try:
+        User._meta.get_field('state')
+        return True
+    except Exception:
+        return False
+
+
+def _build_state_activity(period: str) -> List[Dict[str, Any]]:
+    """Real-data aggregation. Empty trainer base / no state column → ``[]``."""
+    if not _trainer_has_state_column():
+        # No schema → no mock. Honest empty state until Phase 2 Step 8.
+        return []
+
+    from tasks.models import Annotation
+    from payments.models import PaymentHold
+    from users.models import User
+
+    window = _period_window()
+    start = window.get(period, window[_DEFAULT_PERIOD])
+
+    rows = (
+        User.objects.filter(role='trainer')
+        .exclude(state__isnull=True)
+        .exclude(state='')
+        .values('state')
+        .annotate(
+            active_trainers=Count('id', filter=Q(last_login__gte=start), distinct=True),
+            submissions_count=Count(
+                'annotations',
+                filter=Q(
+                    annotations__created_at__gte=start,
+                    annotations__was_cancelled=False,
+                ),
+                distinct=True,
+            ),
+            total_earnings_inr_sum=Sum(
+                'payment_holds__amount_inr',
+                filter=Q(
+                    payment_holds__held_at__gte=start,
+                    payment_holds__status__in=[
+                        PaymentHold.STATUS_RELEASED,
+                        PaymentHold.STATUS_HELD,
+                    ],
+                ),
+            ),
+        )
+        .order_by('-submissions_count')
+    )
+
+    out: List[Dict[str, Any]] = []
+    for r in rows:
+        state = r['state'] or ''
+        # Map common 2-letter codes through unchanged; full names through unchanged.
+        # The UI joins on whatever string the trainer profile uses.
+        earnings = r['total_earnings_inr_sum']
+        out.append(
+            {
+                'state_code': state,
+                'state_name': state,
+                'active_trainers': int(r['active_trainers'] or 0),
+                'submissions_count': int(r['submissions_count'] or 0),
+                'total_earnings_inr': int(earnings or 0),
+            }
+        )
+    return out
 
 
 class AdminHeatmapStateActivityAPI(APIView):
@@ -159,8 +146,8 @@ class AdminHeatmapStateActivityAPI(APIView):
         description=(
             'Founder admin heatmap — per-state active trainer count, '
             'submissions count, and total earnings (INR) for the requested '
-            'period. Admin role only. NOTE: returns mock data in Phase 1 '
-            '(Week 4); real DB aggregation lands in Phase 2 / Step 8.'
+            'period. Admin role only. Real Django ORM aggregation. Empty '
+            'trainer base → empty list.'
         ),
         parameters=[
             OpenApiParameter(
@@ -183,4 +170,4 @@ class AdminHeatmapStateActivityAPI(APIView):
         # 400 — the dashboard must always render.
         raw = (request.query_params.get('period') or _DEFAULT_PERIOD).strip().lower()
         period = raw if raw in _VALID_PERIODS else _DEFAULT_PERIOD
-        return Response(_get_mock_state_activity(period), status=200)
+        return Response(_build_state_activity(period), status=200)

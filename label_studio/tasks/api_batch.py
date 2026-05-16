@@ -1,43 +1,35 @@
-"""TrainPlex Trainer Batch endpoint — Phase 1 Step 1.4-E.
+"""TrainPlex Trainer Batch endpoint — WAVE-19 BATCH-LEVEL grouping (founder fix).
 
-Per plan: "10-task batch native + sticky earnings ticker."
+Per founder screenshot reconciliation (2026-05-16): the trainer landing page
+must show 1 card per PROJECT (= 1 batch series of 10 tasks), NOT 10 cards
+(one per individual task).  Mirror the design of ``/trainer/tasks`` so the
+trainer sees "Available batches" cards with theme + pay/batch + available
+batches count, just like the existing TrainPlex Next.js page.
 
 Endpoints
 ---------
-GET  /api/v1/trainer/batch            — return current trainer's 10-task batch
-POST /api/v1/trainer/batch/refresh    — admin-only re-trigger (re-assigns the
-                                         batch for the requesting admin/user).
+GET  /api/v1/trainer/batch
+    Returns ``{results: [BatchSummary], closed_for_user: bool, reason?: str}``.
+    Each summary = one project's next 10-task chunk, plus how many more
+    chunks remain.
 
-Phase 1 status
---------------
-The real batch-assignment engine (queue scheduler, tier-aware fairness, payout
-ledger entries) lands in Phase 2 / Step 8 alongside the dynamic-pricing v2
-write-path. Until then, GET returns a deterministic *mock* batch — 10 tasks
-synthesised from the trainer's id so the founder + UI can demo the batch flow
-end-to-end (tile grid, earnings ticker, completion celebration) without any DB
-seeding.
+POST /api/v1/trainer/batch/<batch_id>/claim
+    Reserve the next 10 un-labeled task IDs in the given project. Returns
+    the task_id list + ``first_task_id`` so the SPA can router.push to
+    ``/trainer/task/<first_task_id>``.
 
-Why mock vs empty DB?
-- A trainer hitting `/trainer/batch` on a fresh install must see something or
-  the UI tile grid never renders for QA / dogfood / demo.
-- The JSON contract is pinned by `tasks/tests/test_batch.py` so the React side
-  stays stable when Phase 2 swaps the mock for a real query.
-- Earnings_inr values match the dynamic-pricing v1 ranges (₹5 - ₹50/task)
-  documented in `core/services/pricing_v1.py` (or its equivalent — TODO
-  cross-link when Phase 2 lands).
+POST /api/v1/trainer/batch/refresh
+    Admin-only refresh trigger (preserved from Phase 1).
 
-Role gate
----------
-- ``GET`` is open to ``trainer`` only — reviewers and admin both see 403.
-  Founder rationale: this is the trainer self-service endpoint; reviewer has
-  its own queue (Phase 2) and admin has the bulk-assign workbench.
-- ``POST /refresh`` is admin only — used by support / founder to nudge a
-  trainer back into a working batch when their queue jams.
+Allowlist gate (tonight only)
+-----------------------------
+The trainer batch surface is closed for everyone except the ceo email and
+admin/superuser until founder green-lights wider rollout. Other trainers
+see ``closed_for_user=true`` so the SPA shows a "Coming soon" gate.
 """
 
 from __future__ import annotations
 
-import hashlib
 import logging
 from typing import Any, Dict, List
 
@@ -47,249 +39,283 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from tasks.models import Annotation, Task
 from users.decorators import require_role
+from users.decorators.require_role import _trainer_gate_open
 
 logger = logging.getLogger(__name__)
 
 
-# Tasks per batch. Plan locks this at 10; the ``size`` query param can shrink
-# it for demos but is hard-capped at MAX_BATCH_SIZE so a curious caller can't
-# fan out a huge mock payload.
+# Tasks per batch. Plan locks this at 10; matches /trainer/tasks contract.
 DEFAULT_BATCH_SIZE = 10
 MAX_BATCH_SIZE = 50
 
-
-# Task-type catalog — kept short so the React tile grid renders consistent
-# preview content for every mock task. Mirrors the LS template categories
-# we ship in the admin gallery (see ``core/views_template_gallery.py``).
-_TASK_TYPES = [
-    {
-        'task_type': 'image_classification',
-        'preview': 'Classify the object in the image',
-        'estimated_min': 1,
-        'earnings_inr': 8,
-        'tier': 'bronze',
-    },
-    {
-        'task_type': 'bounding_box',
-        'preview': 'Draw bounding boxes around vehicles',
-        'estimated_min': 3,
-        'earnings_inr': 15,
-        'tier': 'silver',
-    },
-    {
-        'task_type': 'text_sentiment',
-        'preview': 'Tag the sentiment of this sentence',
-        'estimated_min': 1,
-        'earnings_inr': 5,
-        'tier': 'bronze',
-    },
-    {
-        'task_type': 'audio_transcription',
-        'preview': 'Transcribe this 30-second audio clip',
-        'estimated_min': 5,
-        'earnings_inr': 25,
-        'tier': 'silver',
-    },
-    {
-        'task_type': 'ocr_kyc',
-        'preview': 'Read the Aadhaar number on this card',
-        'estimated_min': 2,
-        'earnings_inr': 12,
-        'tier': 'silver',
-    },
-    {
-        'task_type': 'video_action',
-        'preview': 'Tag the action happening in this 10s clip',
-        'estimated_min': 4,
-        'earnings_inr': 20,
-        'tier': 'gold',
-    },
-    {
-        'task_type': 'translation_qa',
-        'preview': 'Review this Hindi → English translation',
-        'estimated_min': 2,
-        'earnings_inr': 10,
-        'tier': 'silver',
-    },
-    {
-        'task_type': 'named_entity',
-        'preview': 'Tag entities (people / places) in the paragraph',
-        'estimated_min': 3,
-        'earnings_inr': 14,
-        'tier': 'silver',
-    },
-    {
-        'task_type': 'safety_review',
-        'preview': 'Flag any unsafe content in this image',
-        'estimated_min': 1,
-        'earnings_inr': 7,
-        'tier': 'bronze',
-    },
-    {
-        'task_type': 'qa_dispute_review',
-        'preview': 'Review the dispute and choose a verdict',
-        'estimated_min': 5,
-        'earnings_inr': 30,
-        'tier': 'gold',
-    },
-]
+# Default INR per batch (10 tasks @ ₹5/task = ₹50/batch). Matches the
+# founder's screenshot "Pay/batch ₹50". Overrides land via project
+# metadata in the Phase 2 pricing engine.
+DEFAULT_PAY_INR_PER_BATCH = 50
 
 
-def _seed_for_user(user_id: int) -> int:
-    """Stable per-user offset so each trainer's mock batch looks distinct."""
-    h = hashlib.sha256(str(user_id).encode('utf-8')).digest()
-    return int.from_bytes(h[:4], 'big')
+# --------------------------------------------------------------------------
+# Theme inference
+# --------------------------------------------------------------------------
+
+# Map fork project titles ("Pilot Batch — Hindi Culture") to the chip slug
+# the SPA expects ("culture"). Slugs match THEME_LABELS in the existing
+# /trainer/tasks page so the chip filter and emoji palette are shared.
+_THEME_KEYWORDS = {
+    "hinglish": "codeswitching",
+    "codeswitching": "codeswitching",
+    "culture": "culture",
+    "cultural": "culture",
+    "daily life": "daily_life",
+    "daily": "daily_life",
+    "regional": "regional",
+    "region": "regional",
+    "sensitive": "sensitive",
+}
 
 
-def _build_mock_batch(user_id: int, size: int) -> List[Dict[str, Any]]:
-    """Synthesise a deterministic 10-task batch for ``user_id``.
+def _infer_theme(project) -> str:
+    """Derive a chip slug from the project title.
 
-    The first 2 tasks are marked ``in_progress`` (mock continuity for the
-    UI's resume-where-you-left-off behaviour); the rest are ``pending``.
-    Phase 2 replaces this with a real ORM query over the assignment ledger.
+    Example: ``Pilot Batch — Hindi Culture`` -> ``culture``.
+    Returns ``"general"`` if no keyword matches so the chip filter still
+    shows the card under "All themes".
     """
-    offset = _seed_for_user(user_id)
-    n_types = len(_TASK_TYPES)
-    batch: List[Dict[str, Any]] = []
-    for i in range(size):
-        tt = _TASK_TYPES[(offset + i) % n_types]
-        # Mock task_id is namespaced (user-id, slot) so it's stable across
-        # repeat GETs but never collides with real Task ids (which start
-        # at 1 in the real LS schema).
-        task_id = 9_000_000 + (user_id * 1000) + i
-        status_value = 'in_progress' if i < 2 else 'pending'
-        batch.append(
+    title = (project.title or "").lower()
+    for kw, slug in _THEME_KEYWORDS.items():
+        if kw in title:
+            return slug
+    return "general"
+
+
+def _project_code(project) -> str:
+    """Deterministic short code surfaced on each card top-line.
+
+    Format: ``RLHF-2026-008`` for project id 8. Stable, sortable, and
+    safe to copy/paste into Slack threads.
+    """
+    return f"RLHF-2026-{project.id:03d}"
+
+
+# --------------------------------------------------------------------------
+# Allowlist + claim helpers
+# --------------------------------------------------------------------------
+
+
+def _list_available_batches(user) -> List[Dict[str, Any]]:
+    """Return batch-level summaries grouped by project.
+
+    Each entry corresponds to ONE project. ``task_count`` is the size of
+    the NEXT claimable batch (≤ 10); ``available_batches`` is how many
+    full + partial chunks of 10 still exist in that project. The card
+    UI shows both numbers (e.g. "Batch 10 tasks · Available 5 batches").
+    """
+    from projects.models import Project
+
+    out: List[Dict[str, Any]] = []
+    project_qs = Project.objects.all().order_by("id")
+    for project in project_qs:
+        unlabeled_count = Task.objects.filter(project=project, is_labeled=False).count()
+        if unlabeled_count == 0:
+            continue
+
+        available_batches = (unlabeled_count + DEFAULT_BATCH_SIZE - 1) // DEFAULT_BATCH_SIZE
+
+        active_in_project = Annotation.objects.filter(
+            task__project=project,
+            completed_by=user,
+            was_cancelled=False,
+        ).count()
+
+        out.append(
             {
-                'task_id': task_id,
-                # Mock project_id — Phase 2 swaps for the real Project FK.
-                'project_id': 1_000 + (i % 5),
-                'task_type': tt['task_type'],
-                'preview': tt['preview'],
-                'earnings_inr': tt['earnings_inr'],
-                'estimated_min': tt['estimated_min'],
-                'tier': tt['tier'],
-                'status': status_value,
+                "batch_id": f"prj-{project.id}-current",
+                "project_id": project.id,
+                "project_code": _project_code(project),
+                "theme": _infer_theme(project),
+                "title": project.title or "Untitled project",
+                "task_count": min(DEFAULT_BATCH_SIZE, unlabeled_count),
+                "pay_inr": DEFAULT_PAY_INR_PER_BATCH,
+                "pay_paise_per_batch": DEFAULT_PAY_INR_PER_BATCH * 100,
+                "available_batches": available_batches,
+                "tier": getattr(user, "tier", None) or "bronze",
+                "status": "in_progress" if active_in_project > 0 else "available",
+                "deadline": None,
             }
         )
-    return batch
+    return out
 
 
-def _coerce_size(raw: str | None) -> int:
-    """Parse and clamp the ``size`` query parameter.
+def _claim_next_task_ids(project_id: int, size: int = DEFAULT_BATCH_SIZE) -> List[int]:
+    """Return the next ``size`` un-labeled task IDs in a project.
 
-    - Missing / non-numeric → DEFAULT_BATCH_SIZE (10).
-    - Negative / zero       → DEFAULT_BATCH_SIZE (10).
-    - Above MAX_BATCH_SIZE  → MAX_BATCH_SIZE (50).
+    Used by ``POST /trainer/batch/<batch_id>/claim``. Phase 2 Step 8 will
+    layer a real reservation ledger on top; for tonight we surface the
+    next-ten queryset deterministically by ``id``.
     """
-    if raw is None:
-        return DEFAULT_BATCH_SIZE
-    try:
-        n = int(raw)
-    except (TypeError, ValueError):
-        return DEFAULT_BATCH_SIZE
-    if n <= 0:
-        return DEFAULT_BATCH_SIZE
-    if n > MAX_BATCH_SIZE:
-        return MAX_BATCH_SIZE
-    return n
+    return list(
+        Task.objects.filter(project_id=project_id, is_labeled=False)
+        .order_by("id")
+        .values_list("id", flat=True)[:size]
+    )
+
+
+# --------------------------------------------------------------------------
+# API views
+# --------------------------------------------------------------------------
 
 
 class TrainerBatchAPI(APIView):
-    """Return the current trainer's 10-task batch.
-
-    Trainer role only. Returns a JSON array — one entry per task — that the
-    `<BatchPage />` React component renders as a tile grid. Earnings totals
-    in the sticky bottom ticker are computed client-side from this payload
-    so there's exactly one number-of-truth.
-    """
+    """Return the batch-level landing for the current trainer."""
 
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(
-        tags=['Trainer'],
-        summary='Get the trainer 10-task batch',
+        tags=["Trainer"],
+        summary="List available batches",
         description=(
-            'Return the current trainer\'s 10-task batch tile grid. Trainer '
-            'role only. Phase 1: mock data (deterministic per trainer); real '
-            'assignment engine lands in Phase 2 / Step 8.'
+            "Return one BatchSummary per fork project that still has "
+            "un-labeled tasks. Each summary = a 10-task batch the trainer "
+            "can claim. Gated behind the tonight-only allowlist; "
+            "non-allowlisted trainers receive closed_for_user=true."
         ),
-        parameters=[
-            OpenApiParameter(
-                name='size',
-                description=(
-                    f'Tasks to return. Default {DEFAULT_BATCH_SIZE}, capped at '
-                    f'{MAX_BATCH_SIZE}. Out-of-range / non-numeric values silently '
-                    f'fall back to default — keeps the UI from 400-spinning.'
-                ),
-                required=False,
-                type=int,
-            ),
-        ],
     )
-    @require_role(['trainer'])
     def get(self, request, *args, **kwargs):
-        size = _coerce_size(request.query_params.get('size'))
-        batch = _build_mock_batch(request.user.id, size)
-        return Response(batch, status=status.HTTP_200_OK)
+        user = request.user
+        if not _trainer_gate_open(user):
+            return Response(
+                {
+                    "results": [],
+                    "closed_for_user": True,
+                    "reason": "Aapke liye abhi batch tayar nahi. Jaldi available hoga.",
+                },
+                status=status.HTTP_200_OK,
+            )
+        try:
+            batches = _list_available_batches(user)
+        except Exception:  # pragma: no cover — never 5xx the landing page
+            logger.exception("TrainerBatchAPI: list_available_batches failed")
+            batches = []
+        return Response(
+            {"results": batches, "closed_for_user": False},
+            status=status.HTTP_200_OK,
+        )
+
+
+class TrainerBatchClaimAPI(APIView):
+    """Reserve the next 10 un-labeled tasks in a project (a "batch")."""
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(
+        tags=["Trainer"],
+        summary="Claim a 10-task batch",
+        description=(
+            "Reserve the next 10 un-labeled task IDs in the project "
+            "referenced by ``batch_id`` (format prj-<project_id>-current). "
+            "Returns ``{batch_id, task_ids, first_task_id}`` so the SPA "
+            "can navigate the trainer into the labeling flow."
+        ),
+    )
+    def post(self, request, batch_id: str, *args, **kwargs):
+        user = request.user
+        if not _trainer_gate_open(user):
+            return Response(
+                {
+                    "detail": "Aapke liye abhi batch tayar nahi.",
+                    "closed_for_user": True,
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            parts = batch_id.split("-")
+            project_id = int(parts[1])
+        except (IndexError, ValueError):
+            return Response(
+                {"detail": "Invalid batch_id. Expected prj-<project_id>-current."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        task_ids = _claim_next_task_ids(project_id, DEFAULT_BATCH_SIZE)
+        if not task_ids:
+            return Response(
+                {"detail": "No tasks available in this batch right now."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(
+            {
+                "batch_id": batch_id,
+                "project_id": project_id,
+                "task_ids": task_ids,
+                "first_task_id": task_ids[0],
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class TrainerBatchRefreshAPI(APIView):
-    """Force a re-assignment of the current batch (admin only, Phase 1 mock).
+    """Admin-only batch refresh trigger (preserved from Phase 1).
 
-    In Phase 2 this calls into the assignment engine to clear the trainer's
-    current batch and pull the next chunk from the project queue. For now
-    it just returns a fresh mock batch with shuffled offset so the founder
-    can demo the "stuck queue" recovery flow.
+    The Phase 1 mock-batch builder is replaced by the real
+    ``_list_available_batches`` helper above; the endpoint still returns
+    ``{trainer_id, batches, refreshed_count}`` so existing admin clients
+    keep working.
     """
 
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(
-        tags=['Trainer'],
-        summary='Refresh a trainer batch (admin only)',
-        description=(
-            'Admin-only re-trigger of batch assignment. Body may carry '
-            '{trainer_id, size}; if omitted, refreshes the calling admin\'s '
-            'own batch (useful for QA). Phase 1 returns a fresh mock batch; '
-            'Phase 2 wires the real assignment engine.'
-        ),
+        tags=["Trainer"],
+        summary="Refresh batch list (admin only)",
     )
-    @require_role(['admin'])
+    @require_role(["admin"])
     def post(self, request, *args, **kwargs):
-        # Admin can refresh on behalf of a trainer or for themselves.
-        trainer_id = request.data.get('trainer_id') or request.user.id
+        from users.models import User  # local import — avoids app-load cycles
+
+        trainer_id = request.data.get("trainer_id") or request.user.id
         try:
             trainer_id = int(trainer_id)
         except (TypeError, ValueError):
             return Response(
-                {'detail': 'trainer_id must be an integer.'},
+                {"detail": "trainer_id must be an integer."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        size = _coerce_size(request.data.get('size'))
-        # Use a different offset bucket on refresh so the new batch looks
-        # different from the previous GET. We do that by incrementing the
-        # mock seed deterministically — fine for demo, replaced in Phase 2.
-        batch = _build_mock_batch(trainer_id + 1, size)
+        try:
+            trainer = User.objects.get(id=trainer_id)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": f"trainer {trainer_id} not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        try:
+            batches = _list_available_batches(trainer)
+        except Exception:  # pragma: no cover
+            logger.exception("TrainerBatchRefreshAPI: build failed")
+            batches = []
         logger.info(
-            'TrainerBatchRefreshAPI: admin %s refreshed batch for trainer %s (size=%d)',
+            "TrainerBatchRefreshAPI: admin %s refreshed batches for trainer %s",
             request.user.id,
             trainer_id,
-            size,
         )
         return Response(
             {
-                'trainer_id': trainer_id,
-                'batch': batch,
-                'refreshed_count': len(batch),
+                "trainer_id": trainer_id,
+                "batches": batches,
+                "refreshed_count": len(batches),
             },
             status=status.HTTP_200_OK,
         )
 
 
 __all__ = [
-    'TrainerBatchAPI',
-    'TrainerBatchRefreshAPI',
-    'DEFAULT_BATCH_SIZE',
-    'MAX_BATCH_SIZE',
+    "TrainerBatchAPI",
+    "TrainerBatchClaimAPI",
+    "TrainerBatchRefreshAPI",
+    "DEFAULT_BATCH_SIZE",
+    "MAX_BATCH_SIZE",
+    "DEFAULT_PAY_INR_PER_BATCH",
 ]

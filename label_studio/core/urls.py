@@ -44,10 +44,15 @@ from core.views_health import HealthDeepAPI, HealthShallowAPI
 from core.views_heatmap import AdminHeatmapStateActivityAPI
 from core.views_submissions_preview import AdminSubmissionsPreviewAPI
 from core.views_template_gallery import (
+    AdminProjectAppendCsvAPI,
     AdminProjectWizardCreateAPI,
     AdminTemplateCatalogAPI,
 )
-from tasks.api_batch import TrainerBatchAPI, TrainerBatchRefreshAPI
+from tasks.api_batch import (
+    TrainerBatchAPI,
+    TrainerBatchClaimAPI,
+    TrainerBatchRefreshAPI,
+)
 from users.api_profile import (
     TrainerLoginHistoryAPI,
     TrainerPasswordChangeAPI,
@@ -142,6 +147,14 @@ urlpatterns = [
         'api/v1/admin/projects/wizard',
         AdminProjectWizardCreateAPI.as_view(),
         name='admin-project-wizard-create',
+    ),
+    # TrainPlex — Phase 2 Step 4.2-2 wiring: append more CSV rows as Tasks
+    # to an existing project, so the founder can top up an in-flight batch
+    # without recreating the project.
+    path(
+        'api/v1/admin/projects/<int:project_id>/upload-csv',
+        AdminProjectAppendCsvAPI.as_view(),
+        name='admin-project-append-csv',
     ),
     # TrainPlex — Phase 1 Step 4.2-3: Admin Bulk Task Assign.
     # Filter trainers by state / tier / language / cert, then assign tasks
@@ -244,6 +257,15 @@ urlpatterns = [
         'api/v1/trainer/batch/refresh',
         TrainerBatchRefreshAPI.as_view(),
         name='trainer-batch-refresh',
+    ),
+    # TrainPlex — WAVE-19 (founder fix 2026-05-16): per-batch claim.
+    # POST /api/v1/trainer/batch/<batch_id>/claim reserves the next 10
+    # un-labeled tasks in the project referenced by batch_id and returns
+    # task_ids + first_task_id for client-side routing.
+    path(
+        'api/v1/trainer/batch/<str:batch_id>/claim',
+        TrainerBatchClaimAPI.as_view(),
+        name='trainer-batch-claim',
     ),
     # TrainPlex — Phase 1 Step 4.3 + 4.4: PWA + Offline submit queue.
     # `/manifest.webmanifest` is a Django backstop (the SPA dist already

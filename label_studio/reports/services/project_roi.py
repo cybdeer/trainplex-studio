@@ -1,175 +1,109 @@
-"""Per-project ROI service — Phase 1 Step 7.
+"""Project ROI analyzer — Phase 2 WAVE-19 real-data wiring.
 
-Builds the cost / revenue / ROI breakdown for a single project so the founder
-can quickly read which projects are paying for themselves and which need to
-be repriced.
+Computes per-project cost, revenue, profit, and ROI from real Django ORM
+queries against ``projects.Project`` / ``tasks.Task`` / ``payments.PaymentHold``.
 
-Output fields
--------------
-* ``project_id`` / ``project_name`` / ``project_type``
-* ``tasks_created`` / ``tasks_completed``
-* ``trainer_payout_inr``        - sum of WalletTransaction.TYPE_RELEASE for this project
-* ``reviewer_payout_inr``       - peer-review reviewer pay (Step 6 → consensus)
-* ``infra_cost_inr``            - LS + storage + ML inference allocation
-* ``total_cost_inr``            - sum of trainer + reviewer + infra
-* ``external_revenue_inr``      - what we billed the customer (Phase 2 wiring)
-* ``profit_inr``                - external_revenue - total_cost
-* ``roi_pct``                   - (profit / total_cost) * 100, int
-* ``cost_per_quality_task_inr`` - total_cost / max(1, quality_passed_tasks)
-* ``time_to_complete_days``     - calendar days from kickoff → 95% completion
-* ``quality_score_pct``         - share of tasks passing 3-reviewer consensus
+Empty DB → ``[]`` and ``compute_project_roi(unknown_id)`` → ``None``. No
+fabricated activity.
 
-Phase 1: deterministic mocks per project_id in a known seed range. Unknown
-ids return a "not_found" sentinel (None) so the API can 404.
-
-TODO Phase 2: replace with real aggregation joining Project / WalletTransaction
-/ PayoutQueue / Submission tables.
+Cost components (Phase 1 best-effort)
+-------------------------------------
+* ``trainer_payout_inr``   - sum(PaymentHold.amount_inr) for tasks in project
+* ``reviewer_payout_inr``  - 0 until reviewer payment ledger lands (Phase 2/3)
+* ``infra_cost_inr``       - 0 until ops-cost field lands on Project (Phase 2/3)
 """
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 
-# ---------------------------------------------------------------------------
-# Mock project catalogue
-# ---------------------------------------------------------------------------
-
-_PROJECT_CATALOG: Dict[int, Dict[str, Any]] = {
-    101: {
-        'project_id': 101,
-        'project_name': 'KYC OCR — Hindi',
-        'project_type': 'ocr',
-        'language': 'hi',
-        'tasks_created': 5000,
-        'tasks_completed': 4825,
-        'trainer_payout_inr': 96_500,
-        'reviewer_payout_inr': 28_500,
-        'infra_cost_inr': 20_000,
-        'external_revenue_inr': 285_000,
-        'time_to_complete_days': 18,
-        'quality_score_pct': 92,
-    },
-    102: {
-        'project_id': 102,
-        'project_name': 'Voice intent — Bhojpuri',
-        'project_type': 'voice',
-        'language': 'bho',
-        'tasks_created': 3200,
-        'tasks_completed': 3040,
-        'trainer_payout_inr': 64_000,
-        'reviewer_payout_inr': 18_500,
-        'infra_cost_inr': 9_500,
-        'external_revenue_inr': 158_000,
-        'time_to_complete_days': 22,
-        'quality_score_pct': 87,
-    },
-    103: {
-        'project_id': 103,
-        'project_name': 'Receipt extract — Tamil',
-        'project_type': 'ocr',
-        'language': 'ta',
-        'tasks_created': 2400,
-        'tasks_completed': 2350,
-        'trainer_payout_inr': 48_000,
-        'reviewer_payout_inr': 14_000,
-        'infra_cost_inr': 6_000,
-        'external_revenue_inr': 118_000,
-        'time_to_complete_days': 15,
-        'quality_score_pct': 90,
-    },
-    104: {
-        'project_id': 104,
-        'project_name': 'Sentiment — Marathi',
-        'project_type': 'sentiment',
-        'language': 'mr',
-        'tasks_created': 2000,
-        'tasks_completed': 1880,
-        'trainer_payout_inr': 38_000,
-        'reviewer_payout_inr': 11_000,
-        'infra_cost_inr': 5_000,
-        'external_revenue_inr': 84_000,
-        'time_to_complete_days': 16,
-        'quality_score_pct': 85,
-    },
-    105: {
-        'project_id': 105,
-        'project_name': 'Image moderation',
-        'project_type': 'moderation',
-        'language': 'hi',
-        'tasks_created': 1500,
-        'tasks_completed': 1380,
-        'trainer_payout_inr': 32_000,
-        'reviewer_payout_inr': 9_500,
-        'infra_cost_inr': 6_500,
-        'external_revenue_inr': 62_000,
-        'time_to_complete_days': 12,
-        'quality_score_pct': 81,
-    },
-    106: {
-        'project_id': 106,
-        'project_name': 'Voice intent — Hindi',
-        'project_type': 'voice',
-        'language': 'hi',
-        'tasks_created': 4200,
-        'tasks_completed': 4020,
-        'trainer_payout_inr': 78_000,
-        'reviewer_payout_inr': 22_500,
-        'infra_cost_inr': 11_500,
-        'external_revenue_inr': 198_000,
-        'time_to_complete_days': 19,
-        'quality_score_pct': 89,
-    },
-}
+def _decimal_to_int(v) -> int:
+    if v is None:
+        return 0
+    if isinstance(v, Decimal):
+        return int(v)
+    return int(v)
 
 
-# ---------------------------------------------------------------------------
-# Computation
-# ---------------------------------------------------------------------------
+def _build_roi_for_project(project) -> Dict[str, Any]:
+    """Build the ROI dict for a single project from real ORM rows."""
+    from django.db.models import Count, Sum
 
+    from payments.models import PaymentHold
+    from peer_review.models import ConsensusResult
 
-def _decorate_roi(row: Dict[str, Any]) -> Dict[str, Any]:
-    """Compute the derived ROI / cost / profit fields from raw cost data.
+    task_ids = list(project.tasks.values_list('id', flat=True))
+    tasks_created = len(task_ids)
+    tasks_completed = 0
+    if task_ids:
+        # "Completed" = consensus computed in approved/flagged status.
+        tasks_completed = ConsensusResult.objects.filter(
+            task_id__in=task_ids,
+            status__in=[
+                ConsensusResult.STATUS_APPROVED,
+                ConsensusResult.STATUS_FLAGGED,
+            ],
+        ).count()
 
-    Kept as a single transform so the unit test can assert the math directly
-    against the seed catalogue without having to spin up the API layer.
-    """
-    total_cost_inr = (
-        row['trainer_payout_inr']
-        + row['reviewer_payout_inr']
-        + row['infra_cost_inr']
+    trainer_payout_inr = 0
+    if task_ids:
+        trainer_payout_inr = _decimal_to_int(
+            PaymentHold.objects.filter(
+                task_id__in=task_ids,
+                status__in=[
+                    PaymentHold.STATUS_RELEASED,
+                    PaymentHold.STATUS_HELD,
+                ],
+            ).aggregate(s=Sum('amount_inr'))['s']
+        )
+
+    reviewer_payout_inr = 0  # ledger not in scope for Phase 1
+    infra_cost_inr = 0  # ops-cost field not on Project yet
+
+    total_cost_inr = trainer_payout_inr + reviewer_payout_inr + infra_cost_inr
+    # external_revenue_inr is not tracked anywhere yet — emit 0 honestly.
+    external_revenue_inr = 0
+    profit_inr = external_revenue_inr - total_cost_inr
+    roi_pct = int(round((profit_inr / total_cost_inr) * 100)) if total_cost_inr > 0 else 0
+
+    # Quality score
+    consensus_rows = (
+        ConsensusResult.objects.filter(task_id__in=task_ids) if task_ids else None
     )
-    revenue = row['external_revenue_inr']
-    profit_inr = revenue - total_cost_inr
-    roi_pct = (
-        int(round((profit_inr / total_cost_inr) * 100))
-        if total_cost_inr > 0
-        else 0
-    )
-    quality_passed = int(
-        round(row['tasks_completed'] * row['quality_score_pct'] / 100)
-    )
-    cost_per_quality_task_inr = (
-        int(round(total_cost_inr / max(1, quality_passed)))
-    )
+    if consensus_rows and consensus_rows.exists():
+        total = consensus_rows.count()
+        passed = consensus_rows.filter(
+            status__in=[
+                ConsensusResult.STATUS_APPROVED,
+                ConsensusResult.STATUS_FLAGGED,
+            ]
+        ).count()
+        quality_score_pct = int(round((passed / total) * 100)) if total else 0
+    else:
+        quality_score_pct = 0
+
+    quality_passed = int(round(tasks_completed * quality_score_pct / 100)) if quality_score_pct else 0
+    cost_per_quality_task_inr = int(round(total_cost_inr / max(1, quality_passed))) if quality_passed else 0
 
     return {
-        'project_id': row['project_id'],
-        'project_name': row['project_name'],
-        'project_type': row['project_type'],
-        'language': row['language'],
-        'tasks_created': row['tasks_created'],
-        'tasks_completed': row['tasks_completed'],
-        'trainer_payout_inr': row['trainer_payout_inr'],
-        'reviewer_payout_inr': row['reviewer_payout_inr'],
-        'infra_cost_inr': row['infra_cost_inr'],
+        'project_id': project.id,
+        'project_name': project.title or f'Project #{project.id}',
+        'project_type': '',
+        'language': '',
+        'tasks_created': tasks_created,
+        'tasks_completed': tasks_completed,
+        'trainer_payout_inr': trainer_payout_inr,
+        'reviewer_payout_inr': reviewer_payout_inr,
+        'infra_cost_inr': infra_cost_inr,
         'total_cost_inr': total_cost_inr,
-        'external_revenue_inr': revenue,
+        'external_revenue_inr': external_revenue_inr,
         'profit_inr': profit_inr,
         'roi_pct': roi_pct,
         'cost_per_quality_task_inr': cost_per_quality_task_inr,
-        'time_to_complete_days': row['time_to_complete_days'],
-        'quality_score_pct': row['quality_score_pct'],
+        'time_to_complete_days': 0,
+        'quality_score_pct': quality_score_pct,
     }
 
 
@@ -177,21 +111,23 @@ def compute_project_roi(project_id: int) -> Optional[Dict[str, Any]]:
     """Return the ROI breakdown for a single project.
 
     Returns ``None`` for an unknown ``project_id`` so the API layer can 404.
-
-    TODO Phase 2: replace the seed lookup with a real aggregation over the
-    Project / WalletTransaction / PayoutQueue tables joined on project_id.
     """
-    row = _PROJECT_CATALOG.get(int(project_id))
-    if row is None:
+    try:
+        from projects.models import Project
+    except Exception:
         return None
-    return _decorate_roi(row)
+    project = Project.objects.filter(id=int(project_id)).first()
+    if project is None:
+        return None
+    return _build_roi_for_project(project)
 
 
 def compute_all_project_roi() -> List[Dict[str, Any]]:
-    """Return every project's ROI breakdown — used for the table view.
-
-    Sorted DESC by roi_pct so the founder reads top-performing projects first.
-    """
-    rows = [_decorate_roi(row) for row in _PROJECT_CATALOG.values()]
+    """Return every project's ROI breakdown. Empty DB → ``[]``."""
+    try:
+        from projects.models import Project
+    except Exception:
+        return []
+    rows = [_build_roi_for_project(p) for p in Project.objects.all()]
     rows.sort(key=lambda r: -r['roi_pct'])
     return rows

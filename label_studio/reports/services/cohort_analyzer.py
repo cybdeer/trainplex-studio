@@ -1,28 +1,29 @@
-"""Cohort retention analyzer — Phase 1 Step 7.
+"""Cohort retention analyzer — Phase 2 WAVE-19 real-data wiring.
 
 Builds cohort-based curves the founder uses to understand how trainer waves
-behave over time.
+behave over time. Real Django ORM aggregation.
 
 Cohort definitions
 ------------------
 * ``'registration_week'``   - bucket trainers by ISO week of signup
-* ``'signup_wave'``         - bucket trainers by hiring wave (named cohorts)
+* ``'signup_wave'``         - same as registration_week for now
 * ``'tier_promotion_month'``- bucket trainers by the month they were promoted
-                              to silver/gold
+                              (requires User.tier_promoted_at field)
 
 Curves returned per cohort
 --------------------------
 * ``retention_curve``     - day 7 / 30 / 60 / 90 retention %
-* ``productivity_curve``  - average tasks/day per cohort by week-since-signup
+* ``productivity_curve``  - average tasks/week per cohort member
 * ``earnings_curve``      - cumulative ₹ per cohort member by week-since-signup
 * ``drop_off_analysis``   - per-stage trainer-count fall-off
 
-Phase 1: deterministic mocks. Phase 2 swaps to real ``Trainer.objects``
-queries grouped by signup ISO week / wave label / tier promotion month.
+Empty DB → ``cohorts == []`` (honest empty).
 """
 
 from __future__ import annotations
 
+from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 
@@ -33,9 +34,28 @@ _VALID_COHORT_DEFINITIONS = (
 )
 _DEFAULT_COHORT_DEFINITION = 'signup_wave'
 
+_CURVE_WEEKS = 12
+
+
+def _user_has_field(field_name: str) -> bool:
+    try:
+        from users.models import User
+
+        User._meta.get_field(field_name)
+        return True
+    except Exception:
+        return False
+
+
+def _decimal_to_int(v) -> int:
+    if v is None:
+        return 0
+    if isinstance(v, Decimal):
+        return int(v)
+    return int(v)
+
 
 def _retention_curve(day_7: int, day_30: int, day_60: int, day_90: int) -> List[Dict[str, Any]]:
-    """4-point retention curve so the React heatmap can render cleanly."""
     return [
         {'day': 7, 'retention_pct': day_7},
         {'day': 30, 'retention_pct': day_30},
@@ -44,238 +64,149 @@ def _retention_curve(day_7: int, day_30: int, day_60: int, day_90: int) -> List[
     ]
 
 
-def _productivity_curve(start: int, end: int, weeks: int = 12) -> List[Dict[str, Any]]:
-    """Smooth productivity ramp — linear interpolation from start → end."""
-    if weeks < 2:
-        return [{'week': 1, 'avg_tasks_per_day': start}]
-    step = (end - start) / (weeks - 1)
-    return [
-        {
-            'week': w + 1,
-            'avg_tasks_per_day': max(0, int(round(start + step * w))),
-        }
-        for w in range(weeks)
-    ]
+def _build_cohorts_by_week() -> List[Dict[str, Any]]:
+    """Real DB cohort build: trainers bucketed by ISO week of signup."""
+    from django.db.models import Count, Q, Sum
 
+    from payments.models import PaymentHold
+    from tasks.models import Annotation
+    from users.models import User
 
-def _earnings_curve(weekly_inr: int, weeks: int = 12) -> List[Dict[str, Any]]:
-    """Cumulative earnings per cohort member, weekly_inr ₹/week."""
-    return [
-        {
-            'week': w + 1,
-            'cumulative_earnings_inr': weekly_inr * (w + 1),
-        }
-        for w in range(weeks)
-    ]
+    trainers = User.objects.filter(role='trainer')
+    if not trainers.exists():
+        return []
 
+    earliest = trainers.order_by('date_joined').first()
+    latest = trainers.order_by('-date_joined').first()
+    if earliest is None or latest is None:
+        return []
 
-def _drop_off(stages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Decorate the drop-off list with a `drop_pct` between consecutive stages."""
+    first_monday = earliest.date_joined.date() - timedelta(days=earliest.date_joined.weekday())
+    last_monday = latest.date_joined.date() - timedelta(days=latest.date_joined.weekday())
+
     out: List[Dict[str, Any]] = []
-    prev: Optional[int] = None
-    for stage in stages:
-        count = stage['trainers_remaining']
-        if prev is None or prev == 0:
-            drop_pct = 0
-        else:
-            drop_pct = int(round((1 - (count / prev)) * 100))
-        out.append({**stage, 'drop_pct': drop_pct})
-        prev = count
+    wave_idx = 0
+    week = first_monday
+    while week <= last_monday and wave_idx < 12:
+        next_week = week + timedelta(days=7)
+        members = trainers.filter(
+            date_joined__date__gte=week, date_joined__date__lt=next_week
+        )
+        cohort_size = members.count()
+        if cohort_size == 0:
+            week = next_week
+            continue
+        wave_idx += 1
+
+        # Retention.
+        def _retained_pct(days: int) -> int:
+            start_dt = datetime.combine(week, datetime.min.time(), tzinfo=timezone.utc)
+            deadline = datetime.combine(
+                week + timedelta(days=days), datetime.min.time(), tzinfo=timezone.utc
+            )
+            n = members.filter(
+                last_login__gte=start_dt, last_login__lt=deadline
+            ).count()
+            return int(round((n / cohort_size) * 100)) if cohort_size else 0
+
+        retention = _retention_curve(
+            _retained_pct(7), _retained_pct(30), _retained_pct(60), _retained_pct(90)
+        )
+
+        # Productivity curve: avg tasks/cohort/week for weeks since signup.
+        member_ids = list(members.values_list('id', flat=True))
+        productivity_curve: List[Dict[str, Any]] = []
+        earnings_curve: List[Dict[str, Any]] = []
+        cum_earnings = 0
+        for w in range(1, _CURVE_WEEKS + 1):
+            w_start = datetime.combine(
+                week + timedelta(days=(w - 1) * 7), datetime.min.time(), tzinfo=timezone.utc
+            )
+            w_end = datetime.combine(
+                week + timedelta(days=w * 7), datetime.min.time(), tzinfo=timezone.utc
+            )
+            tasks = Annotation.objects.filter(
+                completed_by_id__in=member_ids,
+                created_at__gte=w_start,
+                created_at__lt=w_end,
+                was_cancelled=False,
+            ).count()
+            avg_per_member = round(tasks / cohort_size, 2) if cohort_size else 0
+            productivity_curve.append(
+                {'week': w, 'avg_tasks_per_member': avg_per_member}
+            )
+
+            week_earnings = _decimal_to_int(
+                PaymentHold.objects.filter(
+                    trainer_id__in=member_ids,
+                    held_at__gte=w_start,
+                    held_at__lt=w_end,
+                ).aggregate(s=Sum('amount_inr'))['s']
+            )
+            cum_earnings += week_earnings
+            earnings_curve.append(
+                {
+                    'week': w,
+                    'cumulative_earnings_per_member_inr': (
+                        cum_earnings // cohort_size if cohort_size else 0
+                    ),
+                }
+            )
+
+        # Drop-off: retained at each retention milestone.
+        drop_off_analysis: List[Dict[str, Any]] = []
+        prev = cohort_size
+        for milestone_days, label in [(7, 'day_7'), (30, 'day_30'), (60, 'day_60'), (90, 'day_90')]:
+            start_dt = datetime.combine(week, datetime.min.time(), tzinfo=timezone.utc)
+            deadline = datetime.combine(
+                week + timedelta(days=milestone_days), datetime.min.time(), tzinfo=timezone.utc
+            )
+            n = members.filter(last_login__gte=start_dt, last_login__lt=deadline).count()
+            lost = prev - n
+            drop_off_analysis.append(
+                {
+                    'stage': label,
+                    'remaining': n,
+                    'lost_since_prev': lost if lost > 0 else 0,
+                }
+            )
+            prev = n
+
+        out.append(
+            {
+                'cohort_id': f'week-{week.isoformat()}',
+                'cohort_name': f'Wave {wave_idx} ({week.strftime("%b %Y")})',
+                'cohort_start': week.isoformat(),
+                'cohort_size': cohort_size,
+                'retention_curve': retention,
+                'productivity_curve': productivity_curve,
+                'earnings_curve': earnings_curve,
+                'drop_off_analysis': drop_off_analysis,
+            }
+        )
+        week = next_week
+
     return out
-
-
-def _cohort_signup_wave_mock() -> List[Dict[str, Any]]:
-    return [
-        {
-            'cohort_id': 'wave-1-mar-2026',
-            'cohort_name': 'Wave 1 (Mar 2026)',
-            'cohort_start': '2026-03-04',
-            'cohort_size': 42,
-            'retention_curve': _retention_curve(88, 74, 62, 55),
-            'productivity_curve': _productivity_curve(start=4, end=14),
-            'earnings_curve': _earnings_curve(weekly_inr=1_800),
-            'drop_off_analysis': _drop_off([
-                {'stage': 'signed_up', 'trainers_remaining': 42},
-                {'stage': 'completed_kyc', 'trainers_remaining': 38},
-                {'stage': 'first_task', 'trainers_remaining': 36},
-                {'stage': 'first_payout', 'trainers_remaining': 32},
-                {'stage': 'active_30_days', 'trainers_remaining': 28},
-                {'stage': 'active_60_days', 'trainers_remaining': 24},
-                {'stage': 'active_90_days', 'trainers_remaining': 21},
-            ]),
-        },
-        {
-            'cohort_id': 'wave-2-mar-2026',
-            'cohort_name': 'Wave 2 (Mar 2026)',
-            'cohort_start': '2026-03-25',
-            'cohort_size': 38,
-            'retention_curve': _retention_curve(84, 71, 60, 52),
-            'productivity_curve': _productivity_curve(start=3, end=12),
-            'earnings_curve': _earnings_curve(weekly_inr=1_650),
-            'drop_off_analysis': _drop_off([
-                {'stage': 'signed_up', 'trainers_remaining': 38},
-                {'stage': 'completed_kyc', 'trainers_remaining': 33},
-                {'stage': 'first_task', 'trainers_remaining': 31},
-                {'stage': 'first_payout', 'trainers_remaining': 28},
-                {'stage': 'active_30_days', 'trainers_remaining': 24},
-                {'stage': 'active_60_days', 'trainers_remaining': 20},
-                {'stage': 'active_90_days', 'trainers_remaining': 17},
-            ]),
-        },
-        {
-            'cohort_id': 'wave-3-apr-2026',
-            'cohort_name': 'Wave 3 (Apr 2026)',
-            'cohort_start': '2026-04-08',
-            'cohort_size': 56,
-            'retention_curve': _retention_curve(91, 79, 66, 58),
-            'productivity_curve': _productivity_curve(start=5, end=16),
-            'earnings_curve': _earnings_curve(weekly_inr=2_100),
-            'drop_off_analysis': _drop_off([
-                {'stage': 'signed_up', 'trainers_remaining': 56},
-                {'stage': 'completed_kyc', 'trainers_remaining': 53},
-                {'stage': 'first_task', 'trainers_remaining': 51},
-                {'stage': 'first_payout', 'trainers_remaining': 47},
-                {'stage': 'active_30_days', 'trainers_remaining': 44},
-                {'stage': 'active_60_days', 'trainers_remaining': 37},
-                {'stage': 'active_90_days', 'trainers_remaining': 32},
-            ]),
-        },
-        {
-            'cohort_id': 'wave-4-apr-2026',
-            'cohort_name': 'Wave 4 (Apr 2026)',
-            'cohort_start': '2026-04-29',
-            'cohort_size': 48,
-            'retention_curve': _retention_curve(86, 73, 64, 56),
-            'productivity_curve': _productivity_curve(start=4, end=13),
-            'earnings_curve': _earnings_curve(weekly_inr=1_750),
-            'drop_off_analysis': _drop_off([
-                {'stage': 'signed_up', 'trainers_remaining': 48},
-                {'stage': 'completed_kyc', 'trainers_remaining': 43},
-                {'stage': 'first_task', 'trainers_remaining': 40},
-                {'stage': 'first_payout', 'trainers_remaining': 36},
-                {'stage': 'active_30_days', 'trainers_remaining': 32},
-                {'stage': 'active_60_days', 'trainers_remaining': 28},
-                {'stage': 'active_90_days', 'trainers_remaining': 24},
-            ]),
-        },
-    ]
-
-
-def _cohort_registration_week_mock() -> List[Dict[str, Any]]:
-    """Same shape; rendered week-by-week instead of by wave label."""
-    weeks = [
-        {'cohort_id': '2026-W10', 'cohort_name': 'Week 10', 'cohort_start': '2026-03-02',
-         'cohort_size': 18, 'retention': (84, 70, 58, 51), 'prod_start': 3, 'prod_end': 12, 'weekly': 1500},
-        {'cohort_id': '2026-W14', 'cohort_name': 'Week 14', 'cohort_start': '2026-03-30',
-         'cohort_size': 22, 'retention': (88, 75, 63, 55), 'prod_start': 4, 'prod_end': 14, 'weekly': 1800},
-        {'cohort_id': '2026-W17', 'cohort_name': 'Week 17', 'cohort_start': '2026-04-20',
-         'cohort_size': 31, 'retention': (91, 78, 66, 57), 'prod_start': 5, 'prod_end': 15, 'weekly': 1950},
-        {'cohort_id': '2026-W20', 'cohort_name': 'Week 20', 'cohort_start': '2026-05-11',
-         'cohort_size': 28, 'retention': (86, 72, 61, 54), 'prod_start': 4, 'prod_end': 13, 'weekly': 1750},
-    ]
-    out: List[Dict[str, Any]] = []
-    for w in weeks:
-        out.append({
-            'cohort_id': w['cohort_id'],
-            'cohort_name': w['cohort_name'],
-            'cohort_start': w['cohort_start'],
-            'cohort_size': w['cohort_size'],
-            'retention_curve': _retention_curve(*w['retention']),
-            'productivity_curve': _productivity_curve(w['prod_start'], w['prod_end']),
-            'earnings_curve': _earnings_curve(w['weekly']),
-            'drop_off_analysis': _drop_off([
-                {'stage': 'signed_up', 'trainers_remaining': w['cohort_size']},
-                {'stage': 'completed_kyc',
-                 'trainers_remaining': int(w['cohort_size'] * 0.9)},
-                {'stage': 'first_task',
-                 'trainers_remaining': int(w['cohort_size'] * 0.84)},
-                {'stage': 'first_payout',
-                 'trainers_remaining': int(w['cohort_size'] * 0.76)},
-                {'stage': 'active_30_days',
-                 'trainers_remaining': int(w['cohort_size'] * 0.7 * w['retention'][1] / 100)},
-                {'stage': 'active_60_days',
-                 'trainers_remaining': int(w['cohort_size'] * 0.7 * w['retention'][2] / 100)},
-                {'stage': 'active_90_days',
-                 'trainers_remaining': int(w['cohort_size'] * 0.7 * w['retention'][3] / 100)},
-            ]),
-        })
-    return out
-
-
-def _cohort_tier_promotion_mock() -> List[Dict[str, Any]]:
-    """Trainers grouped by the month they got promoted to silver/gold."""
-    return [
-        {
-            'cohort_id': 'tier-mar-2026',
-            'cohort_name': 'Promoted Mar 2026',
-            'cohort_start': '2026-03-01',
-            'cohort_size': 22,
-            'retention_curve': _retention_curve(94, 88, 80, 74),
-            'productivity_curve': _productivity_curve(8, 18),
-            'earnings_curve': _earnings_curve(2_400),
-            'drop_off_analysis': _drop_off([
-                {'stage': 'promoted', 'trainers_remaining': 22},
-                {'stage': 'first_tier_task', 'trainers_remaining': 22},
-                {'stage': 'first_tier_payout', 'trainers_remaining': 21},
-                {'stage': 'active_30_days', 'trainers_remaining': 20},
-                {'stage': 'active_60_days', 'trainers_remaining': 18},
-                {'stage': 'active_90_days', 'trainers_remaining': 16},
-            ]),
-        },
-        {
-            'cohort_id': 'tier-apr-2026',
-            'cohort_name': 'Promoted Apr 2026',
-            'cohort_start': '2026-04-01',
-            'cohort_size': 28,
-            'retention_curve': _retention_curve(93, 86, 78, 71),
-            'productivity_curve': _productivity_curve(7, 17),
-            'earnings_curve': _earnings_curve(2_250),
-            'drop_off_analysis': _drop_off([
-                {'stage': 'promoted', 'trainers_remaining': 28},
-                {'stage': 'first_tier_task', 'trainers_remaining': 27},
-                {'stage': 'first_tier_payout', 'trainers_remaining': 26},
-                {'stage': 'active_30_days', 'trainers_remaining': 24},
-                {'stage': 'active_60_days', 'trainers_remaining': 22},
-                {'stage': 'active_90_days', 'trainers_remaining': 20},
-            ]),
-        },
-    ]
-
-
-# ---------------------------------------------------------------------------
-# Public entry point
-# ---------------------------------------------------------------------------
 
 
 def compute_cohort_metrics(
     cohort_definition: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Build the cohort metrics payload.
-
-    Returns
-    -------
-    Dict with keys:
-        * ``cohort_definition`` - normalised definition actually used
-        * ``cohorts``           - list of cohort dicts (see module docstring)
-
-    Each cohort dict has: cohort_id, cohort_name, cohort_start, cohort_size,
-    retention_curve (4 points: day 7/30/60/90), productivity_curve (12 weeks),
-    earnings_curve (12 weeks cumulative), drop_off_analysis.
-
-    TODO Phase 2: replace with a real query joining Trainer.signup_at /
-    Trainer.tier_promoted_at against the activity tables.
-    """
+    """Build the cohort metrics payload. Real DB. Empty DB → cohorts=[]."""
     raw = (cohort_definition or _DEFAULT_COHORT_DEFINITION).strip().lower()
     cohort_definition_normalised = (
         raw if raw in _VALID_COHORT_DEFINITIONS else _DEFAULT_COHORT_DEFINITION
     )
 
-    if cohort_definition_normalised == 'registration_week':
-        cohorts = _cohort_registration_week_mock()
-    elif cohort_definition_normalised == 'tier_promotion_month':
-        cohorts = _cohort_tier_promotion_mock()
+    if cohort_definition_normalised == 'tier_promotion_month':
+        # Requires User.tier_promoted_at — Phase-2 / Step-8 schema add.
+        if not _user_has_field('tier_promoted_at'):
+            cohorts: List[Dict[str, Any]] = []
+        else:
+            cohorts = _build_cohorts_by_week()  # fallback to weekly for now
     else:
-        cohorts = _cohort_signup_wave_mock()
+        # registration_week / signup_wave both bucket by ISO signup week.
+        cohorts = _build_cohorts_by_week()
 
     return {
         'cohort_definition': cohort_definition_normalised,

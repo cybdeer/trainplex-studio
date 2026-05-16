@@ -1,4 +1,4 @@
-"""TrainPlex reports URL routes — Phase 1 Step 7.
+"""TrainPlex reports URL routes — Phase 1 Step 7 / Step 7.4 PDF export.
 
 Mounted by ``core/urls.py`` via ``include('reports.urls')``.
 
@@ -8,7 +8,9 @@ Endpoints
     GET /api/v1/admin/reports/founder-weekly.pdf                      (admin)
     GET /api/v1/admin/reports/leaderboard                             (admin)
     GET /api/v1/admin/reports/leaderboard.csv                         (admin)
+    GET /api/v1/admin/reports/leaderboard.pdf                         (admin)
     GET /api/v1/admin/reports/cohorts                                 (admin)
+    GET /api/v1/admin/reports/cohorts.pdf                             (admin)
     GET /api/v1/admin/reports/project-roi                             (admin)
     GET /api/v1/admin/reports/project-roi/<project_id>                (admin)
     GET /api/v1/admin/reports/project-roi/<project_id>.pdf            (admin)
@@ -18,10 +20,12 @@ from django.urls import path
 
 from reports.api import (
     CohortsAPI,
+    CohortsPDFAPI,
     FounderWeeklyAPI,
     FounderWeeklyPDFAPI,
     LeaderboardAPI,
     LeaderboardCSVAPI,
+    LeaderboardPDFAPI,
     ProjectROIDetailAPI,
     ProjectROIListAPI,
     ProjectROIPDFAPI,
@@ -49,9 +53,19 @@ urlpatterns = [
         name='reports-leaderboard-csv',
     ),
     path(
+        'api/v1/admin/reports/leaderboard.pdf',
+        LeaderboardPDFAPI.as_view(),
+        name='reports-leaderboard-pdf',
+    ),
+    path(
         'api/v1/admin/reports/cohorts',
         CohortsAPI.as_view(),
         name='reports-cohorts',
+    ),
+    path(
+        'api/v1/admin/reports/cohorts.pdf',
+        CohortsPDFAPI.as_view(),
+        name='reports-cohorts-pdf',
     ),
     path(
         'api/v1/admin/reports/project-roi',

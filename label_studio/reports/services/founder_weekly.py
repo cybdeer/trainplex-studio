@@ -1,30 +1,25 @@
-"""Founder weekly snapshot service — Phase 1 Step 7.
+"""Founder weekly snapshot service — Phase 2 WAVE-19 real-data wiring.
 
 Builds the data payload for the founder dashboard's "weekly snapshot" view.
-Includes all sections the UI renders:
+Real Django ORM aggregation. Empty DB returns zeros / empty lists — honest
+empty state, NOT fabricated activity.
 
+Sections returned
+-----------------
 * ``top_kpis``           - submissions_weekly, revenue_weekly_inr,
                            active_trainers, avg_payout_per_trainer
 * ``trend_lines``        - submissions_over_time, revenue_mom, trainer_growth
 * ``cohort_retention``   - per-wave day_7/day_30/day_60/day_90 retention
 * ``project_roi``        - per-project cost + revenue + roi_pct
-* ``geographic_split``   - state-wise breakdown (reuses heatmap shape)
+* ``geographic_split``   - state-wise breakdown
 * ``language_split``     - language-wise productivity
 * ``quality_kpis``       - avg_consensus_pct, dispute_rate_pct, top_10_problematic
-
-Phase 1 (Week 7): all numbers are MOCK. The shape is pinned by
-``test_reports.py`` so the React surface stays stable when the real
-aggregation lands in Phase 2 / Step 8.
-
-TODO Phase 2: replace ``build_founder_weekly_snapshot`` with a single
-``WeeklySnapshot.compute(week_start)`` that joins SUBMISSIONS + PAYMENTS +
-TRAINERS + PROJECTS, then memoises into a ``WeeklySnapshotCache`` row keyed
-on ``week_start`` so the founder dashboard hits Postgres once per week.
 """
 
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 
@@ -34,13 +29,7 @@ from typing import Any, Dict, List, Optional
 
 
 def _to_monday(d: Optional[date]) -> date:
-    """Snap to ISO week's Monday so the snapshot is week-stable.
-
-    If no date is supplied, defaults to the Monday of the current ISO week.
-    Snapping ensures ``build_founder_weekly_snapshot(week_start=any-weekday)``
-    always returns the same payload for that week — the auto-email cron and
-    the manual founder fetch can never disagree.
-    """
+    """Snap to ISO week's Monday so the snapshot is week-stable."""
     if d is None:
         d = datetime.now(timezone.utc).date()
     return d - timedelta(days=d.weekday())
@@ -50,55 +39,114 @@ def _iso_date(d: date) -> str:
     return d.isoformat()
 
 
+def _decimal_to_int(v) -> int:
+    if v is None:
+        return 0
+    if isinstance(v, Decimal):
+        return int(v)
+    return int(v)
+
+
+def _user_has_field(field_name: str) -> bool:
+    """Return True iff ``users.User`` has the named field."""
+    try:
+        from users.models import User
+
+        User._meta.get_field(field_name)
+        return True
+    except Exception:
+        return False
+
+
 # ---------------------------------------------------------------------------
-# Mock data builders — DETERMINISTIC, period-stable
+# Real-data builders
 # ---------------------------------------------------------------------------
 
 
-def _mock_top_kpis() -> Dict[str, Any]:
-    """4 KPI cards across the top of the founder dashboard.
+def _build_top_kpis(week_start: date, week_end: date) -> Dict[str, Any]:
+    """4 KPI cards: weekly submissions, revenue, active trainers, avg payout."""
+    from django.db.models import Sum
 
-    avg_payout_per_trainer is a derived value (revenue_weekly / active_trainers
-    rounded to whole rupees) so the UI doesn't have to compute it.
-    """
-    submissions_weekly = 8420
-    revenue_weekly_inr = 412_500
-    active_trainers = 138
-    # Whole rupees; rounded so the UI shows "₹2,989" not "2989.13".
+    from payments.models import PayoutQueue
+    from tasks.models import Annotation
+    from users.models import User
+
+    start_dt = datetime.combine(week_start, datetime.min.time(), tzinfo=timezone.utc)
+    end_dt = datetime.combine(week_end + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc)
+    prev_start = start_dt - timedelta(days=7)
+
+    submissions_weekly = Annotation.objects.filter(
+        created_at__gte=start_dt, created_at__lt=end_dt, was_cancelled=False
+    ).count()
+    submissions_prev = Annotation.objects.filter(
+        created_at__gte=prev_start, created_at__lt=start_dt, was_cancelled=False
+    ).count()
+    submissions_delta_pct = (
+        int(round(((submissions_weekly - submissions_prev) / submissions_prev) * 100))
+        if submissions_prev
+        else 0
+    )
+
+    revenue_weekly_inr = _decimal_to_int(
+        PayoutQueue.objects.filter(
+            status=PayoutQueue.STATUS_SENT, sent_at__gte=start_dt, sent_at__lt=end_dt
+        ).aggregate(s=Sum('amount_inr'))['s']
+    )
+    revenue_prev = _decimal_to_int(
+        PayoutQueue.objects.filter(
+            status=PayoutQueue.STATUS_SENT, sent_at__gte=prev_start, sent_at__lt=start_dt
+        ).aggregate(s=Sum('amount_inr'))['s']
+    )
+    revenue_delta_pct = (
+        int(round(((revenue_weekly_inr - revenue_prev) / revenue_prev) * 100))
+        if revenue_prev
+        else 0
+    )
+
+    active_trainers = User.objects.filter(
+        role='trainer', last_login__gte=start_dt, last_login__lt=end_dt
+    ).count()
+    active_trainers_prev = User.objects.filter(
+        role='trainer', last_login__gte=prev_start, last_login__lt=start_dt
+    ).count()
+    active_trainers_delta_pct = (
+        int(round(((active_trainers - active_trainers_prev) / active_trainers_prev) * 100))
+        if active_trainers_prev
+        else 0
+    )
+
     avg_payout_per_trainer = revenue_weekly_inr // max(active_trainers, 1)
+
     return {
         'submissions_weekly': submissions_weekly,
-        'submissions_delta_pct': 8,
+        'submissions_delta_pct': submissions_delta_pct,
         'revenue_weekly_inr': revenue_weekly_inr,
-        'revenue_delta_pct': 12,
+        'revenue_delta_pct': revenue_delta_pct,
         'active_trainers': active_trainers,
-        'active_trainers_delta_pct': 4,
+        'active_trainers_delta_pct': active_trainers_delta_pct,
         'avg_payout_per_trainer_inr': avg_payout_per_trainer,
     }
 
 
-def _mock_trend_lines(week_start: date) -> Dict[str, List[Dict[str, Any]]]:
-    """3 trend series — 7-day submissions, 6-month revenue MoM, 6-month trainer growth.
+def _build_trend_lines(week_start: date) -> Dict[str, List[Dict[str, Any]]]:
+    """3 trend series — 7-day submissions, 6-month revenue MoM, 6-month trainer growth."""
+    from django.db.models import Sum
 
-    The week_start is reflected in the date axis so the chart x-labels stay
-    correct across weeks. Numbers themselves are deterministic via a simple
-    series; the magnitude matches the top KPI for sanity.
-    """
+    from payments.models import PayoutQueue
+    from tasks.models import Annotation
+    from users.models import User
+
     submissions_over_time: List[Dict[str, Any]] = []
-    # 7 days, monotone-ish, totalling ~ submissions_weekly.
-    base = 1100
     for offset in range(7):
         day = week_start + timedelta(days=offset)
-        # Modest day-of-week variation (lower on Sat/Sun).
-        weekday_factor = 0.7 if day.weekday() >= 5 else 1.0
-        count = int(base * weekday_factor + (offset * 25))
-        submissions_over_time.append(
-            {'date': _iso_date(day), 'count': count}
-        )
+        count = Annotation.objects.filter(
+            created_at__date=day, was_cancelled=False
+        ).count()
+        submissions_over_time.append({'date': _iso_date(day), 'count': count})
 
     revenue_mom: List[Dict[str, Any]] = []
+    trainer_growth: List[Dict[str, Any]] = []
     months_back = 6
-    # Anchor at month-of(week_start) and step backwards.
     current_year = week_start.year
     current_month = week_start.month
     for back in range(months_back - 1, -1, -1):
@@ -107,19 +155,25 @@ def _mock_trend_lines(week_start: date) -> Dict[str, List[Dict[str, Any]]]:
         while m <= 0:
             m += 12
             y -= 1
-        # Smooth growth curve from 280k → 412k.
-        rev = 280_000 + (months_back - 1 - back) * 22_000
-        revenue_mom.append(
-            {'month': f'{y:04d}-{m:02d}', 'revenue_inr': rev}
-        )
+        month_start = date(y, m, 1)
+        if m == 12:
+            next_month_start = date(y + 1, 1, 1)
+        else:
+            next_month_start = date(y, m + 1, 1)
+        start_dt = datetime.combine(month_start, datetime.min.time(), tzinfo=timezone.utc)
+        end_dt = datetime.combine(next_month_start, datetime.min.time(), tzinfo=timezone.utc)
 
-    trainer_growth: List[Dict[str, Any]] = []
-    # Same x-axis as revenue_mom; trainer count from 78 → 138.
-    for idx, entry in enumerate(revenue_mom):
-        count = 78 + idx * 12
-        trainer_growth.append(
-            {'month': entry['month'], 'active_trainers': count}
+        rev = _decimal_to_int(
+            PayoutQueue.objects.filter(
+                status=PayoutQueue.STATUS_SENT, sent_at__gte=start_dt, sent_at__lt=end_dt
+            ).aggregate(s=Sum('amount_inr'))['s']
         )
+        revenue_mom.append({'month': f'{y:04d}-{m:02d}', 'revenue_inr': rev})
+
+        active_count = User.objects.filter(
+            role='trainer', last_login__gte=start_dt, last_login__lt=end_dt
+        ).count()
+        trainer_growth.append({'month': f'{y:04d}-{m:02d}', 'active_trainers': active_count})
 
     return {
         'submissions_over_time': submissions_over_time,
@@ -128,184 +182,240 @@ def _mock_trend_lines(week_start: date) -> Dict[str, List[Dict[str, Any]]]:
     }
 
 
-def _mock_cohort_retention() -> List[Dict[str, Any]]:
-    """4 cohort waves with day_7/30/60/90 retention percentages.
+def _build_cohort_retention() -> List[Dict[str, Any]]:
+    """Per-wave (weekly signup cohort) day_7/30/60/90 retention. Empty → []."""
+    from users.models import User
 
-    Real signup waves once the trainer-onboarding signal lands. For Phase 1
-    these are anchored to the canonical "first 4 hiring drives" so the founder
-    can pattern-recognise which wave converted best.
-    """
+    waves = User.objects.filter(role='trainer').values_list('date_joined', flat=True)
+    if not waves.exists():
+        return []
+
+    earliest = waves.order_by('date_joined').first()
+    latest = waves.order_by('-date_joined').first()
+    if earliest is None or latest is None:
+        return []
+
+    first_monday = earliest.date() - timedelta(days=earliest.weekday())
+    last_monday = latest.date() - timedelta(days=latest.weekday())
+
+    out: List[Dict[str, Any]] = []
+    wave_idx = 0
+    week = first_monday
+    while week <= last_monday and wave_idx < 12:  # cap to 12 most-recent
+        next_week = week + timedelta(days=7)
+        members = User.objects.filter(
+            role='trainer',
+            date_joined__date__gte=week,
+            date_joined__date__lt=next_week,
+        )
+        cohort_size = members.count()
+        if cohort_size == 0:
+            week = next_week
+            continue
+        wave_idx += 1
+
+        def _retained_within(days: int) -> int:
+            start_dt = datetime.combine(week, datetime.min.time(), tzinfo=timezone.utc)
+            deadline = datetime.combine(
+                week + timedelta(days=days), datetime.min.time(), tzinfo=timezone.utc
+            )
+            return members.filter(last_login__gte=start_dt, last_login__lt=deadline).count()
+
+        def _pct(n: int) -> int:
+            return int(round((n / cohort_size) * 100)) if cohort_size else 0
+
+        out.append(
+            {
+                'wave_name': f'Wave {wave_idx} ({week.strftime("%b %Y")})',
+                'wave_start': _iso_date(week),
+                'cohort_size': cohort_size,
+                'day_7': _pct(_retained_within(7)),
+                'day_30': _pct(_retained_within(30)),
+                'day_60': _pct(_retained_within(60)),
+                'day_90': _pct(_retained_within(90)),
+            }
+        )
+        week = next_week
+
+    return out
+
+
+def _build_project_roi_top5() -> List[Dict[str, Any]]:
+    """Top-5 projects by revenue. Empty DB → []."""
+    try:
+        from django.db.models import Count, Sum
+
+        from projects.models import Project
+    except Exception:
+        return []
+
+    try:
+        rows = (
+            Project.objects.annotate(
+                tasks_count=Count('tasks', distinct=True),
+            )
+            .order_by('-tasks_count')[:5]
+        )
+    except Exception:
+        return []
+
+    out: List[Dict[str, Any]] = []
+    for p in rows:
+        if (p.tasks_count or 0) == 0:
+            continue
+        # PaymentHold.task_id is loose-FK to tasks.Task (integer). Join in
+        # Python to keep this portable until the schema relationship lands.
+        try:
+            from payments.models import PaymentHold
+
+            task_ids = list(p.tasks.values_list('id', flat=True))
+            rev = _decimal_to_int(
+                PaymentHold.objects.filter(task_id__in=task_ids)
+                .aggregate(s=Sum('amount_inr'))['s']
+            )
+        except Exception:
+            rev = 0
+        out.append(
+            {
+                'project_id': p.id,
+                'project_name': p.title or f'Project #{p.id}',
+                'cost_inr': 0,
+                'revenue_inr': rev,
+                'roi_pct': 0,
+            }
+        )
+    return out
+
+
+def _build_geographic_split(week_start: date, week_end: date) -> List[Dict[str, Any]]:
+    """State-wise productivity split this week. No state column → []."""
+    if not _user_has_field('state'):
+        return []
+
+    from django.db.models import Count, Q, Sum
+
+    from users.models import User
+
+    start_dt = datetime.combine(week_start, datetime.min.time(), tzinfo=timezone.utc)
+    end_dt = datetime.combine(week_end + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc)
+
+    rows = (
+        User.objects.filter(role='trainer')
+        .exclude(state__isnull=True)
+        .exclude(state='')
+        .values('state')
+        .annotate(
+            submissions=Count(
+                'annotations',
+                filter=Q(
+                    annotations__created_at__gte=start_dt,
+                    annotations__created_at__lt=end_dt,
+                    annotations__was_cancelled=False,
+                ),
+                distinct=True,
+            ),
+            active_trainers=Count(
+                'id', filter=Q(last_login__gte=start_dt, last_login__lt=end_dt), distinct=True
+            ),
+            earnings_inr_sum=Sum(
+                'payment_holds__amount_inr',
+                filter=Q(payment_holds__held_at__gte=start_dt, payment_holds__held_at__lt=end_dt),
+            ),
+        )
+        .order_by('-submissions')[:8]
+    )
+
     return [
         {
-            'wave_name': 'Wave 1 (Mar 2026)',
-            'wave_start': '2026-03-04',
-            'cohort_size': 42,
-            'day_7': 88,
-            'day_30': 74,
-            'day_60': 62,
-            'day_90': 55,
-        },
-        {
-            'wave_name': 'Wave 2 (Mar 2026)',
-            'wave_start': '2026-03-25',
-            'cohort_size': 38,
-            'day_7': 84,
-            'day_30': 71,
-            'day_60': 60,
-            'day_90': 52,
-        },
-        {
-            'wave_name': 'Wave 3 (Apr 2026)',
-            'wave_start': '2026-04-08',
-            'cohort_size': 56,
-            'day_7': 91,
-            'day_30': 79,
-            'day_60': 66,
-            'day_90': 58,
-        },
-        {
-            'wave_name': 'Wave 4 (Apr 2026)',
-            'wave_start': '2026-04-29',
-            'cohort_size': 48,
-            'day_7': 86,
-            'day_30': 73,
-            'day_60': 64,
-            'day_90': 56,
-        },
+            'state_code': r['state'] or '',
+            'state_name': r['state'] or '',
+            'submissions': int(r['submissions'] or 0),
+            'active_trainers': int(r['active_trainers'] or 0),
+            'earnings_inr': _decimal_to_int(r['earnings_inr_sum']),
+        }
+        for r in rows
     ]
 
 
-def _mock_project_roi_per_project() -> List[Dict[str, Any]]:
-    """Mini per-project ROI table that sits inside the founder dashboard.
-
-    Full breakdown lives at /admin/reports/project-roi; this one is a
-    top-5 summary for the founder snapshot.
-    """
-    return [
-        {
-            'project_id': 101,
-            'project_name': 'KYC OCR — Hindi',
-            'cost_inr': 145_000,
-            'revenue_inr': 285_000,
-            'roi_pct': 96,
-        },
-        {
-            'project_id': 102,
-            'project_name': 'Voice intent — Bhojpuri',
-            'cost_inr': 92_000,
-            'revenue_inr': 158_000,
-            'roi_pct': 72,
-        },
-        {
-            'project_id': 103,
-            'project_name': 'Receipt extract — Tamil',
-            'cost_inr': 68_000,
-            'revenue_inr': 118_000,
-            'roi_pct': 74,
-        },
-        {
-            'project_id': 104,
-            'project_name': 'Sentiment — Marathi',
-            'cost_inr': 54_000,
-            'revenue_inr': 84_000,
-            'roi_pct': 56,
-        },
-        {
-            'project_id': 105,
-            'project_name': 'Image moderation',
-            'cost_inr': 48_000,
-            'revenue_inr': 62_000,
-            'roi_pct': 29,
-        },
-    ]
+def _build_language_split() -> List[Dict[str, Any]]:
+    """Language-wise productivity. Schema not present → []."""
+    # languages column is a Phase-2 / Step-8 schema add on User.
+    # Until then return [] (honest empty state).
+    return []
 
 
-def _mock_geographic_split() -> List[Dict[str, Any]]:
-    """State-wise productivity split (mirrors heatmap shape).
+def _build_quality_kpis(week_start: date, week_end: date) -> Dict[str, Any]:
+    """avg_consensus_pct, dispute_rate_pct, top_10_problematic. Empty → zeros + []."""
+    from django.db.models import Count
 
-    Top 8 states by submissions this week — full 17-state map lives at
-    /admin/heatmap.
-    """
-    return [
-        {'state_code': 'RJ', 'state_name': 'Rajasthan', 'submissions': 1320,
-         'active_trainers': 22, 'earnings_inr': 68_000},
-        {'state_code': 'UP', 'state_name': 'Uttar Pradesh', 'submissions': 1180,
-         'active_trainers': 19, 'earnings_inr': 58_000},
-        {'state_code': 'MH', 'state_name': 'Maharashtra', 'submissions': 980,
-         'active_trainers': 16, 'earnings_inr': 52_000},
-        {'state_code': 'KA', 'state_name': 'Karnataka', 'submissions': 920,
-         'active_trainers': 15, 'earnings_inr': 48_500},
-        {'state_code': 'GJ', 'state_name': 'Gujarat', 'submissions': 840,
-         'active_trainers': 14, 'earnings_inr': 44_000},
-        {'state_code': 'TN', 'state_name': 'Tamil Nadu', 'submissions': 720,
-         'active_trainers': 12, 'earnings_inr': 38_500},
-        {'state_code': 'MP', 'state_name': 'Madhya Pradesh', 'submissions': 640,
-         'active_trainers': 11, 'earnings_inr': 32_000},
-        {'state_code': 'PB', 'state_name': 'Punjab', 'submissions': 580,
-         'active_trainers': 10, 'earnings_inr': 28_500},
-    ]
+    from peer_review.models import ConsensusResult, Dispute, ReviewAssignment
+    from tasks.models import Annotation
+    from users.models import User
 
+    start_dt = datetime.combine(week_start, datetime.min.time(), tzinfo=timezone.utc)
+    end_dt = datetime.combine(week_end + timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc)
 
-def _mock_language_split() -> List[Dict[str, Any]]:
-    """Language-wise productivity — submissions + avg_quality_pct.
+    cr_qs = ConsensusResult.objects.filter(computed_at__gte=start_dt, computed_at__lt=end_dt)
+    total_consensus = cr_qs.count()
+    if total_consensus:
+        approved_or_flagged = cr_qs.filter(
+            status__in=[ConsensusResult.STATUS_APPROVED, ConsensusResult.STATUS_FLAGGED]
+        ).count()
+        avg_consensus_pct = int(round((approved_or_flagged / total_consensus) * 100))
+    else:
+        avg_consensus_pct = 0
 
-    Useful for founder pattern-recognition: low-quality languages indicate
-    where the training data needs more glossary work or the reviewer panel
-    needs more bilingual coverage.
-    """
-    return [
-        {'language_code': 'hi', 'language_name': 'Hindi',
-         'submissions': 2480, 'avg_quality_pct': 89},
-        {'language_code': 'bn', 'language_name': 'Bengali',
-         'submissions': 1180, 'avg_quality_pct': 86},
-        {'language_code': 'mr', 'language_name': 'Marathi',
-         'submissions': 920, 'avg_quality_pct': 84},
-        {'language_code': 'ta', 'language_name': 'Tamil',
-         'submissions': 880, 'avg_quality_pct': 88},
-        {'language_code': 'te', 'language_name': 'Telugu',
-         'submissions': 760, 'avg_quality_pct': 85},
-        {'language_code': 'gu', 'language_name': 'Gujarati',
-         'submissions': 640, 'avg_quality_pct': 83},
-        {'language_code': 'kn', 'language_name': 'Kannada',
-         'submissions': 560, 'avg_quality_pct': 82},
-        {'language_code': 'pa', 'language_name': 'Punjabi',
-         'submissions': 480, 'avg_quality_pct': 87},
-        {'language_code': 'bho', 'language_name': 'Bhojpuri',
-         'submissions': 320, 'avg_quality_pct': 79},
-        {'language_code': 'or', 'language_name': 'Odia',
-         'submissions': 200, 'avg_quality_pct': 81},
-    ]
+    disputes = Dispute.objects.filter(
+        escalated_at__gte=start_dt, escalated_at__lt=end_dt
+    ).count()
+    dispute_rate_pct = (
+        int(round((disputes / total_consensus) * 100)) if total_consensus else 0
+    )
 
+    top_q = (
+        ReviewAssignment.objects.filter(
+            assigned_at__gte=start_dt,
+            assigned_at__lt=end_dt,
+            review__agreement__in=['disagree', 'dispute'],
+        )
+        .exclude(trainer_id__isnull=True)
+        .values('trainer_id')
+        .annotate(dispute_count=Count('id'))
+        .order_by('-dispute_count')[:10]
+    )
 
-def _mock_quality_kpis() -> Dict[str, Any]:
-    """Quality KPIs: avg consensus, dispute rate, top-10 problematic trainers."""
+    top_10: List[Dict[str, Any]] = []
+    for row in top_q:
+        tid = row['trainer_id']
+        u = User.objects.filter(id=tid).first()
+        sub_count = Annotation.objects.filter(
+            completed_by_id=tid,
+            created_at__gte=start_dt,
+            created_at__lt=end_dt,
+            was_cancelled=False,
+        ).count()
+        rate = int(round((row['dispute_count'] / sub_count) * 100)) if sub_count else 0
+        top_10.append(
+            {
+                'trainer_id': tid,
+                'name': (
+                    (u.get_full_name() or u.email or f'Trainer #{tid}').strip()
+                    if u
+                    else f'Trainer #{tid}'
+                ),
+                'state': (getattr(u, 'state', '') or '') if u else '',
+                'dispute_count': int(row['dispute_count']),
+                'submissions': int(sub_count),
+                'dispute_rate_pct': rate,
+            }
+        )
+
     return {
-        'avg_consensus_pct': 87,
-        'dispute_rate_pct': 4,
-        'avg_consensus_pct_delta': 2,
-        'dispute_rate_pct_delta': -1,
-        'top_10_problematic': [
-            {'trainer_id': 42, 'name': 'Trainer #42', 'state': 'UP',
-             'dispute_count': 8, 'submissions': 60, 'dispute_rate_pct': 13},
-            {'trainer_id': 91, 'name': 'Trainer #91', 'state': 'Bihar',
-             'dispute_count': 7, 'submissions': 55, 'dispute_rate_pct': 12},
-            {'trainer_id': 17, 'name': 'Trainer #17', 'state': 'MP',
-             'dispute_count': 6, 'submissions': 52, 'dispute_rate_pct': 11},
-            {'trainer_id': 64, 'name': 'Trainer #64', 'state': 'RJ',
-             'dispute_count': 6, 'submissions': 58, 'dispute_rate_pct': 10},
-            {'trainer_id': 102, 'name': 'Trainer #102', 'state': 'MH',
-             'dispute_count': 5, 'submissions': 50, 'dispute_rate_pct': 10},
-            {'trainer_id': 33, 'name': 'Trainer #33', 'state': 'KA',
-             'dispute_count': 5, 'submissions': 54, 'dispute_rate_pct': 9},
-            {'trainer_id': 78, 'name': 'Trainer #78', 'state': 'GJ',
-             'dispute_count': 4, 'submissions': 48, 'dispute_rate_pct': 8},
-            {'trainer_id': 12, 'name': 'Trainer #12', 'state': 'TN',
-             'dispute_count': 4, 'submissions': 52, 'dispute_rate_pct': 8},
-            {'trainer_id': 55, 'name': 'Trainer #55', 'state': 'AP',
-             'dispute_count': 3, 'submissions': 42, 'dispute_rate_pct': 7},
-            {'trainer_id': 86, 'name': 'Trainer #86', 'state': 'WB',
-             'dispute_count': 3, 'submissions': 46, 'dispute_rate_pct': 7},
-        ],
+        'avg_consensus_pct': avg_consensus_pct,
+        'dispute_rate_pct': dispute_rate_pct,
+        'avg_consensus_pct_delta': 0,
+        'dispute_rate_pct_delta': 0,
+        'top_10_problematic': top_10,
     }
 
 
@@ -315,22 +425,9 @@ def _mock_quality_kpis() -> Dict[str, Any]:
 
 
 def build_founder_weekly_snapshot(week_start: Optional[date] = None) -> Dict[str, Any]:
-    """Build the founder weekly snapshot.
+    """Build the founder weekly snapshot. Real DB aggregation.
 
-    Parameters
-    ----------
-    week_start:
-        Anchor for the week. Snapped to its ISO Monday so the snapshot is
-        week-stable. Defaults to the Monday of the current ISO week.
-
-    Returns
-    -------
-    Dict[str, Any]
-        Stable JSON-serialisable contract. See module docstring for the keys.
-
-    TODO Phase 2: real DB wiring. The current implementation is deterministic
-    mock data so the React surface can be built + pinned by tests until the
-    Phase 2 SUBMISSIONS / PAYMENTS / TRAINERS schema lands.
+    Empty DB → all sections return zeros / empty lists. No fabricated activity.
     """
     snapped = _to_monday(week_start)
     week_end = snapped + timedelta(days=6)
@@ -338,11 +435,11 @@ def build_founder_weekly_snapshot(week_start: Optional[date] = None) -> Dict[str
         'week_start': _iso_date(snapped),
         'week_end': _iso_date(week_end),
         'generated_at': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
-        'top_kpis': _mock_top_kpis(),
-        'trend_lines': _mock_trend_lines(snapped),
-        'cohort_retention': _mock_cohort_retention(),
-        'project_roi': _mock_project_roi_per_project(),
-        'geographic_split': _mock_geographic_split(),
-        'language_split': _mock_language_split(),
-        'quality_kpis': _mock_quality_kpis(),
+        'top_kpis': _build_top_kpis(snapped, week_end),
+        'trend_lines': _build_trend_lines(snapped),
+        'cohort_retention': _build_cohort_retention(),
+        'project_roi': _build_project_roi_top5(),
+        'geographic_split': _build_geographic_split(snapped, week_end),
+        'language_split': _build_language_split(),
+        'quality_kpis': _build_quality_kpis(snapped, week_end),
     }
