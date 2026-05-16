@@ -53,7 +53,7 @@ if SENTRY_DSN:
         integrations=[DjangoIntegration()],
         traces_sample_rate=0.05,
         send_default_pii=False,           # founder rule: no PII
-        before_send=scrub_founder_mobile, # founder rule: scrub +91 8764001234
+        before_send=scrub_founder_mobile, # founder rule: scrub the founder mobile (TRAINPLEX_FOUNDER_MOBILE_GUARD)
         environment=os.environ.get("TRAINPLEX_ENV", "dev"),
         release=os.environ.get("TRAINPLEX_VERSION", "unknown"),
     )

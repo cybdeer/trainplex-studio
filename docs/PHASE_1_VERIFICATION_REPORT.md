@@ -585,7 +585,7 @@
 | Background-agent rule | ✅ | Every non-trivial subtask dispatched via sub-agents (BUILD_LOG shows agent IDs) |
 | One-shot root-cause fix | ✅ | Each bug fixed at root (e.g. payment release driven by signal not poll; feature flag forces explicit migration; SAVEPOINT-wrapped migration phases) |
 | Sub-agent incremental write | ✅ | Migration script writes partial report after every phase; BUILD_LOG appended after every step |
-| No founder personal number in outbound | ✅ | `+91 8764001234` only in detection regexes / test scrubs / docs explaining the rule — explicit scan tests in WA broadcast (1 test), daily email (5 tests), reports (2 tests), migration (1 test), feature flags (`_scrub_mobile`) |
+| No founder personal number in outbound | ✅ | the configured founder mobile (``TRAINPLEX_FOUNDER_MOBILE_GUARD``) only appears via detection regexes / test scrubs / docs explaining the rule — explicit scan tests in WA broadcast (1 test), daily email (5 tests), reports (2 tests), migration (1 test), feature flags (`_scrub_mobile`) |
 | Incident log append rule | ✅ | Every script (backup, restore, dr_drill, scale_up, chaos_drill, migration apply) appends to `INCIDENT_LOG.md` |
 | Plain-Hindi bug-fix recap | ✅ | Every BUILD_LOG section ends with 3-line Hindi recap to founder |
 

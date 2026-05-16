@@ -121,7 +121,7 @@ If at any point in the 30-day window something looks wrong, see
 ## Founder rule recap
 
 - The script never embeds the founder's personal mobile in any output
-  (a regex strips `(+91)?[\s-]?8764001234` from every note before write).
+  (a regex built from ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` strips the founder mobile from every note before write).
 - Every `--apply` run appends a row to
   `/var/lib/trainplex-data/INCIDENT_LOG.md` so recurrences are traceable.
 - The script is idempotent (`ON CONFLICT DO NOTHING` everywhere) — a
