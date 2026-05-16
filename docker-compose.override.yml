@@ -89,6 +89,13 @@ services:
         - INCLUDE_DEV=false
     ports:
       - "8080:8085"
+    environment:
+      # WAVE-19 W3-DEPLOY fix (2026-05-16): rewrite proxy_pass
+      # http://localhost:8000 → http://app:8000 so internal nginx routes
+      # the catch-all to the Django container (per upstream LS entrypoint
+      # 10-configure-nginx.sh APP_HOST handling). Root-cause for 403 on
+      # /label-studio/api/v1/admin/* via app.trainplex.in. Idempotent.
+      - APP_HOST=app
     volumes:
       # WAVE-19 W1-INFRA fix (CRITICAL-6): bind-mount the patched entrypoint
       # script that also writes /etc/nginx/resolv.conf (so out-of-band
