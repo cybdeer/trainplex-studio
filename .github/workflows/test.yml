@@ -145,14 +145,14 @@ jobs:
   # ---------------------------------------------------------------------------
   # Codex audit M5 (2026-05-16) — production smoke gate.
   #
-  # Runs only on main after lint + tests pass. Hits three production URLs
+  # Runs on develop + main after lint + tests pass. Hits three production URLs
   # and fails the build if any returns non-200, so a green CI badge means
   # the deployed surface actually responded.
   # ---------------------------------------------------------------------------
   production-smoke:
-    name: "Production smoke (main only)"
+    name: "Production smoke (develop + main)"
     needs: [lint-trainplex, test-trainplex]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Smoke /label-studio/user/login/
