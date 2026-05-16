@@ -45,6 +45,10 @@ class Command(MigrateCommand):
             separate_lock_connection.close()
 
     def acquire_lock_with_retry(self, lock_connection, lock_id):
+        # TrainPlex SQLite-compat: advisory locks are Postgres-only
+        if lock_connection.vendor != "postgresql":
+            logger.info(f"Skipping advisory lock on {lock_connection.vendor} (Postgres-only feature).")
+            return
         start_time = time.time()
 
         while True:

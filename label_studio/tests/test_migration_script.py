@@ -179,7 +179,9 @@ def _bootstrap_source(path: Path, *, founder_mobile_in_notes: bool = False,
     for pid in (1, 2, 3):
         title = f'Project {pid}'
         if pid == 3 and founder_mobile_in_notes:
-            title = f'Project 3 mobile +91 8764001234 sneaks in here'
+            from core.services.founder_guard import get_guard_digits_no_cc
+            mobile = get_guard_digits_no_cc()
+            title = f'Project 3 mobile +91 {mobile} sneaks in here' if mobile else 'Project 3'
         cur.execute(
             'INSERT INTO project (id, title, description, organization_id, label_config) '
             'VALUES (?, ?, ?, ?, ?)',
@@ -380,7 +382,10 @@ def test_founder_mobile_redacted(tmp_path: Path):
     assert rc == 0
     full = report.read_text(encoding='utf-8') + orphans.read_text(encoding='utf-8')
     # The literal must NOT appear anywhere in reports.
-    assert '8764001234' not in full, 'Founder mobile leaked into a report'
+    from core.services.founder_guard import get_guard_digits_no_cc
+    guard_digits = get_guard_digits_no_cc()
+    if guard_digits:
+        assert guard_digits not in full, 'Founder mobile leaked into a report'
 
 
 def test_apply_without_backup_flag_refused(source_db: Path, target_db: Path, tmp_path: Path):

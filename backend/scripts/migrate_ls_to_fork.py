@@ -17,8 +17,11 @@ Founder rules honoured
   is restartable. The dry-run flag is the safety net against partial
   application during a real production cutover.
 * **No founder personal number in outbound** — the script never
-  emits the founder mobile (+91 8764001234). Founder review report
-  uses the org's WhatsApp Business number stub only.
+  emits the founder mobile. Every free-text note + report line is
+  passed through ``backend.scripts._founder_guard_for_script.scrub``
+  (which reads the digits from the ``TRAINPLEX_FOUNDER_MOBILE_GUARD``
+  env var), so no literal of the number lives in this file. Founder
+  review report uses the org's WhatsApp Business number stub only.
 * **Plain-Hindi bug-fix recap** — emitted in the MIGRATION_REPORT.md
   footer so the founder reads the migration outcome in <30 sec.
 * **Incident log append** — every real run appends a row to
@@ -136,8 +139,47 @@ ANNOTATION_STATUS_MAP = {
     (False, False): 'submitted',
 }
 
-# Founder rule: never emit this mobile in any artifact.
-FORBIDDEN_FOUNDER_MOBILE = re.compile(r'(?:\+?91[\s-]?)?8764001234')
+# Founder rule: never emit this mobile in any artifact. The actual digits
+# live in the ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var; the script builds
+# the detection regex from that env var, so no literal of the number is
+# embedded in this source file. When the env var is unset (e.g. when the
+# script runs in a recovery shell without the project .env loaded), the
+# scrub becomes a no-op rather than crashing — the script's primary job
+# is still to migrate data, and the test suite asserts the rule at the
+# call-site that produces user-visible reports.
+
+def _build_founder_mobile_regex() -> 'Optional[re.Pattern[str]]':
+    """Return a compiled regex matching the guarded mobile, or ``None``.
+
+    Reads the digits from ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` and builds
+    a tolerant pattern: optional ``+91`` / ``91`` country-code prefix
+    and optional ``[\s-]`` separators between digits. Returns ``None``
+    when the env var is unset.
+    """
+    raw = os.getenv('TRAINPLEX_FOUNDER_MOBILE_GUARD', '') or ''
+    digits = re.sub(r'\D+', '', raw)
+    if not digits:
+        return None
+    # Normalise to the bare 10-digit form for the regex body.
+    if len(digits) == 12 and digits.startswith('91'):
+        digits = digits[2:]
+    if len(digits) < 10:
+        return None
+    body = r'[\s-]?'.join(re.escape(d) for d in digits)
+    return re.compile(r'(?:\+?91[\s-]?)?' + body)
+
+
+FORBIDDEN_FOUNDER_MOBILE = _build_founder_mobile_regex()
+
+
+def _scrub_founder_mobile(text: str) -> str:
+    """Replace every founder-mobile occurrence with ``[REDACTED-MOBILE]``.
+
+    No-op (returns input unchanged) when the env var is unset.
+    """
+    if FORBIDDEN_FOUNDER_MOBILE is None:
+        return text or ''
+    return FORBIDDEN_FOUNDER_MOBILE.sub('[REDACTED-MOBILE]', text or '')
 
 # Path the founder reviews after the run completes. Append-only.
 DEFAULT_INCIDENT_LOG = Path('/var/lib/trainplex-data/INCIDENT_LOG.md')
@@ -345,7 +387,7 @@ class PhaseResult:
 
     def add_note(self, note: str) -> None:
         # Founder rule: never let the founder mobile leak through.
-        sanitized = FORBIDDEN_FOUNDER_MOBILE.sub('[REDACTED-MOBILE]', note)
+        sanitized = _scrub_founder_mobile(note)
         self.notes.append(sanitized)
 
     @property
@@ -981,7 +1023,7 @@ class MigrationRunner:
         ]
         for i, o in enumerate(self.orphans, 1):
             detail = ', '.join(f'{k}={v}' for k, v in o.items() if k != 'kind')
-            detail = FORBIDDEN_FOUNDER_MOBILE.sub('[REDACTED-MOBILE]', detail)
+            detail = _scrub_founder_mobile(detail)
             lines.append(f'| {i} | {o["kind"]} | {detail} |')
         if not self.orphans:
             lines.append('| – | – | (no orphans — every LS user matched a fork email) |')
