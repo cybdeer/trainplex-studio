@@ -1,0 +1,167 @@
+services:
+  app:
+    image: trainplex-studio:prod
+    build:
+      args:
+        - INCLUDE_DEV=false
+    env_file:
+      - .env
+    environment:
+      - DJANGO_DB=sqlite
+    volumes:
+      - /root/label-studio-data:/label-studio/data:rw
+      - /root/label-studio-css:/label-studio/custom-css:ro
+      - /root/label-studio-configs:/label-studio/configs:ro
+      - /root/trainplex-studio/label_studio/core/management/commands/locked_migrate.py:/label-studio/label_studio/core/management/commands/locked_migrate.py:ro
+      - /root/trainplex-studio/label_studio/users/decorators/require_role.py:/label-studio/label_studio/users/decorators/require_role.py:ro
+      # TrainPlex Step 3.3 unified-auth bridge.
+      - /root/trainplex-studio/label_studio/core/trainplex_auth:/label-studio/label_studio/core/trainplex_auth:ro
+      - /root/trainplex-studio/label_studio/core/settings/base.py:/label-studio/label_studio/core/settings/base.py:ro
+      # TrainPlex WAVE-19 Phase 2 real-data wiring — replaces MOCK data in 7 endpoints.
+      - /root/trainplex-studio/label_studio/core/views_dashboard.py:/label-studio/label_studio/core/views_dashboard.py:ro
+      - /root/trainplex-studio/label_studio/core/views_heatmap.py:/label-studio/label_studio/core/views_heatmap.py:ro
+      - /root/trainplex-studio/label_studio/core/services/bulk_assign.py:/label-studio/label_studio/core/services/bulk_assign.py:ro
+      - /root/trainplex-studio/label_studio/reports/services/founder_weekly.py:/label-studio/label_studio/reports/services/founder_weekly.py:ro
+      - /root/trainplex-studio/label_studio/reports/services/leaderboard.py:/label-studio/label_studio/reports/services/leaderboard.py:ro
+      - /root/trainplex-studio/label_studio/reports/services/cohort_analyzer.py:/label-studio/label_studio/reports/services/cohort_analyzer.py:ro
+      - /root/trainplex-studio/label_studio/reports/services/project_roi.py:/label-studio/label_studio/reports/services/project_roi.py:ro
+      - /root/trainplex-studio/label_studio/tasks/api_batch.py:/label-studio/label_studio/tasks/api_batch.py:ro
+      # TrainPlex Step 7.4: PDF export — branded reports for founder/investor share.
+      - /root/trainplex-studio/label_studio/reports/services/pdf_renderer.py:/label-studio/label_studio/reports/services/pdf_renderer.py:ro
+      - /root/trainplex-studio/label_studio/reports/services/monthly_summary.py:/label-studio/label_studio/reports/services/monthly_summary.py:ro
+      - /root/trainplex-studio/label_studio/payments/services/payout_flush.py:/label-studio/label_studio/payments/services/payout_flush.py:ro
+      - /root/trainplex-studio/label_studio/peer_review/services/timeout_sweep.py:/label-studio/label_studio/peer_review/services/timeout_sweep.py:ro
+      - /root/trainplex-studio/label_studio/reports/api.py:/label-studio/label_studio/reports/api.py:ro
+      # WAVE-19 W1-PDF-VIEW (F-8): parallel PDF view module (routes wired in Wave 2 by Z2-URLS).
+      - /root/trainplex-studio/label_studio/reports/views_pdf.py:/label-studio/label_studio/reports/views_pdf.py:ro
+      - /root/trainplex-studio/label_studio/reports/urls.py:/label-studio/label_studio/reports/urls.py:ro
+      - /root/trainplex-studio/deploy/docker-entrypoint.d/app-init/90-install-pdf-deps.sh:/label-studio/deploy/docker-entrypoint.d/app-init/90-install-pdf-deps.sh:ro
+      - /root/trainplex-studio/deploy/docker-entrypoint.d/app/90-install-pdf-deps.sh:/label-studio/deploy/docker-entrypoint.d/app/90-install-pdf-deps.sh:ro
+      # WAVE-19 (founder fix 2026-05-16): trainer batch URL + per-batch claim endpoint.
+      - /root/trainplex-studio/label_studio/core/urls.py:/label-studio/label_studio/core/urls.py:ro
+      - /root/trainplex-studio/label_studio/core/tests/test_phase2_real_data.py:/label-studio/label_studio/core/tests/test_phase2_real_data.py:ro
+      # TrainPlex Phase 2 Step 4.2-2: enhanced wizard view loads real XML
+      # template + parses CSV → Tasks + adds ProjectMember rows for trainers.
+      # Templates dir mount makes the on-disk catalog visible to the catalog
+      # endpoint AND lets the wizard load the right config.xml at create time.
+      - /root/trainplex-studio/label_studio/core/views_template_gallery.py:/label-studio/label_studio/core/views_template_gallery.py:ro
+      - /root/trainplex-studio/backend/data/ls_templates:/label-studio/backend/data/ls_templates:ro
+      # WAVE-19 W1-WIZARD-VIEW (2026-05-16) — admin project wizard view.
+      # Routed by W2-URLS in Wave 2; mount alone is a no-op at request time.
+      - /root/trainplex-studio/label_studio/core/views_admin_projects.py:/label-studio/label_studio/core/views_admin_projects.py:ro
+      # Codex audit M7 (2026-05-16) — first-class trainer-profile columns.
+      # Mounts: User model + extended profile API + migration 0015.
+      - /root/trainplex-studio/label_studio/users/models.py:/label-studio/label_studio/users/models.py:ro
+      # WAVE-19 W1-SEC (2026-05-16): single-source headers middleware (Codex CRITICAL-7).
+      - /root/trainplex-studio/label_studio/users/middleware/security_headers.py:/label-studio/label_studio/users/middleware/security_headers.py:ro
+      - /root/trainplex-studio/label_studio/users/api_profile.py:/label-studio/label_studio/users/api_profile.py:ro
+      - /root/trainplex-studio/label_studio/users/migrations/0015_user_first_class_profile.py:/label-studio/label_studio/users/migrations/0015_user_first_class_profile.py:ro
+      - /root/trainplex-studio/label_studio/users/migrations/0016_rename_htx_audit_l_user_id_idx_htx_audit_l_user_id_2b6762_idx_and_more.py:/label-studio/label_studio/users/migrations/0016_rename_htx_audit_l_user_id_idx_htx_audit_l_user_id_2b6762_idx_and_more.py:ro
+      - /root/trainplex-studio/label_studio/core/migrations/0008_rename_htx_qa_status_idx_htx_quality_status_94ec08_idx_and_more.py:/label-studio/label_studio/core/migrations/0008_rename_htx_qa_status_idx_htx_quality_status_94ec08_idx_and_more.py:ro
+      # Scheduler module (mounted into the app container so manual smoke-test commands also see it).
+      - /root/trainplex-studio/label_studio/core/scheduler.py:/label-studio/label_studio/core/scheduler.py:ro
+      - /root/trainplex-studio/label_studio/core/management/commands/run_scheduler.py:/label-studio/label_studio/core/management/commands/run_scheduler.py:ro
+      # Persistent host dir for INCIDENT_LOG.
+      - /var/lib/trainplex-data:/var/lib/trainplex-data:rw
+    # WAVE-19 W1-INFRA healthcheck (MAJOR-4): probe the Django /health
+    # endpoint via wget (curl is not in the base image). 60s start_period
+    # lets uwsgi finish boot before Docker starts judging health.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=4 http://127.0.0.1:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+  nginx:
+    image: trainplex-studio:prod
+    build:
+      args:
+        - INCLUDE_DEV=false
+    ports:
+      - "8080:8085"
+    volumes:
+      # WAVE-19 W1-INFRA fix (CRITICAL-6): bind-mount the patched entrypoint
+      # script that also writes /etc/nginx/resolv.conf (so out-of-band
+      # `nginx -t` exits 0). Image rebuild not required.
+      - /root/trainplex-studio/deploy/docker-entrypoint.d/common/10-configure-nginx.sh:/label-studio/deploy/docker-entrypoint.d/nginx/10-configure-nginx.sh:ro
+      - /root/trainplex-studio/deploy/docker-entrypoint.d/common/10-configure-nginx.sh:/label-studio/deploy/docker-entrypoint.d/common/10-configure-nginx.sh:ro
+    # WAVE-19 W1-INFRA healthcheck (MAJOR-4): hit the root on the internal
+    # listen port 8085. wget --spider issues HEAD; we accept any 2xx/3xx/4xx
+    # reply (server alive) and only fail on connection refused / timeout.
+    healthcheck:
+      # Probe internal nginx listener on port 8085. wget hits the root path;
+      # any HTTP reply (success or 4xx) proves nginx is serving. Falls back
+      # to a TCP connect if wget is missing on the image variant.
+      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=4 http://127.0.0.1:8085/ >/dev/null 2>&1 || nc -z 127.0.0.1 8085"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+  scheduler:
+    image: trainplex-studio:prod
+    env_file:
+      - .env
+    environment:
+      - DJANGO_DB=sqlite
+      - TZ=Asia/Kolkata
+      - TRAINPLEX_CRON_DRY_RUN=true
+    depends_on:
+      - app
+    restart: unless-stopped
+    volumes:
+      - /root/label-studio-data:/label-studio/data:rw
+      - /root/label-studio-css:/label-studio/custom-css:ro
+      - /root/label-studio-configs:/label-studio/configs:ro
+      - /root/trainplex-studio/label_studio/core/management/commands/locked_migrate.py:/label-studio/label_studio/core/management/commands/locked_migrate.py:ro
+      - /root/trainplex-studio/label_studio/users/decorators/require_role.py:/label-studio/label_studio/users/decorators/require_role.py:ro
+      - /root/trainplex-studio/label_studio/core/trainplex_auth:/label-studio/label_studio/core/trainplex_auth:ro
+      - /root/trainplex-studio/label_studio/core/settings/base.py:/label-studio/label_studio/core/settings/base.py:ro
+      - /root/trainplex-studio/label_studio/core/views_dashboard.py:/label-studio/label_studio/core/views_dashboard.py:ro
+      - /root/trainplex-studio/label_studio/core/views_heatmap.py:/label-studio/label_studio/core/views_heatmap.py:ro
+      - /root/trainplex-studio/label_studio/core/services/bulk_assign.py:/label-studio/label_studio/core/services/bulk_assign.py:ro
+      - /root/trainplex-studio/label_studio/reports/services/founder_weekly.py:/label-studio/label_studio/reports/services/founder_weekly.py:ro
+      - /root/trainplex-studio/label_studio/reports/services/leaderboard.py:/label-studio/label_studio/reports/services/leaderboard.py:ro
+      - /root/trainplex-studio/label_studio/reports/services/cohort_analyzer.py:/label-studio/label_studio/reports/services/cohort_analyzer.py:ro
+      - /root/trainplex-studio/label_studio/reports/services/project_roi.py:/label-studio/label_studio/reports/services/project_roi.py:ro
+      - /root/trainplex-studio/label_studio/tasks/api_batch.py:/label-studio/label_studio/tasks/api_batch.py:ro
+      - /root/trainplex-studio/label_studio/reports/services/pdf_renderer.py:/label-studio/label_studio/reports/services/pdf_renderer.py:ro
+      - /root/trainplex-studio/label_studio/reports/services/monthly_summary.py:/label-studio/label_studio/reports/services/monthly_summary.py:ro
+      - /root/trainplex-studio/label_studio/payments/services/payout_flush.py:/label-studio/label_studio/payments/services/payout_flush.py:ro
+      - /root/trainplex-studio/label_studio/peer_review/services/timeout_sweep.py:/label-studio/label_studio/peer_review/services/timeout_sweep.py:ro
+      - /root/trainplex-studio/label_studio/reports/api.py:/label-studio/label_studio/reports/api.py:ro
+      # WAVE-19 W1-PDF-VIEW (F-8): parallel PDF view module (routes wired in Wave 2 by Z2-URLS).
+      - /root/trainplex-studio/label_studio/reports/views_pdf.py:/label-studio/label_studio/reports/views_pdf.py:ro
+      - /root/trainplex-studio/label_studio/reports/urls.py:/label-studio/label_studio/reports/urls.py:ro
+      - /root/trainplex-studio/deploy/docker-entrypoint.d/app-init/90-install-pdf-deps.sh:/label-studio/deploy/docker-entrypoint.d/app-init/90-install-pdf-deps.sh:ro
+      - /root/trainplex-studio/label_studio/core/urls.py:/label-studio/label_studio/core/urls.py:ro
+      - /root/trainplex-studio/label_studio/core/tests/test_phase2_real_data.py:/label-studio/label_studio/core/tests/test_phase2_real_data.py:ro
+      - /root/trainplex-studio/label_studio/core/views_template_gallery.py:/label-studio/label_studio/core/views_template_gallery.py:ro
+      - /root/trainplex-studio/backend/data/ls_templates:/label-studio/backend/data/ls_templates:ro
+      # WAVE-19 W1-WIZARD-VIEW (2026-05-16) — admin project wizard view.
+      - /root/trainplex-studio/label_studio/core/views_admin_projects.py:/label-studio/label_studio/core/views_admin_projects.py:ro
+      # Codex audit M7 (2026-05-16) — first-class trainer-profile columns.
+      - /root/trainplex-studio/label_studio/users/models.py:/label-studio/label_studio/users/models.py:ro
+      # WAVE-19 W1-SEC (2026-05-16): single-source headers middleware (Codex CRITICAL-7).
+      - /root/trainplex-studio/label_studio/users/middleware/security_headers.py:/label-studio/label_studio/users/middleware/security_headers.py:ro
+      - /root/trainplex-studio/label_studio/users/api_profile.py:/label-studio/label_studio/users/api_profile.py:ro
+      - /root/trainplex-studio/label_studio/users/migrations/0015_user_first_class_profile.py:/label-studio/label_studio/users/migrations/0015_user_first_class_profile.py:ro
+      - /root/trainplex-studio/label_studio/users/migrations/0016_rename_htx_audit_l_user_id_idx_htx_audit_l_user_id_2b6762_idx_and_more.py:/label-studio/label_studio/users/migrations/0016_rename_htx_audit_l_user_id_idx_htx_audit_l_user_id_2b6762_idx_and_more.py:ro
+      - /root/trainplex-studio/label_studio/core/migrations/0008_rename_htx_qa_status_idx_htx_quality_status_94ec08_idx_and_more.py:/label-studio/label_studio/core/migrations/0008_rename_htx_qa_status_idx_htx_quality_status_94ec08_idx_and_more.py:ro
+      - /root/trainplex-studio/label_studio/core/scheduler.py:/label-studio/label_studio/core/scheduler.py:ro
+      - /root/trainplex-studio/label_studio/core/management/commands/run_scheduler.py:/label-studio/label_studio/core/management/commands/run_scheduler.py:ro
+      - /var/lib/trainplex-data:/var/lib/trainplex-data:rw
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        /label-studio/.venv/bin/pip install --quiet 'apscheduler==3.10.4' || exit 1
+        exec /label-studio/.venv/bin/python /label-studio/label_studio/manage.py run_scheduler
+    # WAVE-19 W1-INFRA healthcheck (MAJOR-4): scheduler has no HTTP surface
+    # so we probe the run_scheduler process directly via pgrep. start_period
+    # gives apscheduler time to import + register before judgement begins.
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f run_scheduler >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s

@@ -21,6 +21,25 @@ nameservers=$(awk '$1=="nameserver" {
     }
 }' /etc/resolv.conf)
 echo "resolver $nameservers;" > $OPT_DIR/nginx/resolv.conf
+# WAVE-19 W1-INFRA fix (CRITICAL-6): also publish resolv.conf next to the
+# installed /etc/nginx/nginx.conf so out-of-band invocations like `nginx -t`
+# (which load /etc/nginx/nginx.conf, not $OPT_DIR/nginx/nginx.conf) can
+# resolve the `include resolv.conf;` directive. Root-cause fix: the include
+# directive existed but the file was only ever written to OPT_DIR, leaving
+# /etc/nginx half-configured. Both locations now stay in sync.
+cp -f $OPT_DIR/nginx/resolv.conf /etc/nginx/resolv.conf 2>/dev/null || true
+
+# WAVE-19 W1-INFRA fix (CRITICAL-6 cont.): inject a main-context error_log
+# directive so that out-of-band `nginx -t` does not crash trying to open
+# the compile-time default /var/lib/nginx/logs/error.log (the unprivileged
+# runtime user 1001 cannot create that path). The http{}-scoped error_log
+# already redirects runtime logs to /dev/stderr; this adds the same at the
+# main context for config-test invocations. Idempotent: only patches once.
+for _NCONF in "$NGINX_CONFIG" /etc/nginx/nginx.conf; do
+  if [ -w "$_NCONF" ] && ! grep -q "^error_log /dev/stderr warn;" "$_NCONF" 2>/dev/null; then
+    sed -i "/^pid \/tmp\/nginx.pid;/a error_log /dev/stderr warn;" "$_NCONF" 2>/dev/null || true
+  fi
+done
 
 # Configure nginx error logging
 echo >&3 "=> Configuring nginx error logging..."
