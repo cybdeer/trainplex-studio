@@ -30,7 +30,7 @@
 | 13 | MAJOR-3 watchdog prod | grep app.trainplex.in | ✅ | C:\TrainPlex\watchdog.sh — 3 occurrences (local-only file, expected) |
 | 14 | MAJOR-4 docker healthchecks | inspect 3 services | ✅ | app=healthy, nginx=healthy, scheduler=healthy |
 | 15 | MAJOR-5 data drift docs | INCIDENT_LOG | ✅ | /var/lib/trainplex-data/INCIDENT_LOG.md — 3 hits MAJOR-5/drift |
-| 16 | MAJOR-6 mobile literals | grep 8764001234 | ✅ | 0 hits in *.py/*.tsx/*.md outside log/feedback files |
+| 16 | MAJOR-6 mobile literals | grep <configured-guard> | ✅ | 0 hits in *.py/*.tsx/*.md outside log/feedback files |
 | 17 | MAJOR-7 visual+lighthouse+k6+DR | 4 files | ❌ | visual-regression.yml MISSING; lighthouse.yml MISSING; 100-trainers.js MISSING (have dashboard/full_workflow/login_burst/task_submit/wa_broadcast); DR_RUNBOOK.md present (renamed from DR_DRILL_PROCEDURE.md — counts as ⚠️ alias) |
 | 18 | MAJOR-8 cron services | 3 modules | ✅ | monthly_summary.py + payout_flush.py + timeout_sweep.py all present |
 | 19 | MINOR-1 bak cleanup | find -mtime +1 | ✅ | 0 files |

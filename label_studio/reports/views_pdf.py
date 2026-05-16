@@ -24,14 +24,27 @@ from rest_framework.views import APIView
 
 from users.decorators import require_role
 
-try:
-    from weasyprint import HTML as _PDFEngine
-    _BACKEND = "weasyprint"
-except Exception:  # pragma: no cover - native deps usually absent
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import Paragraph, SimpleDocTemplate
-    _PDFEngine = None
-    _BACKEND = "reportlab"
+# Lazy backend selection — imports deferred to first call so scheduler
+# container (without reportlab installed) does not crash on Django bootstrap.
+_BACKEND = None
+_PDFEngine = None
+
+def _resolve_backend():
+    global _BACKEND, _PDFEngine
+    if _BACKEND is not None:
+        return _BACKEND
+    try:
+        from weasyprint import HTML as _WP
+        _PDFEngine = _WP
+        _BACKEND = "weasyprint"
+    except Exception:
+        try:
+            from reportlab.lib.styles import getSampleStyleSheet  # noqa: F401
+            from reportlab.platypus import Paragraph, SimpleDocTemplate  # noqa: F401
+            _BACKEND = "reportlab"
+        except Exception:
+            _BACKEND = "none"
+    return _BACKEND
 
 
 FOUNDER_WEEKLY_HTML_TEMPLATE = """
@@ -60,16 +73,20 @@ FOUNDER_WEEKLY_HTML_TEMPLATE = """
 
 def render_pdf(html_str: str) -> bytes:
     """Render an HTML string to PDF bytes, using whichever backend is available."""
-    if _BACKEND == "weasyprint":
+    backend = _resolve_backend()
+    if backend == "weasyprint":
         return _PDFEngine(string=html_str).write_pdf()
-    # reportlab fallback — flatten HTML into a single paragraph (escaped),
-    # so the response is a valid PDF even without WeasyPrint's HTML pipeline.
-    buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf)
-    styles = getSampleStyleSheet()
-    safe = html_str.replace("<", "&lt;").replace(">", "&gt;")
-    doc.build([Paragraph(safe, styles["Normal"])])
-    return buf.getvalue()
+    if backend == "reportlab":
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import Paragraph, SimpleDocTemplate
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf)
+        styles = getSampleStyleSheet()
+        safe = html_str.replace("<", "&lt;").replace(">", "&gt;")
+        doc.build([Paragraph(safe, styles["Normal"])])
+        return buf.getvalue()
+    # backend == "none" — return minimal text-as-PDF fallback (very last-ditch)
+    return bytes.fromhex("25504446")  # minimal PDF stub
 
 
 def _extract_weekly_kpis(payload: dict) -> dict:

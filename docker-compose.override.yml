@@ -38,6 +38,7 @@ services:
       # WAVE-19 W2-PAYOUT (2026-05-16): ShivGateway swap (Razorpay deprecated rollback only).
       - /root/trainplex-studio/label_studio/payments/services/shivgateway_handler.py:/label-studio/label_studio/payments/services/shivgateway_handler.py:ro
       - /root/trainplex-studio/label_studio/payments/services/payout_provider.py:/label-studio/label_studio/payments/services/payout_provider.py:ro
+      - /root/trainplex-studio/label_studio/core/services/founder_guard.py:/label-studio/label_studio/core/services/founder_guard.py:ro
       - /root/trainplex-studio/label_studio/payments/services/payout_router.py:/label-studio/label_studio/payments/services/payout_router.py:ro
       - /root/trainplex-studio/label_studio/payments/api.py:/label-studio/label_studio/payments/api.py:ro
       - /root/trainplex-studio/label_studio/payments/urls.py:/label-studio/label_studio/payments/urls.py:ro
@@ -152,6 +153,7 @@ services:
       # WAVE-19 W2-PAYOUT (2026-05-16): ShivGateway swap (Razorpay deprecated rollback only).
       - /root/trainplex-studio/label_studio/payments/services/shivgateway_handler.py:/label-studio/label_studio/payments/services/shivgateway_handler.py:ro
       - /root/trainplex-studio/label_studio/payments/services/payout_provider.py:/label-studio/label_studio/payments/services/payout_provider.py:ro
+      - /root/trainplex-studio/label_studio/core/services/founder_guard.py:/label-studio/label_studio/core/services/founder_guard.py:ro
       - /root/trainplex-studio/label_studio/payments/services/payout_router.py:/label-studio/label_studio/payments/services/payout_router.py:ro
       - /root/trainplex-studio/label_studio/payments/api.py:/label-studio/label_studio/payments/api.py:ro
       - /root/trainplex-studio/label_studio/payments/urls.py:/label-studio/label_studio/payments/urls.py:ro

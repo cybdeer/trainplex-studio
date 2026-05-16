@@ -14,7 +14,7 @@ This module is the single seam:
   configured. Empty string when unset (tests / dev environments).
 * :func: returns a compiled regex that matches the
   number with optional +91 / 91 country-code prefix and arbitrary
-  [\s-] separators. Returns None if the env var is unset.
+  [\\s-] separators. Returns None if the env var is unset.
 * :func: replaces every match with [REDACTED-MOBILE].
 * :func: raises ValueError if the number
   appears anywhere in a string / dict / list payload.
@@ -54,7 +54,7 @@ def _load_guard_digits() -> Tuple[str, str]:
     """Return (with_cc, no_cc) digits from the env var.
 
     The env var may be provided in any common format (12-digit ``91``-prefixed,
-    10-digit bare, with or without ``+`` and ``[\s-]`` separators) — we normalise
+    10-digit bare, with or without ``+`` and ``[\\s-]`` separators) — we normalise
     to digits only
     and split into the two canonical forms.
     """
@@ -94,7 +94,7 @@ def get_guard_digits_no_cc() -> str:
 def build_guard_pattern() -> Optional[Pattern[str]]:
     """Compile a regex matching the guarded number in any common format.
 
-    Matches optional + 91 country-code prefix, optional [\s-]
+    Matches optional + 91 country-code prefix, optional [\\s-]
     separators inside the 10-digit body. Returns None if the env var
     is unset (so call sites should treat "no guard configured" as a
     no-op rather than crashing in dev).
@@ -105,8 +105,8 @@ def build_guard_pattern() -> Optional[Pattern[str]]:
     # Build a tolerant pattern: any of the 10 digits may have whitespace
     # or a dash before it. We use a fixed-length pattern derived from the
     # actual digits — no string literal of the number in this file.
-    body = r'[\s-]?'.join(re.escape(d) for d in no_cc)
-    return re.compile(r'(?:\+?91[\s-]?)?' + body)
+    body = r'[\\s-]?'.join(re.escape(d) for d in no_cc)
+    return re.compile(r'(?:\+?91[\\s-]?)?' + body)
 
 
 def digits_only(text: Any) -> str:

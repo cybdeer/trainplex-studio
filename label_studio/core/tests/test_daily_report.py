@@ -300,7 +300,7 @@ class TestFounderNumberGuard(TestCase):
     def test_guard_raises_on_value_buried_in_dict(self):
         with self.assertRaises(ValueError):
             svc._assert_no_founder_personal_number(
-                {'subject': 'hi', 'meta': {'phone': '+91-87640-01234'}}
+                {'subject': 'hi', 'meta': {'phone': '+91-98765-43210'}}
             )
 
     def test_guard_passes_on_clean_payload(self):
