@@ -164,6 +164,44 @@ class User(UserMixin, AbstractBaseUser, PermissionsMixin, UserLastActivityMixin)
     )
 
     # ---------------------------------------------------------------------
+    # Codex audit M7 (2026-05-16) — trainer profile first-class columns.
+    # Pre-M7 these lived in custom_hotkeys['__trainplex_profile'] JSON shim;
+    # the audit flagged the need to make them queryable + indexable. Data
+    # is back-filled by migration 0015. api_profile.py prefers these
+    # columns and falls back to the JSON shim for forward-compat.
+    # ---------------------------------------------------------------------
+    state = models.CharField(
+        max_length=64,
+        blank=True,
+        default='',
+        help_text='Trainer profile: Indian state.',
+    )
+    city = models.CharField(
+        max_length=64,
+        blank=True,
+        default='',
+        help_text='Trainer profile: city.',
+    )
+    pincode = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        help_text='Trainer profile: postal pincode.',
+    )
+    language = models.CharField(
+        max_length=8,
+        blank=True,
+        default='en',
+        help_text='Trainer profile: preferred UI language.',
+    )
+    tier = models.CharField(
+        max_length=16,
+        blank=True,
+        default='bronze',
+        help_text='Trainer profile: tier badge.',
+    )
+
+    # ---------------------------------------------------------------------
     # Phase 1 Step 12.4 — TOTP 2FA scaffold.
     # Login-flow wire-in is the next agent's job; these fields land here so
     # the migration ships with the rest of the Security Baseline.

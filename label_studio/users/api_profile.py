@@ -39,6 +39,7 @@ Phase 1 vs Phase 2 wiring
 from __future__ import annotations
 
 import logging
+import re
 import time
 from collections import defaultdict, deque
 from typing import Any, Dict
@@ -93,17 +94,26 @@ def _password_change_rate_limited(user_id: int) -> bool:
 
 
 # ----------------------------------------------------------------------------
-# Extended-profile storage shim.
+# Extended-profile storage.
 #
-# Reuses the existing ``custom_hotkeys`` JSON field on User as a namespaced
-# scratchpad — keys under ``__trainplex_profile`` are off-limits to the
-# hotkey serializer (it validates ``section:action`` format, so ``__tp...``
-# is rejected if posted from the hotkeys endpoint). This means no new DB
-# migration is required for Step 13 — Phase 2 promotes these to first-class
-# columns + a User.profile_meta JSONField.
+# Codex audit M7 (2026-05-16): state / city / pincode / language / tier are
+# now first-class columns on the User model. Migration 0015 back-fills from
+# the legacy custom_hotkeys['__trainplex_profile'] JSON namespace. This
+# module reads from the columns first and falls back to the JSON shim only
+# if a column is unset — that gives us safe rollback semantics and lets the
+# pre-migration JSON values keep serving reads during a deploy window.
+#
+# Other meta keys (payout_settings, notification_prefs, annotator_settings)
+# remain in the JSON shim — they're freeform JSON blobs whose promotion is
+# tracked under a separate audit item.
 # ----------------------------------------------------------------------------
 
 _PROFILE_META_KEY = '__trainplex_profile'
+
+# Codex M7 — names of first-class trainer-profile columns on User. Listed
+# here (not magic-stringed elsewhere) so adding a new column later just
+# requires updating this tuple + the migration + model definition.
+_FIRST_CLASS_PROFILE_COLUMNS = ('state', 'city', 'pincode', 'language', 'tier')
 
 # Allow-list of editable profile fields. ``role`` and ``email`` are explicitly
 # absent — silent ignore on PATCH so the founder's "trainer can't self-promote"
@@ -117,11 +127,25 @@ _EDITABLE_META_FIELDS = {
     'tier',  # display-only, but the UI seeds it for tier-badge rendering
     'payout_settings',
     'notification_prefs',
+    # Step 13.1: trainer-side LS annotator preferences (JSONB freeform).
+    # Kept opaque server-side — Phase 2 promotes to first-class columns once
+    # the schema settles. Stored in the same __trainplex_profile namespace.
+    'annotator_settings',
 }
 # Tier is computed server-side in Phase 2; for Phase 1 it lives in meta but
 # is read-only via PATCH. Listed in _EDITABLE_META_FIELDS only so a Phase 2
 # migration to first-class columns doesn't need to re-touch this list.
 _READONLY_META_FIELDS = {'tier'}
+
+# Step 13.1 validation regexes. Phone accepts Indian-only formats:
+#   ``+91XXXXXXXXXX``, ``91XXXXXXXXXX``, ``XXXXXXXXXX`` (10 digits, starts 6-9).
+# Empty string is allowed (clears the value) but anything else must match.
+# Pincode is the standard 6-digit Indian PIN.
+_PHONE_RE = re.compile(r'^(?:\+?91)?[6-9]\d{9}$')
+_PINCODE_RE = re.compile(r'^\d{6}$')
+# Allowed UI languages — keep narrow so a typo in the frontend doesn't get
+# silently persisted. Same set as the Phase 1 frontend dropdown (hi/en/ta/bn).
+_ALLOWED_LANGUAGES = {'hi', 'en', 'ta', 'bn'}
 
 
 def _get_profile_meta(user) -> Dict[str, Any]:
@@ -132,7 +156,14 @@ def _get_profile_meta(user) -> Dict[str, Any]:
 
 
 def _set_profile_meta(user, updates: Dict[str, Any]) -> Dict[str, Any]:
-    """Merge ``updates`` into the user's profile-meta namespace and persist.
+    """Merge ``updates`` into the user profile + persist.
+
+    Codex M7 split: first-class columns (state / city / pincode / language /
+    tier) are written directly on the User row; everything else continues
+    to live in the ``custom_hotkeys['__trainplex_profile']`` JSON namespace.
+    We mirror first-class values into the JSON shim too, which costs one
+    extra dict write but means a rollback to the pre-M7 code path can keep
+    reading values that were written under the new code.
 
     Returns the merged meta dict (post-write).
     """
@@ -141,10 +172,34 @@ def _set_profile_meta(user, updates: Dict[str, Any]) -> Dict[str, Any]:
     # Drop read-only meta fields if the caller tried to set them.
     for k in _READONLY_META_FIELDS:
         updates.pop(k, None)
-    meta.update(updates)
-    hotkeys[_PROFILE_META_KEY] = meta
-    user.custom_hotkeys = hotkeys
-    user.save(update_fields=['custom_hotkeys'])
+
+    # Split updates: first-class columns go onto the User row, the rest
+    # stay in the JSON shim. ``tier`` is special — it's first-class AND
+    # read-only over PATCH, so it was already filtered out above.
+    column_updates: Dict[str, Any] = {}
+    json_updates: Dict[str, Any] = {}
+    for key, value in updates.items():
+        if key in _FIRST_CLASS_PROFILE_COLUMNS:
+            column_updates[key] = '' if value is None else str(value)
+        else:
+            json_updates[key] = value
+
+    fields_to_save: List[str] = []
+    if column_updates:
+        for col, val in column_updates.items():
+            setattr(user, col, val)
+        fields_to_save.extend(column_updates.keys())
+        # Mirror into the JSON shim for rollback compatibility.
+        meta.update(column_updates)
+
+    if json_updates:
+        meta.update(json_updates)
+
+    if column_updates or json_updates:
+        hotkeys[_PROFILE_META_KEY] = meta
+        user.custom_hotkeys = hotkeys
+        fields_to_save.append('custom_hotkeys')
+        user.save(update_fields=list(set(fields_to_save)))
     return meta
 
 
@@ -177,15 +232,24 @@ def _serialize_profile(user) -> Dict[str, Any]:
         'avatar_url': user.avatar_url,
         'role': user.role,
         'date_joined': user.date_joined.isoformat() if user.date_joined else None,
-        # Extended profile (lives in custom_hotkeys::__trainplex_profile in
-        # Phase 1; first-class columns land in Phase 2).
-        'state': meta.get('state', ''),
-        'city': meta.get('city', ''),
-        'pincode': meta.get('pincode', ''),
-        'language': meta.get('language', 'en'),
-        'tier': meta.get('tier', 'bronze'),
+        # Codex M7 — first-class columns are the source of truth; the JSON
+        # shim is a fallback for users who haven't written to the new
+        # columns yet (e.g. brand-new accounts before the first PATCH).
+        'state': getattr(user, 'state', '') or meta.get('state', ''),
+        'city': getattr(user, 'city', '') or meta.get('city', ''),
+        'pincode': getattr(user, 'pincode', '') or meta.get('pincode', ''),
+        'language': (
+            getattr(user, 'language', '') or meta.get('language', '') or 'en'
+        ),
+        'tier': (
+            getattr(user, 'tier', '') or meta.get('tier', '') or 'bronze'
+        ),
         'payout_settings': payout_settings,
         'notification_prefs': notification_prefs,
+        # Step 13.1: LS annotator preferences (freeform JSONB). Returns ``{}``
+        # if never set so the React form can default-merge without an undef
+        # check on every key.
+        'annotator_settings': meta.get('annotator_settings') or {},
         # Lightweight stats — Phase 2 wires real aggregations; Phase 1 reports
         # zeros so the React stats card renders without a backend crash.
         'stats': {
@@ -220,17 +284,112 @@ class TrainerProfileAPI(APIView):
         tags=['Users — Profile'],
         summary='Update extended profile',
         description=(
-            'Partial update of the calling user\'s profile. ``role`` and '
-            '``email`` are READ-ONLY and silently ignored if posted — trainers '
-            'cannot self-promote via this endpoint.'
+            'Partial update of the calling user\'s profile.\n\n'
+            'READ-ONLY fields:\n'
+            '- ``role`` / ``tier`` — silently ignored (trainer cannot self-promote).\n'
+            '- ``email`` — returns **400** if posted (change requires a separate\n'
+            '  email-verification flow which is not yet wired).\n\n'
+            'Validation:\n'
+            '- ``phone`` — Indian format: 10 digits (6-9 start) with optional\n'
+            '  ``+91`` / ``91`` prefix. Empty string clears the value.\n'
+            '- ``pincode`` — exactly 6 digits. Empty string clears the value.\n'
+            '- ``language`` — one of ``hi`` / ``en`` / ``ta`` / ``bn``.\n\n'
+            'Convenience:\n'
+            '- ``display_name`` — combined name. Server splits on the first\n'
+            '  whitespace into ``first_name`` / ``last_name`` (last_name empty\n'
+            '  if no whitespace present).'
         ),
     )
     def patch(self, request, *args, **kwargs):
         user = request.user
         body = request.data if isinstance(request.data, dict) else {}
 
+        # ------------------------------------------------------------------
+        # Step 13.1 guard rails — reject the things that need their own flow
+        # BEFORE we touch the DB, so a partial commit can't leak state.
+        # ------------------------------------------------------------------
+
+        # Email change is out of scope until the verification flow lands.
+        # Returning 400 (not silent ignore) so the UI surfaces a clear error
+        # if the user attempted it from a dev console / curl.
+        if 'email' in body and body.get('email') and body['email'] != user.email:
+            return Response(
+                {
+                    'detail': (
+                        'Email change requires a separate verification flow. '
+                        'Use the dedicated email-change endpoint instead.'
+                    ),
+                    'field': 'email',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ``display_name`` is a UI convenience — split into first/last so the
+        # rest of the pipeline only deals with the canonical columns.
+        if 'display_name' in body and body.get('display_name') is not None:
+            display_name = str(body['display_name']).strip()
+            if display_name:
+                parts = display_name.split(None, 1)
+                # Don't clobber explicit first_name/last_name if both were sent.
+                body.setdefault('first_name', parts[0])
+                body.setdefault('last_name', parts[1] if len(parts) > 1 else '')
+
+        # Phone validation. Accept empty string (clears value) or canonical
+        # Indian format. We do NOT log the value itself (founder mobile rule).
+        if 'phone' in body:
+            phone = body.get('phone')
+            phone_str = '' if phone is None else str(phone).strip()
+            if phone_str and not _PHONE_RE.match(phone_str):
+                return Response(
+                    {
+                        'detail': (
+                            'Phone must be a 10-digit Indian mobile number '
+                            '(starts with 6-9), optionally prefixed with +91 or 91.'
+                        ),
+                        'field': 'phone',
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            body['phone'] = phone_str
+
+        # Pincode validation. Same empty-clears-value semantics as phone.
+        if 'pincode' in body:
+            pincode = body.get('pincode')
+            pincode_str = '' if pincode is None else str(pincode).strip()
+            if pincode_str and not _PINCODE_RE.match(pincode_str):
+                return Response(
+                    {
+                        'detail': 'Pincode must be exactly 6 digits.',
+                        'field': 'pincode',
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            body['pincode'] = pincode_str
+
+        # Language whitelist.
+        if 'language' in body and body.get('language'):
+            language = str(body['language']).strip().lower()
+            if language not in _ALLOWED_LANGUAGES:
+                return Response(
+                    {
+                        'detail': (
+                            'Language must be one of: '
+                            + ', '.join(sorted(_ALLOWED_LANGUAGES))
+                        ),
+                        'field': 'language',
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            body['language'] = language
+
+        # ------------------------------------------------------------------
+        # Apply updates.
+        # ------------------------------------------------------------------
+
         # 1) User-table fields. Silently drop role / email so a stale React
-        #    form can't accidentally promote the trainer.
+        #    form can't accidentally promote the trainer (the email guard
+        #    above already returned 400 on a real change attempt; identical
+        #    email values are safe to keep in the body and ignore here).
         user_updates = {k: v for k, v in body.items() if k in _EDITABLE_USER_FIELDS}
         if user_updates:
             for k, v in user_updates.items():
