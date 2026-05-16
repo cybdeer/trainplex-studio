@@ -75,14 +75,28 @@ import { TransactionList } from "../TransactionList";
 import { BalanceCards } from "../BalanceCards";
 import type { WalletResponse, WalletTxnRow } from "../types";
 
-const FOUNDER_MOBILE = "+918764001234";
-const FOUNDER_MOBILE_VARIANTS = [
-  "+918764001234",
-  "918764001234",
-  "8764001234",
-  "+91 8764001234",
-  "+91-8764001234",
-];
+// Founder personal mobile (per MEMORY.md → feedback_no_founder_personal_number).
+// Literal lives only in `.env` (gitignored). At test time we resolve it from
+// `process.env.TRAINPLEX_FOUNDER_MOBILE_GUARD`, falling back to a 10-digit
+// sentinel for CI so this source file never embeds the founder's real mobile.
+const _TEST_SENTINEL_MOBILE = "9876543210";
+const _resolveFounderMobile = (): { full: string; variants: string[] } => {
+  const raw = (process.env.TRAINPLEX_FOUNDER_MOBILE_GUARD ?? "").trim();
+  const digits = raw.replace(/\D+/g, "");
+  const lastTen = digits.length >= 10 ? digits.slice(-10) : _TEST_SENTINEL_MOBILE;
+  return {
+    full: `+91${lastTen}`,
+    variants: [
+      `+91${lastTen}`,
+      `91${lastTen}`,
+      lastTen,
+      `+91 ${lastTen}`,
+      `+91-${lastTen}`,
+    ],
+  };
+};
+const { full: FOUNDER_MOBILE, variants: FOUNDER_MOBILE_VARIANTS } =
+  _resolveFounderMobile();
 
 const TXN_HOLD: WalletTxnRow = {
   id: 1,

@@ -32,6 +32,7 @@ Public surface
 from __future__ import annotations
 
 import logging
+import os
 import re
 import uuid
 from datetime import timedelta
@@ -96,16 +97,34 @@ STATUS_SENT = 'sent'
 STATUS_FAILED = 'failed'
 STATUS_SKIPPED = 'skipped'
 
-# Founder personal number — must never appear in outbound. Stored here so the
-# defensive check is self-contained without importing settings (env var would
-# be the production-grade pattern; for Phase 1 the constants suffice because
-# the test asserts the *absence* of these exact strings from code+templates).
-#
-# Two forms are detected: with the +91 country code prefix and without. The
-# digits-only normalisation strips dashes / spaces / parentheses first.
-_FOUNDER_PERSONAL_MOBILE_DIGITS_WITH_CC = '918764001234'
-_FOUNDER_PERSONAL_MOBILE_DIGITS_NO_CC = '8764001234'
+# Founder personal number — must never appear in outbound (and per founder
+# rule must also never appear as a literal in any tracked source file).
+# The two compare-strings are derived at import time from the
+# ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var (set in production ``.env``,
+# unset / sentinel in CI). The digits-only normalisation strips dashes /
+# spaces / parentheses first.
 _FOUNDER_DIGIT_RE = re.compile(r'\D+')
+
+
+def _build_founder_digits() -> tuple[str, str]:
+    """Return (with_cc, no_cc) digits-only forms of the founder mobile.
+
+    Falls back to a never-match sentinel pair when the env var is empty
+    so the guard remains side-effect free in CI / dev.
+    """
+
+    raw = os.getenv('TRAINPLEX_FOUNDER_MOBILE_GUARD', '').strip()
+    digits = _FOUNDER_DIGIT_RE.sub('', raw)
+    if len(digits) >= 10:
+        last_ten = digits[-10:]
+        return ('91' + last_ten, last_ten)
+    # Sentinel that won't match real-world digit strings.
+    return ('___NEVER_MATCH_WITH_CC___', '___NEVER_MATCH_NO_CC___')
+
+
+_FOUNDER_PERSONAL_MOBILE_DIGITS_WITH_CC, _FOUNDER_PERSONAL_MOBILE_DIGITS_NO_CC = (
+    _build_founder_digits()
+)
 
 
 def _digits_only(text: str) -> str:

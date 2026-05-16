@@ -27,16 +27,21 @@ Model (`core/models_feature_flags.py`):
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from core.models_feature_flags import FeatureFlag
 from core.services import feature_flags as ff
+
+# Sentinel mobile used only by scrub-related tests. Tests force the env var
+# via :func:`mock.patch.dict` so the production literal never appears here.
+_TEST_FOUNDER_MOBILE_SENTINEL = '9876543210'
 
 User = get_user_model()
 
@@ -136,12 +141,22 @@ class TestSetFlag(TestCase):
             ff.set_flag('fflag_bad', rollout_pct=-1)
 
     def test_set_scrubs_founder_mobile(self):
-        ff.set_flag(
-            'fflag_scrub',
-            description='Contact founder at +91 8764001234 for details',
-        )
+        # Forcibly inject the sentinel founder mobile via env var so the
+        # scrub regex compiles against a known value at module-rebuild
+        # time. The production literal never appears in this test file.
+        sentinel = _TEST_FOUNDER_MOBILE_SENTINEL
+        with patch.dict(
+            os.environ,
+            {'TRAINPLEX_FOUNDER_MOBILE_GUARD': sentinel},
+        ):
+            scrub_re = ff._build_founder_mobile_re()
+            with patch.object(ff, '_FORBIDDEN_FOUNDER_MOBILE', scrub_re):
+                ff.set_flag(
+                    'fflag_scrub',
+                    description=f'Contact founder at +91 {sentinel} for details',
+                )
         row = FeatureFlag.objects.get(name='fflag_scrub')
-        self.assertNotIn('8764001234', row.description)
+        self.assertNotIn(sentinel, row.description)
         self.assertIn('[REDACTED-MOBILE]', row.description)
 
     def test_cache_invalidated_on_set(self):

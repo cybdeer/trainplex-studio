@@ -17,7 +17,8 @@ Founder rules honoured
   is restartable. The dry-run flag is the safety net against partial
   application during a real production cutover.
 * **No founder personal number in outbound** — the script never
-  emits the founder mobile (+91 8764001234). Founder review report
+  emits the founder's personal mobile (configured via the
+  ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var). Founder review report
   uses the org's WhatsApp Business number stub only.
 * **Plain-Hindi bug-fix recap** — emitted in the MIGRATION_REPORT.md
   footer so the founder reads the migration outcome in <30 sec.
@@ -136,8 +137,21 @@ ANNOTATION_STATUS_MAP = {
     (False, False): 'submitted',
 }
 
-# Founder rule: never emit this mobile in any artifact.
-FORBIDDEN_FOUNDER_MOBILE = re.compile(r'(?:\+?91[\s-]?)?8764001234')
+# Founder rule: never emit the founder's personal mobile in any artifact.
+# Literal lives in `.env` only (gitignored) — env var is loaded here and
+# compiled into the scrub regex. Falls back to a never-match sentinel when
+# the env var is unset so unit tests stay deterministic.
+
+def _build_forbidden_founder_mobile_re() -> re.Pattern[str]:
+    raw = os.getenv('TRAINPLEX_FOUNDER_MOBILE_GUARD', '').strip()
+    if not raw:
+        return re.compile(r'(?!x)x')  # never matches
+    digits = re.sub(r'\D+', '', raw)
+    last_ten = digits[-10:] if len(digits) >= 10 else digits
+    return re.compile(r'(?:\+?91[\s-]?)?' + re.escape(last_ten))
+
+
+FORBIDDEN_FOUNDER_MOBILE = _build_forbidden_founder_mobile_re()
 
 # Path the founder reviews after the run completes. Append-only.
 DEFAULT_INCIDENT_LOG = Path('/var/lib/trainplex-data/INCIDENT_LOG.md')

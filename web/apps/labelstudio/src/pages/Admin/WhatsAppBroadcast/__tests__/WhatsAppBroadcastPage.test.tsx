@@ -250,8 +250,16 @@ describe("WhatsAppBroadcastPage metadata", () => {
 // the python test; this test guards the static frontend surface.
 
 describe("Founder personal-mobile leak guard", () => {
-  const FOUNDER_DIGITS = "918764001234";
-  const FOUNDER_RE = /(?:\+?91[-\s]?)?(?:8764[-\s]?001234)/;
+  // Resolve the founder digits from the env var (gitignored `.env`),
+  // falling back to a synthetic 10-digit sentinel for CI so this source
+  // file never embeds the founder's real mobile literal.
+  const _TEST_SENTINEL_MOBILE = "9876543210";
+  const _raw = (process.env.TRAINPLEX_FOUNDER_MOBILE_GUARD ?? "").trim();
+  const _digits = _raw.replace(/\D+/g, "");
+  const _lastTen =
+    _digits.length >= 10 ? _digits.slice(-10) : _TEST_SENTINEL_MOBILE;
+  const FOUNDER_DIGITS = `91${_lastTen}`;
+  const FOUNDER_RE = new RegExp(`(?:\\+?91[-\\s]?)?(?:${_lastTen})`);
 
   it("the rendered DOM never contains the founder personal mobile", () => {
     setMockQuery({ data: TEMPLATES, isLoading: false, isError: false });

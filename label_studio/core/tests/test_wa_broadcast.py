@@ -10,8 +10,10 @@ Covers:
 - Empty trainer_ids → 400.
 - Idempotency: same (template, trainer) within 60s = second call's row is
   marked status=skipped.
-- Founder personal mobile +91 8764001234 NEVER appears in any logged params
-  or request/response body — regex assertion across stored rows.
+- Founder personal mobile (configured via the
+  ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var, falls back to a sentinel
+  for CI) NEVER appears in any logged params or request/response body
+  — regex assertion across stored rows.
 - History endpoint returns the last 100 rows admin-only.
 
 The AiSensy outbound is patched via `unittest.mock` so no real HTTP fires.
@@ -19,6 +21,7 @@ The AiSensy outbound is patched via `unittest.mock` so no real HTTP fires.
 
 from __future__ import annotations
 
+import os
 import re
 from datetime import timedelta
 from unittest.mock import patch
@@ -34,10 +37,24 @@ from core.services import wa_broadcast as wa_svc
 
 User = get_user_model()
 
-# Regex used in the leak-check assertion. Matches the founder's personal
-# mobile in any common format (digits only / spaces / dashes / +91 / 91).
-FOUNDER_DIGITS = '918764001234'
-FOUNDER_LEAK_RE = re.compile(r'(?:\+?91[-\s]?)?(?:8764[-\s]?001234)')
+# Test sentinel — the founder's actual personal mobile must NEVER appear
+# in a tracked test file. We pull the real digits from the env var when
+# set, falling back to a synthetic 10-digit sentinel for CI. Tests guard
+# the *absence* of these digits in stored rows.
+_TEST_SENTINEL_MOBILE = '9876543210'
+
+
+def _resolve_founder_digits() -> tuple[str, re.Pattern[str]]:
+    raw = os.environ.get('TRAINPLEX_FOUNDER_MOBILE_GUARD', '').strip()
+    digits = re.sub(r'\D+', '', raw)
+    last_ten = digits[-10:] if len(digits) >= 10 else _TEST_SENTINEL_MOBILE
+    return (
+        '91' + last_ten,
+        re.compile(r'(?:\+?91[-\s]?)?' + re.escape(last_ten)),
+    )
+
+
+FOUNDER_DIGITS, FOUNDER_LEAK_RE = _resolve_founder_digits()
 
 
 def _assert_no_founder_number(haystack: str, context: str = '') -> None:
@@ -280,7 +297,8 @@ class TestAdminWhatsAppBroadcast(TestCase):
     # =============================================================
 
     def test_founder_personal_number_never_appears_in_any_payload(self):
-        """+91 8764001234 must not appear in any params, log, or response body."""
+        """The configured founder mobile must not appear in any params,
+        log, or response body."""
         self.client.force_authenticate(user=self.admin)
         # Innocuous params that the admin might attach in real usage.
         resp = self.client.post(

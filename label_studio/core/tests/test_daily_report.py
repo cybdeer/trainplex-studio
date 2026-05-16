@@ -23,8 +23,9 @@ Service (`core/services/daily_report_email.py`):
 - `_assert_no_founder_personal_number(...)` guard raises ValueError
   if the founder's personal mobile shows up in HTML, plain text,
   subject, or recipient string — covers both +91 and no-CC forms.
-- Founder personal mobile +91 8764001234 NEVER appears in any rendered
-  body or subject of an organic summary.
+- Founder personal mobile (configured via the
+  ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var) NEVER appears in any
+  rendered body or subject of an organic summary.
 
 Management command (`core/management/commands/send_daily_report.py`):
 - End-to-end ``send_daily_report --dry-run`` succeeds, does not call
@@ -57,9 +58,27 @@ from core.services import daily_report_email as svc
 
 User = get_user_model()
 
-FOUNDER_DIGITS_WITH_CC = '918764001234'
-FOUNDER_DIGITS_NO_CC = '8764001234'
-FOUNDER_LEAK_RE = re.compile(r'(?:\+?91[-\s]?)?(?:8764[-\s]?001234)')
+# Test sentinel — production literal must NEVER appear in tracked files.
+# Tests load the real guard digits at runtime from the env var when set,
+# else fall back to the sentinel so the assertion still checks something
+# meaningful (a synthetic leak) without ever embedding the founder's
+# actual personal mobile in source.
+_TEST_SENTINEL_MOBILE = '9876543210'
+import os as _os  # noqa: E402  — keep local to this guard block
+
+
+def _resolve_founder_digits() -> tuple[str, str, re.Pattern[str]]:
+    raw = _os.environ.get('TRAINPLEX_FOUNDER_MOBILE_GUARD', '').strip()
+    digits = re.sub(r'\D+', '', raw)
+    last_ten = digits[-10:] if len(digits) >= 10 else _TEST_SENTINEL_MOBILE
+    return (
+        '91' + last_ten,
+        last_ten,
+        re.compile(r'(?:\+?91[-\s]?)?' + re.escape(last_ten)),
+    )
+
+
+FOUNDER_DIGITS_WITH_CC, FOUNDER_DIGITS_NO_CC, FOUNDER_LEAK_RE = _resolve_founder_digits()
 
 
 def _assert_no_founder_in(haystack: str, context: str = '') -> None:
@@ -280,13 +299,30 @@ class TestEmailRendering(TestCase):
 
 class TestFounderNumberGuard(TestCase):
 
+    def _with_sentinel_guard(self):
+        """Force the svc module's guard to use a sentinel digit pair so
+        the assertion fires without ever embedding the founder literal.
+        """
+        sentinel = _TEST_SENTINEL_MOBILE
+        return patch.multiple(
+            svc,
+            _FOUNDER_PERSONAL_MOBILE_DIGITS_WITH_CC='91' + sentinel,
+            _FOUNDER_PERSONAL_MOBILE_DIGITS_NO_CC=sentinel,
+        ), sentinel
+
     def test_guard_raises_on_with_cc_in_string(self):
-        with self.assertRaises(ValueError):
-            svc._assert_no_founder_personal_number('Call me at +91 8764 001 234')
+        ctx, sentinel = self._with_sentinel_guard()
+        with ctx, self.assertRaises(ValueError):
+            # Insert spaces so the digits-only normaliser still matches.
+            spaced = ' '.join(
+                [sentinel[0:4], sentinel[4:7], sentinel[7:]]
+            )
+            svc._assert_no_founder_personal_number(f'Call me at +91 {spaced}')
 
     def test_guard_raises_on_no_cc_in_string(self):
-        with self.assertRaises(ValueError):
-            svc._assert_no_founder_personal_number('Number 8764001234 ringing')
+        ctx, sentinel = self._with_sentinel_guard()
+        with ctx, self.assertRaises(ValueError):
+            svc._assert_no_founder_personal_number(f'Number {sentinel} ringing')
 
     def test_guard_raises_on_value_buried_in_dict(self):
         with self.assertRaises(ValueError):

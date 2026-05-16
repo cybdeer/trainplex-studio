@@ -193,7 +193,7 @@ Both smoke tests `curl` `${STAGING_URL}/health` / `${PROD_URL}/health` and expec
 
 ### 5.7 WhatsApp webhook target
 
-The `WA_NOTIFY_WEBHOOK` URL must be a server we control (or a no-code bridge like Twilio / Whapi / 2chat) that pushes the JSON payload to the **official ops WhatsApp number**. Per house rule, the founder's personal `+91 8764001234` must never appear as the target - use an official business number.
+The `WA_NOTIFY_WEBHOOK` URL must be a server we control (or a no-code bridge like Twilio / Whapi / 2chat) that pushes the JSON payload to the **official ops WhatsApp number**. Per house rule, the founder's personal `<configured-guard>` mobile must never appear as the target - use an official business number.
 
 ---
 

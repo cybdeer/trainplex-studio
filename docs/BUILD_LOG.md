@@ -2316,7 +2316,7 @@ TRAINERS aggregation work.
 #### Founder rules honoured
 
 - **One-shot root-cause fix** (`MEMORY.md → feedback_one_shot_root_fix.md`): Reports + BI is built around a single mock-replaceable seam per service. The frontend talks only to `/api/v1/admin/reports/*` — Phase 2's real DB aggregation swap is a per-service one-file change with the contract pinned by the API tests, so the same UI never needs a regression patch.
-- **No founder personal number in outbound** (`MEMORY.md → feedback_no_founder_personal_number.md`): Two explicit scan tests (`test_no_founder_mobile_in_weekly_envelope`, `test_no_founder_mobile_in_monthly_envelope`) walk every variant of `+91 8764001234` across the weekly + monthly email envelope's subject, body, recipients, and PDF filename. Tests pass.
+- **No founder personal number in outbound** (`MEMORY.md → feedback_no_founder_personal_number.md`): Two explicit scan tests (`test_no_founder_mobile_in_weekly_envelope`, `test_no_founder_mobile_in_monthly_envelope`) walk every variant of the `<configured-guard>` founder mobile (loaded from `TRAINPLEX_FOUNDER_MOBILE_GUARD`) across the weekly + monthly email envelope's subject, body, recipients, and PDF filename. Tests pass.
 - **Plain-Hindi bug-fix recap** (`MEMORY.md → feedback_bug_fix_plain_explanation.md`): 3-line founder recap below.
 
 #### NOT in this step (deferred)
@@ -2511,7 +2511,7 @@ Founder isi script ko production cutover ke time chalayegi.
 - `test_orphan_user_creates_report_entry` — `bob@example.com` shows up in `MIGRATION_ORPHANS.md` with `kind=email_not_in_fork`.
 - `test_corrupt_annotation_json_logged` — the `{not valid json` row appears in orphans report with `kind=corrupt_annotation_json`.
 - `test_email_case_mismatch_normalized` — `Dave@Example.com` (LS) ↔ `dave@example.com` (fork) → matched, `ls_legacy_id=4` recorded.
-- `test_founder_mobile_redacted` — even if `+91 8764001234` is planted in a project title, it does not appear in any report (regex scrub).
+- `test_founder_mobile_redacted` — even if the `<configured-guard>` founder mobile is planted in a project title, it does not appear in any report (regex scrub built from `TRAINPLEX_FOUNDER_MOBILE_GUARD`).
 - `test_apply_without_backup_flag_refused` — `--apply` without `--i-have-a-backup` → exit code 3.
 
 **Sibling regression:** `pytest payments/tests/ peer_review/tests/test_consensus.py core/tests/test_dashboard_snapshot.py core/tests/test_heatmap.py reports/tests/test_reports.py` → **141 passed in 70.65s** — zero regression.
@@ -2588,7 +2588,8 @@ docker exec -w /label-studio/label_studio trainplex-studio-dev \
   idempotency seals the root-cause-once invariant for re-runs.
 - **No founder personal number in outbound** (`MEMORY.md → feedback_no_founder_personal_number.md`):
   every note that flows into `MIGRATION_REPORT.md` and `MIGRATION_ORPHANS.md`
-  passes through `FORBIDDEN_FOUNDER_MOBILE = re.compile(r'(?:\+?91[\s-]?)?8764001234')`
+  passes through `FORBIDDEN_FOUNDER_MOBILE` (a regex compiled at module
+  import from the `TRAINPLEX_FOUNDER_MOBILE_GUARD` env var — `<configured-guard>` value lives in `.env` only, gitignored)
   which substitutes `[REDACTED-MOBILE]`. The dedicated test
   `test_founder_mobile_redacted` plants the literal in a project title
   and asserts it does not appear in either report.
@@ -2621,7 +2622,7 @@ docker exec -w /label-studio/label_studio trainplex-studio-dev \
 
 - Kya bug tha: Phase 1 me LS → Fork migration manually nahi ho sakti thi — koi single repeatable script nahi tha jo source DB read kare, har row ka mapping decide kare, aur dry-run me preview de. Production cutover ke time founder ko hand-rolled SQL likhna padta, kuchh trainers ke annotations gum ho jate, aur rollback ka koi safe path nahi tha.
 - Usse kya ho rha tha: Plan me explicit tha "17 trainers + 1201 tasks + 5 projects + submissions migrate ho, zero data loss, idempotent" — lekin koi tool nahi tha. Founder ke paas dry-run karne ka koi tarika nahi tha pre-cutover, orphan emails ka koi structured list nahi tha, corrupt JSON annotations silently drop ho sakti thi, aur same script ko dobara chalane pe duplicate rows ban jate. Email case-mismatch (Foo@x.com vs foo@x.com) bhi alag user create kar deta — founder ke trainer cohort fragment ho jata.
-- Ab fix ke baad kya hoga: `migrate_ls_to_fork.py` ship hua — 10 phases me chalti hai (backup verify → schema audit → user merge with case-normalise + orphan flag → project copy preserve-id → task copy batched 500 → annotation→submission with dedupe-latest + corrupt-JSON skip + log → project_member→assignment → row-count cross-check with name-mapping + corrupt-tolerance → 10-sample spot-check → MIGRATION_REPORT.md + ORPHANS_REPORT.md generate). Default `--dry-run` (target transaction ROLLBACK at end), `--apply` ke liye `--i-have-a-backup` dono explicit chahiye (test asserts refuse). Idempotent: `ON CONFLICT DO NOTHING` everywhere + UPDATE only when `ls_legacy_id IS NULL` — dobara chalao to second run no-op. Founder mobile (+91 8764001234) explicit regex scrub se kahin nahi aata (`test_founder_mobile_redacted` proof). `verify_migration.py` post-cutover audit + 20-sample spot-check + `rollback_to_ls.sh/.ps1` 60-second nginx flip + 3 docs (Playbook T-7→T+30, Rollback procedure, Audit report template). 9 pytest cases pass; 141 sibling tests bhi pass (zero regression on payments/peer_review/core/reports). Phase 2 me jab `Submission` + `ProjectAssignment` schema PR land hoga, script `column_exists` se auto-detect karke `status` column populate karna shuru kar degi — zero code change.
+- Ab fix ke baad kya hoga: `migrate_ls_to_fork.py` ship hua — 10 phases me chalti hai (backup verify → schema audit → user merge with case-normalise + orphan flag → project copy preserve-id → task copy batched 500 → annotation→submission with dedupe-latest + corrupt-JSON skip + log → project_member→assignment → row-count cross-check with name-mapping + corrupt-tolerance → 10-sample spot-check → MIGRATION_REPORT.md + ORPHANS_REPORT.md generate). Default `--dry-run` (target transaction ROLLBACK at end), `--apply` ke liye `--i-have-a-backup` dono explicit chahiye (test asserts refuse). Idempotent: `ON CONFLICT DO NOTHING` everywhere + UPDATE only when `ls_legacy_id IS NULL` — dobara chalao to second run no-op. Founder mobile (`<configured-guard>` value, loaded at runtime from `TRAINPLEX_FOUNDER_MOBILE_GUARD` env var) explicit regex scrub se kahin nahi aata (`test_founder_mobile_redacted` proof). `verify_migration.py` post-cutover audit + 20-sample spot-check + `rollback_to_ls.sh/.ps1` 60-second nginx flip + 3 docs (Playbook T-7→T+30, Rollback procedure, Audit report template). 9 pytest cases pass; 141 sibling tests bhi pass (zero regression on payments/peer_review/core/reports). Phase 2 me jab `Submission` + `ProjectAssignment` schema PR land hoga, script `column_exists` se auto-detect karke `status` column populate karna shuru kar degi — zero code change.
 
 ---
 
@@ -2775,7 +2776,7 @@ expected — every new module is isolated; the two file edits to
 | Feature flag system (in-house, no LD) | ✅ | Week 8 — `core/services/feature_flags.py` |
 | 5 ops playbooks (scaling / bug / chaos / incident / daily) | ✅ | Week 8 — 5 markdown docs in `docs/` |
 | Cutover checklist with sign-off gates | ✅ | Week 8 — `PRODUCTION_CUTOVER_CHECKLIST.md` |
-| Founder rules honoured | ✅ | All scripts + docs scrub `8764001234`; INCIDENT_LOG append; no symptom patches |
+| Founder rules honoured | ✅ | All scripts + docs scrub the `<configured-guard>` founder mobile (loaded from `TRAINPLEX_FOUNDER_MOBILE_GUARD`); INCIDENT_LOG append; no symptom patches |
 
 ### Founder Rules Audit (cross-cutting)
 
@@ -2783,7 +2784,7 @@ expected — every new module is isolated; the two file edits to
 |--------------------|----------------------------------------|
 | `feedback_one_shot_root_fix.md` | `BUG_TRIAGE_PLAYBOOK.md` (Diagnose step demands ONE root cause); flag system requires explicit migration, not symptom patch |
 | `feedback_subagent_incremental_write.md` | Backups + DR drill timings written to `INCIDENT_LOG.md` after every step, not at end |
-| `feedback_no_founder_personal_number.md` | `feature_flags._scrub_mobile()` on description save; load-test pool uses `+91 90000NNNNN` only; health endpoint test asserts no `8764001234` in body; Monitoring + DR docs explicitly note webhook URLs go to ops channel, never to founder's phone |
+| `feedback_no_founder_personal_number.md` | `feature_flags._scrub_mobile()` on description save (regex compiled from `TRAINPLEX_FOUNDER_MOBILE_GUARD`); load-test pool uses `+91 90000NNNNN` only; health endpoint test asserts no `<configured-guard>` digits in body; Monitoring + DR docs explicitly note webhook URLs go to ops channel, never to founder's phone |
 | `feedback_incident_log_append.md` | Every backup, restore, DR drill, chaos drill, scale event appends a row to `/var/lib/trainplex-data/INCIDENT_LOG.md` |
 | `feedback_bug_fix_plain_explanation.md` | Each docs/*.md file ends with a 3-line Hindi recap for founder; this BUILD_LOG section ends with the full 8-week journey recap below |
 

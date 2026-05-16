@@ -31,8 +31,10 @@ Founder rules honoured
 * **One-shot root cause fix** — flag toggling persists in the DB, not a
   process-local cache that drifts between gunicorn workers.
 * **No personal mobile** — `FeatureFlag.description` is scrubbed if a
-  match for ``8764001234`` is found at save time (forced via a Django
-  ``pre_save`` signal in :mod:`core.models_feature_flags`).
+  match for the founder's personal mobile (configured via the
+  ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var) is found at save time
+  (forced via a Django ``pre_save`` signal in
+  :mod:`core.models_feature_flags`).
 * **Sub-agent incremental write** — the audit list is materialised every
   call (no in-memory drift); a killed shell mid-mutation leaves valid DB
   rows or none, never a partial map.
@@ -42,6 +44,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 import re
 from dataclasses import dataclass
 from typing import Iterable, Optional
@@ -309,8 +312,37 @@ def set_flag(
 # ---------------------------------------------------------------------------
 # Founder-rule scrub (no personal mobile in any artefact).
 # ---------------------------------------------------------------------------
+#
+# The literal mobile number must NEVER appear in any tracked source file
+# (founder rule: feedback_no_founder_personal_number.md). The defensive
+# regex below is built from the ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var
+# at module import. In production the value is set in ``.env`` (gitignored).
+# In test / dev environments the env var is unset, so the regex falls back
+# to a never-match sentinel which keeps the public API stable and the test
+# suite green.
 
-_FORBIDDEN_FOUNDER_MOBILE = re.compile(r'(?:\+?91[\s-]?)?8764001234')
+
+def _build_founder_mobile_re() -> re.Pattern[str]:
+    """Compile a regex from the env-configured founder mobile guard.
+
+    Returns a sentinel that matches nothing when the env var is empty,
+    so callers can rely on a non-None ``re.Pattern`` without leaking the
+    literal into the source tree.
+    """
+
+    raw = os.getenv('TRAINPLEX_FOUNDER_MOBILE_GUARD', '').strip()
+    if not raw:
+        # ``$.^`` is a deliberate never-match — kept stable for tests.
+        return re.compile(r'(?!x)x')
+    digits = re.sub(r'\D+', '', raw)
+    if len(digits) >= 10:
+        last_ten = digits[-10:]
+    else:
+        last_ten = digits
+    return re.compile(r'(?:\+?91[\s-]?)?' + re.escape(last_ten))
+
+
+_FORBIDDEN_FOUNDER_MOBILE = _build_founder_mobile_re()
 
 
 def _scrub_mobile(text: str) -> str:

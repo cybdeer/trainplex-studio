@@ -99,7 +99,13 @@ class TestHealthShallow(TestCase):
         """Defence-in-depth: even on failure, response body must not leak
         the founder's personal mobile (memory rule)."""
         resp = self.client.get(self.URL)
-        self.assertNotIn('8764001234', resp.content.decode('utf-8'))
+        founder_mobile = os.environ.get(
+            'TRAINPLEX_FOUNDER_MOBILE_GUARD', ''
+        ).strip()
+        if founder_mobile:
+            digits = ''.join(ch for ch in founder_mobile if ch.isdigit())
+            last_ten = digits[-10:] if len(digits) >= 10 else digits
+            self.assertNotIn(last_ten, resp.content.decode('utf-8'))
 
 
 # ---------------------------------------------------------------------------

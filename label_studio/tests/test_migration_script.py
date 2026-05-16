@@ -36,11 +36,29 @@ from __future__ import annotations
 
 import datetime
 import json
+import os
+import re
 import sqlite3
 import sys
 from pathlib import Path
 
 import pytest
+
+# Sentinel mobile used only to plant a synthetic "leak" in test data.
+# The real founder mobile lives in `.env` (gitignored) and is loaded at
+# runtime by the migration script; this file never embeds the real value.
+_TEST_SENTINEL_MOBILE = '9876543210'
+
+
+def _resolve_founder_mobile() -> str:
+    raw = os.environ.get('TRAINPLEX_FOUNDER_MOBILE_GUARD', '').strip()
+    digits = re.sub(r'\D+', '', raw)
+    if len(digits) >= 10:
+        return digits[-10:]
+    return _TEST_SENTINEL_MOBILE
+
+
+_FOUNDER_MOBILE_FOR_TEST = _resolve_founder_mobile()
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_DIR = REPO_ROOT / 'backend' / 'scripts'
@@ -179,7 +197,10 @@ def _bootstrap_source(path: Path, *, founder_mobile_in_notes: bool = False,
     for pid in (1, 2, 3):
         title = f'Project {pid}'
         if pid == 3 and founder_mobile_in_notes:
-            title = f'Project 3 mobile +91 8764001234 sneaks in here'
+            title = (
+                f'Project 3 mobile +91 {_FOUNDER_MOBILE_FOR_TEST} '
+                f'sneaks in here'
+            )
         cur.execute(
             'INSERT INTO project (id, title, description, organization_id, label_config) '
             'VALUES (?, ?, ?, ?, ?)',
@@ -380,7 +401,9 @@ def test_founder_mobile_redacted(tmp_path: Path):
     assert rc == 0
     full = report.read_text(encoding='utf-8') + orphans.read_text(encoding='utf-8')
     # The literal must NOT appear anywhere in reports.
-    assert '8764001234' not in full, 'Founder mobile leaked into a report'
+    assert _FOUNDER_MOBILE_FOR_TEST not in full, (
+        'Founder mobile leaked into a report'
+    )
 
 
 def test_apply_without_backup_flag_refused(source_db: Path, target_db: Path, tmp_path: Path):

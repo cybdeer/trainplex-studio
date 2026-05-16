@@ -50,10 +50,36 @@ User = get_user_model()
 
 # Founder personal mobile per MEMORY.md → feedback_no_founder_personal_number.
 # We assert this string never appears in any outbound payout metadata.
-_FOUNDER_PERSONAL_MOBILE = '+918764001234'
-_FOUNDER_PERSONAL_MOBILE_VARIANTS = (
-    '+918764001234', '918764001234', '8764001234', '+91 8764001234',
-    '+91-8764001234', '+91 87640 01234',
+# Literal lives only in `.env` (gitignored); at test time we read it from
+# the env var ``TRAINPLEX_FOUNDER_MOBILE_GUARD``, falling back to a
+# 10-digit sentinel for CI so this source file never embeds the real value.
+import os as _os  # noqa: E402
+import re as _re  # noqa: E402
+
+_TEST_SENTINEL_MOBILE = '9876543210'
+
+
+def _resolve_founder_mobile_variants() -> tuple[str, tuple[str, ...]]:
+    raw = _os.environ.get('TRAINPLEX_FOUNDER_MOBILE_GUARD', '').strip()
+    digits = _re.sub(r'\D+', '', raw)
+    last_ten = digits[-10:] if len(digits) >= 10 else _TEST_SENTINEL_MOBILE
+    block5 = last_ten[:5]
+    block5b = last_ten[5:]
+    return (
+        f'+91{last_ten}',
+        (
+            f'+91{last_ten}',
+            f'91{last_ten}',
+            last_ten,
+            f'+91 {last_ten}',
+            f'+91-{last_ten}',
+            f'+91 {block5} {block5b}',
+        ),
+    )
+
+
+_FOUNDER_PERSONAL_MOBILE, _FOUNDER_PERSONAL_MOBILE_VARIANTS = (
+    _resolve_founder_mobile_variants()
 )
 
 

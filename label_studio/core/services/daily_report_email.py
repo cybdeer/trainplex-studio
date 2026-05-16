@@ -45,6 +45,7 @@ systemd / crontab entry lives in
 from __future__ import annotations
 
 import logging
+import os
 import re
 from datetime import date as _date_type
 from datetime import datetime, timedelta
@@ -79,12 +80,26 @@ DASHBOARD_PATH = '/admin/dashboard'
 
 # ---------------------------------------------------------------------------
 # Founder-personal-number guard. Mirrors `core/services/wa_broadcast.py`.
-# Two forms — with and without the +91 country-code prefix.
+# Two forms — with and without the +91 country-code prefix. The literal is
+# loaded at import time from the ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var
+# so it never appears in a tracked source file (founder rule).
 # ---------------------------------------------------------------------------
 
-_FOUNDER_PERSONAL_MOBILE_DIGITS_WITH_CC = '918764001234'
-_FOUNDER_PERSONAL_MOBILE_DIGITS_NO_CC = '8764001234'
 _FOUNDER_DIGIT_RE = re.compile(r'\D+')
+
+
+def _build_founder_digits() -> tuple[str, str]:
+    raw = os.getenv('TRAINPLEX_FOUNDER_MOBILE_GUARD', '').strip()
+    digits = _FOUNDER_DIGIT_RE.sub('', raw)
+    if len(digits) >= 10:
+        last_ten = digits[-10:]
+        return ('91' + last_ten, last_ten)
+    return ('___NEVER_MATCH_WITH_CC___', '___NEVER_MATCH_NO_CC___')
+
+
+_FOUNDER_PERSONAL_MOBILE_DIGITS_WITH_CC, _FOUNDER_PERSONAL_MOBILE_DIGITS_NO_CC = (
+    _build_founder_digits()
+)
 
 
 def _digits_only(text: str) -> str:

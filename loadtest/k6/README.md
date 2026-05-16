@@ -79,7 +79,8 @@ k6 metrics under the `loadtest` measurement.
 ## Founder rules honoured
 
 * **No founder personal number** — none of the synthetic recipients use
-  `+91 8764001234`; the helper generates `+91900000NNNN` only.
+  the founder's `<configured-guard>` personal mobile; the helper
+  generates `+91900000NNNN` only.
 * **One-shot root-cause fix** — every SLO breach must yield a fix to the
   underlying service (more workers, denormalised query, etc.), never a
   loosened threshold. The thresholds in `lib/auth.js` are deliberately
