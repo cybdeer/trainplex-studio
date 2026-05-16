@@ -289,9 +289,25 @@ class TestEmailRendering(TestCase):
 
 class TestFounderNumberGuard(TestCase):
 
+    def _with_sentinel_guard(self):
+        """Force the svc module's guard to use a sentinel digit pair so
+        the assertion fires without ever embedding the founder literal.
+        """
+        sentinel = _TEST_SENTINEL_MOBILE
+        return patch.multiple(
+            svc,
+            _FOUNDER_PERSONAL_MOBILE_DIGITS_WITH_CC='91' + sentinel,
+            _FOUNDER_PERSONAL_MOBILE_DIGITS_NO_CC=sentinel,
+        ), sentinel
+
     def test_guard_raises_on_with_cc_in_string(self):
-        with self.assertRaises(ValueError):
-            svc._assert_no_founder_personal_number('Call me at +91 8764 001 234')
+        ctx, sentinel = self._with_sentinel_guard()
+        with ctx, self.assertRaises(ValueError):
+            # Insert spaces so the digits-only normaliser still matches.
+            spaced = ' '.join(
+                [sentinel[0:4], sentinel[4:7], sentinel[7:]]
+            )
+            svc._assert_no_founder_personal_number(f'Call me at +91 {spaced}')
 
     def test_guard_raises_on_no_cc_in_string(self):
         with self.assertRaises(ValueError):

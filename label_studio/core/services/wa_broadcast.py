@@ -138,6 +138,27 @@ from core.services.founder_guard import (
 )
 
 
+def _build_founder_digits() -> tuple[str, str]:
+    """Return (with_cc, no_cc) digits-only forms of the founder mobile.
+
+    Falls back to a never-match sentinel pair when the env var is empty
+    so the guard remains side-effect free in CI / dev.
+    """
+
+    raw = os.getenv('TRAINPLEX_FOUNDER_MOBILE_GUARD', '').strip()
+    digits = _FOUNDER_DIGIT_RE.sub('', raw)
+    if len(digits) >= 10:
+        last_ten = digits[-10:]
+        return ('91' + last_ten, last_ten)
+    # Sentinel that won't match real-world digit strings.
+    return ('___NEVER_MATCH_WITH_CC___', '___NEVER_MATCH_NO_CC___')
+
+
+_FOUNDER_PERSONAL_MOBILE_DIGITS_WITH_CC, _FOUNDER_PERSONAL_MOBILE_DIGITS_NO_CC = (
+    _build_founder_digits()
+)
+
+
 def _digits_only(text: str) -> str:
     """Backwards-compatible alias → ``founder_guard.digits_only``."""
     return _guard_digits_only(text)

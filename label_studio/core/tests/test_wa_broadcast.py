@@ -19,6 +19,7 @@ The AiSensy outbound is patched via `unittest.mock` so no real HTTP fires.
 
 from __future__ import annotations
 
+import os
 import re
 from datetime import timedelta
 from unittest.mock import patch

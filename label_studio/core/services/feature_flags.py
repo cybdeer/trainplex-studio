@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 import re
 from dataclasses import dataclass
 from typing import Iterable, Optional
@@ -312,6 +313,14 @@ def set_flag(
 # Founder-rule scrub (no personal mobile in any artefact). Delegates to
 # ``core.services.founder_guard`` so the digits live only in the env var.
 # ---------------------------------------------------------------------------
+#
+# The literal mobile number must NEVER appear in any tracked source file
+# (founder rule: feedback_no_founder_personal_number.md). The defensive
+# regex below is built from the ``TRAINPLEX_FOUNDER_MOBILE_GUARD`` env var
+# at module import. In production the value is set in ``.env`` (gitignored).
+# In test / dev environments the env var is unset, so the regex falls back
+# to a never-match sentinel which keeps the public API stable and the test
+# suite green.
 
 from core.services.founder_guard import scrub_text as _guard_scrub_text
 

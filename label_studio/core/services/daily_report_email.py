@@ -45,6 +45,7 @@ systemd / crontab entry lives in
 from __future__ import annotations
 
 import logging
+import os
 import re
 from datetime import date as _date_type
 from datetime import datetime, timedelta
@@ -86,6 +87,20 @@ DASHBOARD_PATH = '/admin/dashboard'
 from core.services.founder_guard import (
     assert_no_founder_number as _guard_assert,
     digits_only as _guard_digits_only,
+)
+
+
+def _build_founder_digits() -> tuple[str, str]:
+    raw = os.getenv('TRAINPLEX_FOUNDER_MOBILE_GUARD', '').strip()
+    digits = _FOUNDER_DIGIT_RE.sub('', raw)
+    if len(digits) >= 10:
+        last_ten = digits[-10:]
+        return ('91' + last_ten, last_ten)
+    return ('___NEVER_MATCH_WITH_CC___', '___NEVER_MATCH_NO_CC___')
+
+
+_FOUNDER_PERSONAL_MOBILE_DIGITS_WITH_CC, _FOUNDER_PERSONAL_MOBILE_DIGITS_NO_CC = (
+    _build_founder_digits()
 )
 
 

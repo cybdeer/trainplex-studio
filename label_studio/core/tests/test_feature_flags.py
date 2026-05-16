@@ -27,16 +27,21 @@ Model (`core/models_feature_flags.py`):
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from core.models_feature_flags import FeatureFlag
 from core.services import feature_flags as ff
+
+# Sentinel mobile used only by scrub-related tests. Tests force the env var
+# via :func:`mock.patch.dict` so the production literal never appears here.
+_TEST_FOUNDER_MOBILE_SENTINEL = '9876543210'
 
 User = get_user_model()
 

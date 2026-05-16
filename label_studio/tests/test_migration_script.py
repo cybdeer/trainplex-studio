@@ -36,11 +36,29 @@ from __future__ import annotations
 
 import datetime
 import json
+import os
+import re
 import sqlite3
 import sys
 from pathlib import Path
 
 import pytest
+
+# Sentinel mobile used only to plant a synthetic "leak" in test data.
+# The real founder mobile lives in `.env` (gitignored) and is loaded at
+# runtime by the migration script; this file never embeds the real value.
+_TEST_SENTINEL_MOBILE = '9876543210'
+
+
+def _resolve_founder_mobile() -> str:
+    raw = os.environ.get('TRAINPLEX_FOUNDER_MOBILE_GUARD', '').strip()
+    digits = re.sub(r'\D+', '', raw)
+    if len(digits) >= 10:
+        return digits[-10:]
+    return _TEST_SENTINEL_MOBILE
+
+
+_FOUNDER_MOBILE_FOR_TEST = _resolve_founder_mobile()
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_DIR = REPO_ROOT / 'backend' / 'scripts'
