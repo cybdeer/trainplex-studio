@@ -42,7 +42,7 @@ import logging
 import re
 import time
 from collections import defaultdict, deque
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from core.utils.common import get_client_ip
 from django.contrib.auth import update_session_auth_hash
