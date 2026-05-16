@@ -98,6 +98,9 @@ COPY pyproject.toml poetry.lock README.md ./
 
 # Set a default build argument for including dev dependencies
 ARG INCLUDE_DEV=false
+ENV MAKEFLAGS="-j16"
+ENV CMAKE_BUILD_PARALLEL_LEVEL=16
+ENV CIBW_BUILD_PARALLEL_LEVEL=16
 
 # Install dependencies
 RUN --mount=type=cache,target=/.poetry-cache,id=poetry-cache-alpine,sharing=locked \
