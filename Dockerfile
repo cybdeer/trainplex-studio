@@ -130,6 +130,14 @@ RUN --mount=type=bind,source=.git,target=./.git \
 ################################### Stage: prod
 FROM python:${PYTHON_VERSION}-alpine AS production
 
+# TrainPlex Wave-19 W2: image-provenance labels (so prod operators can confirm
+# which git SHA + build timestamp produced a running container without rebuild).
+ARG GIT_SHA
+ARG BUILD_TIME
+LABEL trainplex.git_sha=$GIT_SHA \
+      trainplex.build_time=$BUILD_TIME \
+      trainplex.image_purpose=production
+
 ENV LS_DIR=/label-studio \
     HOME=/label-studio \
     LABEL_STUDIO_BASE_DATA_DIR=/label-studio/data \

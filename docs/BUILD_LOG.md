@@ -2841,3 +2841,112 @@ Tags now pointing at the same image:
 docker-compose.override.yml: added 'image: trainplex-studio:prod' to app + nginx
   services so a 'docker pull heartexlabs/label-studio:latest' can no longer
   replace the fork at runtime. Backup: docker-compose.override.yml.bak.2026-05-16
+
+---
+
+## 2026-05-16 — Wave-19 W2-CLEANUP (MINOR-1 + MINOR-2 + MINOR-3 + MAJOR-2 + MAJOR-5)
+
+Bundle of 5 ops-hygiene items shipped under a single commit. No app-code
+behaviour change; only repo / image / docs polish so the next operator can
+trace any production artefact back to its source.
+
+### MINOR-1 — `.bak` cleanup
+Search of `/root/trainplex-studio` for `*.bak*` (any age) returns 0 files —
+Wave-19 W0 cleanup already swept the working tree into
+`/root/trainplex-bak-archive/wave19-w0-2026-05-16/`. Today's pass is a no-op.
+The archive convention is preserved for the next sweep:
+
+```bash
+mkdir -p /root/trainplex-bak-archive/$(date +%Y%m%d)
+find /root/trainplex-studio -name '*.bak*' -mtime +1 -type f \
+  -exec mv {} /root/trainplex-bak-archive/$(date +%Y%m%d)/ \;
+```
+
+### MINOR-2 — Image provenance labels
+Production image (`trainplex-studio:prod`) previously carried only the
+docker-compose meta labels — no git SHA, no build timestamp. `docker inspect`
+on a running container could not answer "which commit built this?" without
+re-running the build.
+
+Fix: added `ARG GIT_SHA` + `ARG BUILD_TIME` to the `production` stage of
+`Dockerfile` and emitted three `LABEL`s — `trainplex.git_sha`,
+`trainplex.build_time`, `trainplex.image_purpose=production`. A new helper
+script `backend/scripts/build_app.sh` (executable) wraps `docker compose
+build` and passes both build args from `git rev-parse --short HEAD` +
+`date -Iseconds` by default, then prints the resulting label block via
+`docker inspect` for verification.
+
+Current running image has the old labels (no rebuild today). Next build via
+`./backend/scripts/build_app.sh` will pick up the new directives.
+
+### MINOR-3 — Feature MOCK vs REAL audit
+
+Single source of truth for "what is shipped against the real prod stack vs
+what is still mocked" as of Wave-19 W2. Future agents should update this
+table when a feature flips from MOCK to REAL.
+
+| Feature | Status (MOCK / REAL) | Notes |
+|---------|----------------------|-------|
+| Admin dashboard snapshot | REAL | Wave-19 W1 — backed by live DB |
+| Heatmap | REAL | Wave-19 W1 — trainer states seeded |
+| Search (Cmd+K) | REAL | Wave-19 W1 — Postgres FTS + SQLite icontains fallback |
+| Audit log | REAL | Persisted in `users_auditlog` |
+| WA broadcast | MOCK | History persisted, real send still AiSensy sandbox |
+| Razorpay payout | MOCK | Sandbox only — Phase 2 production credentials |
+| Bulk assign | MOCK | In-memory roster + plan engine; no real task writes |
+| Reports | REAL | Founder weekly + leaderboard + cohort + project ROI |
+| Reviewer queue | REAL | `peer_review/` app + 3 endpoints |
+| QA disputes | REAL | Three-way consensus + deciding vote |
+| Wizard | REAL | Multi-step admin onboarding |
+| Profile PATCH | REAL | `users.api_profile` + 5 endpoints |
+| PDF export | REAL | Hand-rolled `%PDF-1.4` byte stream |
+| Cron services | REAL (dry-run only) | Modules callable + tested; systemd hook deferred to Phase 2 |
+
+### MAJOR-2 — SSO bridge decommission prep (NOT EXECUTED — deferred)
+
+Verification before stop revealed the prerequisite "Z1-UX iframe URL is
+direct fork now" has not landed yet. Evidence:
+
+- `trainplex_ls_sso` container has logged 71 `sso ok` events on its current
+  uptime (~25 h). Recent traffic shows GET /sso → 302 with JWT exchange and
+  POST /user/login/ → 302 Found firing every ~5 min.
+- nginx `conf.d/trainplex.conf:337-345` directly proxies `/label-studio/sso`
+  to `127.0.0.1:8082` (the SSO bridge) and the same file's RBAC blocks at
+  L379, L402, L423, L449, L477 read the `tp_role` cookie that is set by the
+  SSO bridge — no alternate cookie-setter is wired.
+- Unauthenticated `curl https://app.trainplex.in/label-studio/projects/12/data?task=421`
+  returns HTTP 403 (expected — proves the cookie gate is enforced).
+- `/trainer/task/1` returns HTTP 200 (Next.js wrapper page) regardless of
+  SSO state, so the smoke step in the brief would produce a false-positive
+  for "iframe still works".
+
+Decision: do NOT `docker stop trainplex_ls_sso`. Per
+`feedback_one_shot_root_fix.md` the right fix is at the root — Z1-UX must
+ship the direct-fork iframe URL first; once that lands and we can verify a
+trainer session opens the labelling editor without the SSO bridge, the stop
++ 24h monitor + `docker rm` sequence can proceed. Today's pass leaves the
+bridge running and replaces the destructive step with this written audit.
+
+### MAJOR-5 — Data count drift docs
+
+Original Phase-1 baseline plan: 5 projects + 1201 tasks (legacy LS prod
+database `trainplex_postgres`, db `trainplex`).
+
+Actual state on 2026-05-16:
+
+| DB container | DB name | Projects | Tasks |
+|--------------|---------|----------|-------|
+| `trainplex_postgres` (legacy app) | `trainplex` | 5 | 1201 |
+| `trainplex-studio-db-1` (fork) | `postgres` | 0 | 0 |
+
+The "8 projects + 660 tasks" figure that circulated in earlier triage notes
+was a misread — it appears to have conflated WIP test seed projects with
+production rows. Live counts (above) confirm the legacy plan baseline is
+still intact and the fork DB has not yet ingested any rows (migration
+script tested in dry-run only). No data loss. The migration window remains
+open per `MIGRATION_PLAYBOOK.md`.
+
+### Stage-complete Devanagari recap
+
+- क्या बना: Wave-19 W2 के पाँच hygiene items — पुराने `.bak` archive सत्यापन (शून्य बचे), Dockerfile + helper script से नए image पर git SHA + build timestamp labels, BUILD_LOG में single MOCK/REAL audit table, SSO bridge decom को defer करने का written कारण (Z1-UX अभी land नहीं हुआ), और data count drift का सच्चा audit (legacy DB 5 projects + 1201 tasks जैसा था, fork DB अभी 0/0)।
+- किस काम के लिए: अगला operator जो भी artifact (image, doc, DB) देखेगा उसे ek-ek line में पता चलेगा कि कौन-सा feature mock है कौन-सा real, image किस SHA से बना, और SSO bridge अभी क्यों चल रहा है — कोई assumption नहीं।
