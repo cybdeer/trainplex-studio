@@ -47,6 +47,7 @@ from core.views_template_gallery import (
     AdminProjectAppendCsvAPI,
     AdminProjectWizardCreateAPI,
     AdminTemplateCatalogAPI,
+    AdminTemplateCatalogRefreshAPI,
 )
 from tasks.api_batch import (
     TrainerBatchAPI,
@@ -142,6 +143,15 @@ urlpatterns = [
         'api/v1/admin/templates/catalog',
         AdminTemplateCatalogAPI.as_view(),
         name='admin-template-catalog',
+    ),
+    # TrainPlex Codex M6 (2026-05-16) — admin-only refresh of the template
+    # catalog cache. Clears the in-process lru_cache + Django cache so a
+    # freshly mounted annotation_templates / trainplex_india dir is picked
+    # up without requiring a container restart.
+    path(
+        'api/v1/admin/templates/refresh',
+        AdminTemplateCatalogRefreshAPI.as_view(),
+        name='admin-template-catalog-refresh',
     ),
     path(
         'api/v1/admin/projects/wizard',

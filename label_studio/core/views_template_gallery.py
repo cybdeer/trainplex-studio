@@ -505,6 +505,50 @@ class AdminTemplateCatalogAPI(APIView):
 
 
 # ---------------------------------------------------------------------------
+# POST /api/v1/admin/templates/refresh
+# Codex audit M6 (2026-05-16) — admin-only endpoint to clear the in-process
+# lru_cache + Django cache so a freshly-mounted annotation_templates dir
+# (or a newly dropped TrainPlex India template) is picked up without
+# requiring a container restart. Returns the new counts so the operator
+# can confirm the refresh actually changed something.
+# ---------------------------------------------------------------------------
+
+
+class AdminTemplateCatalogRefreshAPI(APIView):
+    """POST /api/v1/admin/templates/refresh — admin-only cache buster.
+
+    Clears both the process-local ``lru_cache`` on
+    ``_discover_native_templates`` and the Django cache key
+    ``ls_templates:native:v1`` used by ``_native_templates``, then immediately
+    rebuilds the catalog so the response carries the post-refresh counts.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(
+        tags=['Admin'],
+        summary='Project Wizard — refresh template catalog cache',
+        description=(
+            'Admin-only. Invalidates the native-template lru_cache + Django '
+            'cache so the next /catalog read re-walks the filesystem.'
+        ),
+    )
+    @require_role(['admin'])
+    def post(self, request, *args, **kwargs):
+        invalidate_native_templates_cache()
+        catalog = _build_catalog()
+        return Response(
+            {
+                'refreshed': True,
+                'count': catalog['count'],
+                'trainplex_count': catalog['trainplex_count'],
+                'native_count': catalog['native_count'],
+            },
+            status=200,
+        )
+
+
+# ---------------------------------------------------------------------------
 # POST /api/v1/admin/projects/wizard
 # ---------------------------------------------------------------------------
 
