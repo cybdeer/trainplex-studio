@@ -168,29 +168,45 @@ class TestRateLimitAPI:
 
 
 class TestSecurityHeadersMiddleware:
-    def test_all_baseline_headers_set(self, rf):
+    # Wave 19 W1-SEC: HSTS / X-Content-Type-Options / Referrer-Policy /
+    # Permissions-Policy moved to host nginx snippet (single-source). The
+    # middleware now only owns X-Frame-Options because nginx intentionally
+    # leaves frame policy to the app/location.
+
+    def test_x_frame_options_set(self, rf):
         mw = SecurityHeadersMiddleware(get_response=lambda r: HttpResponse('ok'))
         resp = mw(rf.get('/'))
 
-        assert resp['Strict-Transport-Security'] == 'max-age=31536000; includeSubDomains'
-        assert resp['X-Content-Type-Options'] == 'nosniff'
         assert resp['X-Frame-Options'] == 'DENY'
-        assert resp['Referrer-Policy'] == 'strict-origin-when-cross-origin'
-        assert resp['Permissions-Policy'] == 'geolocation=(), microphone=(), camera=()'
 
-    def test_does_not_clobber_existing_header(self, rf):
-        """If a downstream view/middleware has already set a tighter HSTS,
-        we preserve it (setdefault semantics)."""
-
-        def _custom_hsts(request):  # noqa: ARG001
-            r = HttpResponse('ok')
-            r['Strict-Transport-Security'] = 'max-age=63072000; preload'
-            return r
-
-        mw = SecurityHeadersMiddleware(get_response=_custom_hsts)
+    def test_middleware_does_not_emit_nginx_owned_headers(self, rf):
+        """HSTS / Referrer-Policy / etc. must NOT come from the app — they're
+        set by /etc/nginx/snippets/trainplex-security-headers.conf to avoid
+        duplicate-header responses behind the proxy."""
+        mw = SecurityHeadersMiddleware(get_response=lambda r: HttpResponse('ok'))
         resp = mw(rf.get('/'))
 
-        assert resp['Strict-Transport-Security'] == 'max-age=63072000; preload'
+        for header in (
+            'Strict-Transport-Security',
+            'X-Content-Type-Options',
+            'Referrer-Policy',
+            'Permissions-Policy',
+        ):
+            assert header not in resp, f'middleware leaked {header}; must be nginx-only'
+
+    def test_does_not_clobber_existing_x_frame_options(self, rf):
+        """If a downstream view set a looser frame policy (e.g. SAMEORIGIN
+        for the labelling iframe), we preserve it (setdefault semantics)."""
+
+        def _custom_xfo(request):  # noqa: ARG001
+            r = HttpResponse('ok')
+            r['X-Frame-Options'] = 'SAMEORIGIN'
+            return r
+
+        mw = SecurityHeadersMiddleware(get_response=_custom_xfo)
+        resp = mw(rf.get('/'))
+
+        assert resp['X-Frame-Options'] == 'SAMEORIGIN'
 
 
 # ---------------------------------------------------------------------------

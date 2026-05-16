@@ -346,7 +346,9 @@ if allowed_origins := get_env_list('CORS_ALLOWED_ORIGINS'):
 elif allowed_origin_regexes := get_env_list('CORS_ALLOWED_ORIGIN_REGEXES'):
     CORS_ALLOWED_ORIGIN_REGEXES = allowed_origin_regexes
 else:
-    CORS_ALLOW_ALL_ORIGINS = get_bool_env('CORS_ALLOW_ALL_ORIGINS', True)
+    # TrainPlex Wave 19 W1-SEC: production MUST set CORS_ALLOWED_ORIGINS in .env;
+    # default flipped from True→False so a misconfigured deploy fails closed (no wildcard).
+    CORS_ALLOW_ALL_ORIGINS = get_bool_env('CORS_ALLOW_ALL_ORIGINS', False)
 
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -518,12 +520,15 @@ STORAGES = {
     },
 }
 
-# Sessions and CSRF
-SESSION_COOKIE_SECURE = bool(int(get_env('SESSION_COOKIE_SECURE', False)))
+# Sessions and CSRF — TrainPlex Wave 19 W1-SEC: env-driven Secure/HttpOnly
+# flags so production (.env: SESSION_COOKIE_SECURE=true) enforces HTTPS-only
+# cookies behind nginx/cloudflare TLS. Defaults remain False for dev/test.
+SESSION_COOKIE_SECURE = get_bool_env('SESSION_COOKIE_SECURE', False)
+SESSION_COOKIE_HTTPONLY = get_bool_env('SESSION_COOKIE_HTTPONLY', True)
 SESSION_COOKIE_SAMESITE = get_env('SESSION_COOKIE_SAMESITE', 'Lax')
 
-CSRF_COOKIE_SECURE = bool(int(get_env('CSRF_COOKIE_SECURE', SESSION_COOKIE_SECURE)))
-CSRF_COOKIE_HTTPONLY = bool(int(get_env('CSRF_COOKIE_HTTPONLY', SESSION_COOKIE_SECURE)))
+CSRF_COOKIE_SECURE = get_bool_env('CSRF_COOKIE_SECURE', SESSION_COOKIE_SECURE)
+CSRF_COOKIE_HTTPONLY = get_bool_env('CSRF_COOKIE_HTTPONLY', SESSION_COOKIE_SECURE)
 CSRF_COOKIE_SAMESITE = get_env('CSRF_COOKIE_SAMESITE', 'Lax')
 
 # default value is from django docs: https://docs.djangoproject.com/en/5.1/ref/settings/#csrf-cookie-age
