@@ -33,16 +33,46 @@ Public surface
 from __future__ import annotations
 
 import logging
+import os
 import re
 import uuid
 from datetime import timedelta
 from typing import Any, Dict, Iterable, List, Optional
 
+import requests
 from django.conf import settings
 from django.db import models, transaction
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# AiSensy real-send configuration (Wave-19 W2-MOCK-REAL).
+# ---------------------------------------------------------------------------
+#
+# Tonight the dry-run guard defaults to TRUE — even with a real key in env
+# we will not fire a live AiSensy call. The founder toggles this off in .env
+# (``TRAINPLEX_WA_DRY_RUN=false``) once the AiSensy creds + a test trainer
+# pair are confirmed.
+
+AISENSY_DEFAULT_BASE_URL = 'https://backend.aisensy.com/campaign/t1/api/v2'
+AISENSY_TEMPLATE_ENDPOINT = '/send-template'
+AISENSY_DEFAULT_TIMEOUT_SECONDS = 30
+
+
+def _wa_dry_run_default() -> bool:
+    """Resolve the dry-run flag at call time so tests can flip the env var."""
+    raw = os.getenv('TRAINPLEX_WA_DRY_RUN', 'true').strip().lower()
+    return raw not in ('false', '0', 'no', 'off')
+
+
+def _aisensy_api_key() -> str:
+    return (os.getenv('AISENSY_API_KEY') or '').strip()
+
+
+def _aisensy_base_url() -> str:
+    return (os.getenv('AISENSY_API_URL') or AISENSY_DEFAULT_BASE_URL).rstrip('/')
 
 
 # ---------------------------------------------------------------------------
@@ -138,32 +168,93 @@ def _send_aisensy_template(
     mobile_number: str,
     template_id: str,
     params: Optional[Dict[str, Any]],
+    *,
+    dry_run: Optional[bool] = None,
 ) -> Dict[str, Any]:
-    """Mock AiSensy `sendTemplateMessage` call.
+    """Send a templated WA message via AiSensy.
 
-    TODO Week 8: replace with real `requests.post` to
-    ``https://backend.aisensy.com/campaign/t1/api/v2`` using
-    ``settings.AISENSY_API_KEY``. Body shape we'll send is intentionally
-    close to AiSensy's: ``{apiKey, campaignName, destination, userName, templateParams}``.
+    Wave-19 W2-MOCK-REAL — the function now performs a real
+    ``requests.post`` to AiSensy's ``/send-template`` endpoint when:
 
-    For now: assert the founder's personal number isn't anywhere in the
-    payload, log to console, return a deterministic fake message id so the
-    rest of the flow (logging, idempotency) can be exercised under test.
+      * ``dry_run`` is False (env ``TRAINPLEX_WA_DRY_RUN=false`` by default)
+      * ``AISENSY_API_KEY`` is non-empty
+
+    Tonight we ship with ``TRAINPLEX_WA_DRY_RUN=true`` in ``.env`` so the
+    real call path is wired but blocked until the founder flips the toggle
+    — exactly per the WAVE-19 W2 plan. In dry-run we still validate the
+    founder-guard, log the would-be payload, and return a deterministic
+    ``aisensy-dryrun-<uuid12>`` id so the rest of the flow (logging,
+    idempotency, history endpoint) stays exercised end-to-end.
+
+    On a real send we raise the underlying exception so the caller's
+    try/except records the row as ``failed`` with the AiSensy error text;
+    the founder-guard re-runs before every outbound just in case the env
+    var changed since module load.
     """
     _assert_no_founder_personal_number(mobile_number)
     _assert_no_founder_personal_number(params or {})
 
-    fake_message_id = f'aisensy-mock-{uuid.uuid4().hex[:12]}'
+    if dry_run is None:
+        dry_run = _wa_dry_run_default()
+    api_key = _aisensy_api_key()
+
+    if dry_run or not api_key:
+        fake_message_id = f'aisensy-dryrun-{uuid.uuid4().hex[:12]}'
+        logger.info(
+            'TrainPlex WA dry-run send: template=%s mobile=%s params=%s '
+            '→ dryrun_message_id=%s (TRAINPLEX_WA_DRY_RUN=%s, key_present=%s)',
+            template_id,
+            mobile_number,
+            params,
+            fake_message_id,
+            dry_run,
+            bool(api_key),
+        )
+        return {
+            'ok': True,
+            'message_id': fake_message_id,
+            'mock': True,
+            'mode': 'dry_run',
+        }
+
+    # Real outbound. We intentionally keep the body shape AiSensy's docs
+    # describe so the swap is a one-config flip.
+    url = f'{_aisensy_base_url()}{AISENSY_TEMPLATE_ENDPOINT}'
+    payload: Dict[str, Any] = {
+        'apiKey': api_key,
+        'campaignName': template_id,
+        'destination': mobile_number,
+        'userName': (params or {}).get('name') or 'TrainPlex Trainer',
+        'templateParams': list((params or {}).get('templateParams') or []),
+    }
+    # Guard one more time on the assembled payload (defence-in-depth — the
+    # founder-guard rule applies to every outbound regardless of source).
+    _assert_no_founder_personal_number(payload)
+
     logger.info(
-        'TrainPlex WA mock send: template=%s mobile=%s params=%s '
-        '→ fake_message_id=%s '
-        '(TODO Week 8: wire real AiSensy API call)',
+        'TrainPlex WA real send: template=%s mobile=%s url=%s',
         template_id,
         mobile_number,
-        params,
-        fake_message_id,
+        url,
     )
-    return {'ok': True, 'message_id': fake_message_id, 'mock': True}
+    resp = requests.post(url, json=payload, timeout=AISENSY_DEFAULT_TIMEOUT_SECONDS)
+    resp.raise_for_status()
+    try:
+        body = resp.json()
+    except ValueError:
+        body = {'raw': resp.text[:500]}
+    message_id = (
+        body.get('messageId')
+        or body.get('id')
+        or f'aisensy-real-{uuid.uuid4().hex[:12]}'
+    )
+    return {
+        'ok': True,
+        'message_id': message_id,
+        'mock': False,
+        'mode': 'live',
+        'response': body,
+    }
 
 
 # ---------------------------------------------------------------------------

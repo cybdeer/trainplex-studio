@@ -32,6 +32,11 @@ services:
       - /root/trainplex-studio/label_studio/reports/services/monthly_summary.py:/label-studio/label_studio/reports/services/monthly_summary.py:ro
       - /root/trainplex-studio/label_studio/payments/services/payout_flush.py:/label-studio/label_studio/payments/services/payout_flush.py:ro
       - /root/trainplex-studio/label_studio/peer_review/services/timeout_sweep.py:/label-studio/label_studio/peer_review/services/timeout_sweep.py:ro
+      # WAVE-19 W2-MOCK-REAL (2026-05-16): WA broadcast + Razorpay payout + bulk-assign real wiring with dry-run guards.
+      - /root/trainplex-studio/label_studio/core/services/wa_broadcast.py:/label-studio/label_studio/core/services/wa_broadcast.py:ro
+      - /root/trainplex-studio/label_studio/payments/services/razorpay_handler.py:/label-studio/label_studio/payments/services/razorpay_handler.py:ro
+      - /root/trainplex-studio/label_studio/payments/api.py:/label-studio/label_studio/payments/api.py:ro
+      - /root/trainplex-studio/label_studio/payments/urls.py:/label-studio/label_studio/payments/urls.py:ro
       - /root/trainplex-studio/label_studio/reports/api.py:/label-studio/label_studio/reports/api.py:ro
       # WAVE-19 W1-PDF-VIEW (F-8): parallel PDF view module (routes wired in Wave 2 by Z2-URLS).
       - /root/trainplex-studio/label_studio/reports/views_pdf.py:/label-studio/label_studio/reports/views_pdf.py:ro
@@ -130,6 +135,11 @@ services:
       - /root/trainplex-studio/label_studio/reports/services/monthly_summary.py:/label-studio/label_studio/reports/services/monthly_summary.py:ro
       - /root/trainplex-studio/label_studio/payments/services/payout_flush.py:/label-studio/label_studio/payments/services/payout_flush.py:ro
       - /root/trainplex-studio/label_studio/peer_review/services/timeout_sweep.py:/label-studio/label_studio/peer_review/services/timeout_sweep.py:ro
+      # WAVE-19 W2-MOCK-REAL (2026-05-16): WA broadcast + Razorpay payout + bulk-assign real wiring with dry-run guards.
+      - /root/trainplex-studio/label_studio/core/services/wa_broadcast.py:/label-studio/label_studio/core/services/wa_broadcast.py:ro
+      - /root/trainplex-studio/label_studio/payments/services/razorpay_handler.py:/label-studio/label_studio/payments/services/razorpay_handler.py:ro
+      - /root/trainplex-studio/label_studio/payments/api.py:/label-studio/label_studio/payments/api.py:ro
+      - /root/trainplex-studio/label_studio/payments/urls.py:/label-studio/label_studio/payments/urls.py:ro
       - /root/trainplex-studio/label_studio/reports/api.py:/label-studio/label_studio/reports/api.py:ro
       # WAVE-19 W1-PDF-VIEW (F-8): parallel PDF view module (routes wired in Wave 2 by Z2-URLS).
       - /root/trainplex-studio/label_studio/reports/views_pdf.py:/label-studio/label_studio/reports/views_pdf.py:ro

@@ -39,12 +39,37 @@ Public surface
 from __future__ import annotations
 
 import logging
+import os
+import uuid
 from datetime import timedelta
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
+from django.db import transaction
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Bulk-assign real-write configuration (Wave-19 W2-MOCK-REAL).
+# ---------------------------------------------------------------------------
+#
+# Tonight ``TRAINPLEX_BULK_ASSIGN_DRY_RUN=true`` (default) means the
+# function plans + logs + responds with ``dry_run=True`` and does NOT
+# create real TaskLock rows. When the founder flips the env var off the
+# same code path actually claims tasks on the trainer's behalf via
+# ``TaskLock`` rows (Label Studio's existing "this task is reserved for
+# user U" primitive, used by the "Next task" picker).
+
+# How long a bulk-claimed TaskLock survives before the system releases it
+# back to the pool. 24h is intentionally generous so a trainer can pick
+# up the tasks within a normal working day before they timeout.
+BULK_LOCK_TTL_HOURS = 24
+
+
+def _bulk_assign_dry_run_default() -> bool:
+    raw = os.getenv('TRAINPLEX_BULK_ASSIGN_DRY_RUN', 'true').strip().lower()
+    return raw not in ('false', '0', 'no', 'off')
 
 
 # ---------------------------------------------------------------------------
@@ -378,7 +403,7 @@ def plan_bulk_assignment(
             }
         )
 
-    _TODO_PHASE_2_assign_real_tasks(
+    write_result = _assign_real_tasks(
         project_id=project_id,
         plan=plan,
         admin_user=admin_user,
@@ -393,26 +418,143 @@ def plan_bulk_assignment(
             'trainers': len([p for p in plan if not p['unknown']]),
             'tasks': total_tasks,
         },
+        'write': write_result,
     }
 
 
-def _TODO_PHASE_2_assign_real_tasks(
+def _assign_real_tasks(
     project_id: int,
     plan: List[Dict[str, Any]],
     admin_user=None,
-) -> None:
-    """Phase 1 stub. Phase 2 wires real ``Task`` row creation.
+) -> Dict[str, Any]:
+    """Wave-19 W2-MOCK-REAL — actually reserve tasks for trainers.
 
-    Logs the planned assignment so the founder can see in container logs
-    that the admin request was received but the LS write is deferred.
+    For every trainer in ``plan`` we lock the next N unlabeled tasks from
+    the project's queue by creating ``TaskLock`` rows pointing at the
+    trainer. We use Label Studio's existing TaskLock primitive (the same
+    one the regular "Next task" picker uses to prevent two annotators
+    grabbing the same row) so the bulk-claimed tasks behave like any
+    normally-claimed task downstream — no schema churn, no parallel
+    "assignment" table.
+
+    Dry-run path (default tonight) skips the mutation and returns
+    ``{'dry_run': True, 'would_assign': <int>}`` so the admin still sees
+    the plan without anything actually moving.
+
+    Returns
+    -------
+    dict
+        ``{'dry_run': bool, 'assigned': int, 'would_assign': int,
+        'lock_uuids': [str, ...], 'reason': str | None}``
     """
+    dry_run = _bulk_assign_dry_run_default()
+    would_assign_total = sum(p.get('will_assign', 0) for p in plan if not p.get('unknown'))
+
+    if dry_run:
+        logger.info(
+            'Bulk assign DRY-RUN: admin=%s project_id=%s would_assign=%s '
+            '(TRAINPLEX_BULK_ASSIGN_DRY_RUN=true).',
+            getattr(admin_user, 'email', None),
+            project_id,
+            would_assign_total,
+        )
+        return {
+            'dry_run': True,
+            'assigned': 0,
+            'would_assign': would_assign_total,
+            'lock_uuids': [],
+            'reason': None,
+        }
+
+    # Real write path. Late imports keep the module importable in tests
+    # that haven't loaded Django apps (e.g. unit tests for filter logic).
+    from tasks.models import Task, TaskLock
+    from users.models import User
+
+    expire_at = timezone.now() + timedelta(hours=BULK_LOCK_TTL_HOURS)
+
+    # Build per-trainer pool from a single unlabeled-task fetch. We use
+    # ``select_for_update`` inside the loop so no second admin can claim
+    # the same task in the milliseconds we're holding the queryset open.
+    needed = max(would_assign_total, 0)
+    if needed <= 0:
+        return {
+            'dry_run': False,
+            'assigned': 0,
+            'would_assign': 0,
+            'lock_uuids': [],
+            'reason': 'plan_total_zero',
+        }
+
+    assigned = 0
+    lock_uuids: List[str] = []
+    reason: Optional[str] = None
+
+    with transaction.atomic():
+        unlabeled_qs = (
+            Task.objects
+            .select_for_update(skip_locked=True)
+            .filter(project_id=project_id, is_labeled=False)
+            .exclude(
+                # Drop tasks already locked by anyone (avoid double-claim).
+                locks__expire_at__gt=timezone.now(),
+            )
+            .order_by('id')
+            [:needed]
+        )
+        pool = list(unlabeled_qs)
+        if not pool:
+            return {
+                'dry_run': False,
+                'assigned': 0,
+                'would_assign': would_assign_total,
+                'lock_uuids': [],
+                'reason': 'no_unlabeled_tasks',
+            }
+
+        cursor = 0
+        for row in plan:
+            if row.get('unknown'):
+                continue
+            trainer_id = row['trainer_id']
+            try:
+                trainer = User.objects.get(id=trainer_id, role='trainer')
+            except User.DoesNotExist:
+                continue
+            slice_count = row.get('will_assign', 0)
+            slice_tasks = pool[cursor: cursor + slice_count]
+            cursor += slice_count
+            row['_assigned_task_ids'] = []
+            for task in slice_tasks:
+                lock = TaskLock.objects.create(
+                    task=task,
+                    user=trainer,
+                    expire_at=expire_at,
+                    unique_id=uuid.uuid4(),
+                )
+                lock_uuids.append(str(lock.unique_id))
+                row['_assigned_task_ids'].append(task.id)
+                assigned += 1
+            if cursor >= len(pool):
+                reason = 'pool_exhausted'
+                break
+
     logger.info(
-        'Bulk assign mock: admin=%s project_id=%s plan=%s '
-        '(LS task-table wiring deferred to Phase 2 Step 8).',
+        'Bulk assign LIVE: admin=%s project_id=%s assigned=%s of would=%s '
+        '(reason=%s).',
         getattr(admin_user, 'email', None),
         project_id,
-        [{'trainer_id': p['trainer_id'], 'will_assign': p['will_assign']} for p in plan],
+        assigned,
+        would_assign_total,
+        reason,
     )
+    return {
+        'dry_run': False,
+        'assigned': assigned,
+        'would_assign': would_assign_total,
+        'lock_uuids': lock_uuids,
+        'reason': reason,
+    }
 
 
 # ---------------------------------------------------------------------------

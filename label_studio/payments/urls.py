@@ -1,4 +1,4 @@
-"""TrainPlex payments URL routes — Phase 1 Step 6.4 + 4.2-5.
+"""TrainPlex payments URL routes — Phase 1 Step 6.4 + 4.2-5 + Wave-19 W2-MOCK-REAL.
 
 Mounted by ``core/urls.py`` via ``include('payments.urls')``.
 
@@ -8,6 +8,7 @@ Endpoints
     GET  /api/v1/payments/payout-queue                 (admin-only)
     POST /api/v1/payments/payout-queue/<id>/retry      (admin-only)
     GET  /api/v1/admin/payment-status                  (admin-only)
+    POST /api/v1/payments/razorpay-webhook             (signed, no-auth)
 """
 
 from django.urls import path
@@ -16,6 +17,7 @@ from payments.api import (
     AdminPaymentStatusAPI,
     AdminPayoutQueueAPI,
     AdminPayoutRetryAPI,
+    RazorpayWebhookAPI,
     TrainerWalletAPI,
 )
 
@@ -39,5 +41,10 @@ urlpatterns = [
         'api/v1/admin/payment-status',
         AdminPaymentStatusAPI.as_view(),
         name='payments-admin-payment-status',
+    ),
+    path(
+        'api/v1/payments/razorpay-webhook',
+        RazorpayWebhookAPI.as_view(),
+        name='payments-razorpay-webhook',
     ),
 ]

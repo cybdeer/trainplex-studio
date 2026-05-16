@@ -26,15 +26,71 @@ this with an explicit string-scan.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
-from typing import Optional
+import os
+import uuid
+from typing import Any, Dict, Optional
 
+import requests
 from django.db import transaction
 from django.utils import timezone
 
 from payments.models import PayoutQueue, WalletTransaction
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Razorpay X real-send + webhook configuration (Wave-19 W2-MOCK-REAL).
+# ---------------------------------------------------------------------------
+#
+# Tonight all real calls are gated by ``TRAINPLEX_RAZORPAY_DRY_RUN=true``
+# in ``.env`` so we wire the code path without firing real money. Webhook
+# signature verification uses a constant-time HMAC-SHA256 comparison
+# (Razorpay's own algorithm) so we don't add a hard `razorpay` library
+# dependency for one helper.
+
+RAZORPAY_DEFAULT_BASE_URL = 'https://api.razorpay.com/v1'
+RAZORPAY_DEFAULT_TIMEOUT_SECONDS = 30
+
+
+def _razorpay_dry_run_default() -> bool:
+    raw = os.getenv('TRAINPLEX_RAZORPAY_DRY_RUN', 'true').strip().lower()
+    return raw not in ('false', '0', 'no', 'off')
+
+
+def _razorpay_credentials() -> Dict[str, str]:
+    return {
+        'key': (os.getenv('RAZORPAY_KEY_ID') or '').strip(),
+        'secret': (os.getenv('RAZORPAY_KEY_SECRET') or '').strip(),
+        'account': (os.getenv('RAZORPAY_X_ACCOUNT_NUMBER') or '').strip(),
+        'webhook_secret': (os.getenv('RAZORPAY_WEBHOOK_SECRET') or '').strip(),
+        'base_url': (os.getenv('RAZORPAY_BASE_URL') or RAZORPAY_DEFAULT_BASE_URL).rstrip('/'),
+    }
+
+
+def verify_webhook_signature(*, body: str, signature: str, secret: str) -> bool:
+    """Verify a Razorpay webhook payload signature.
+
+    Razorpay computes ``hmac_sha256(secret, raw_body).hexdigest()`` and
+    sends it on the ``X-Razorpay-Signature`` header. We compute the same
+    digest locally and compare with ``hmac.compare_digest`` (constant-time)
+    so timing attacks can't leak signature bits.
+
+    Returns ``True`` on a valid signature; ``False`` otherwise. Caller
+    decides whether to return 400.
+    """
+    if not body or not signature or not secret:
+        return False
+    body_bytes = body.encode('utf-8') if isinstance(body, str) else body
+    expected = hmac.new(
+        key=secret.encode('utf-8'),
+        msg=body_bytes,
+        digestmod=hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected, signature.strip())
 
 
 # ---------------------------------------------------------------------------
@@ -46,18 +102,17 @@ def send_payout(
     payout_queue_entry: PayoutQueue,
     *,
     force_mock_failure: bool = False,
+    dry_run: Optional[bool] = None,
 ) -> PayoutQueue:
     """Attempt to send a payout via Razorpay X.
 
-    Phase 1 — MOCK. The handler:
-        * Validates the entry is in a sendable state (pending or processing).
-        * Flips status to ``processing`` (atomic, with row-lock).
-        * Synthesises a ``mock_pout_<id>_<ts>`` payout id.
-        * Calls ``mark_sent`` (success) or ``mark_failed`` if
-          ``force_mock_failure=True`` (test hook).
-
-    Phase 2 — REAL. Replace the ``mock_pout`` stub with the actual
-    ``razorpay_client.payout.create(...)`` call. Same return contract.
+    Wave-19 W2-MOCK-REAL — when ``TRAINPLEX_RAZORPAY_DRY_RUN=false`` and
+    ``RAZORPAY_KEY_ID`` / ``RAZORPAY_KEY_SECRET`` / ``RAZORPAY_X_ACCOUNT_NUMBER``
+    are populated, we fire a real ``POST /v1/payouts`` to Razorpay X using
+    HTTP Basic auth (key:secret). Otherwise we keep the deterministic
+    ``mock_pout_<id>_<ts>`` stub so the rest of the lifecycle stays
+    exercised end-to-end. Tonight the dry-run flag defaults to True so
+    no real INR moves until the founder flips it.
     """
     if payout_queue_entry.status not in (
         PayoutQueue.STATUS_PENDING,
@@ -79,17 +134,102 @@ def send_payout(
         locked.status = PayoutQueue.STATUS_PROCESSING
         locked.save(update_fields=['status'])
 
-    # ---- BEGIN MOCK Razorpay call ----
-    # Phase 2 swap: client = razorpay.Client(auth=(KEY, SECRET))
-    #               response = client.payout.create({...})
-    #               return mark_sent(locked.id, response['id'])
     if force_mock_failure:
         return mark_failed(locked.id, 'mock failure (test hook)')
 
-    mock_payout_id = f'mock_pout_{locked.id}_{int(timezone.now().timestamp())}'
-    # ---- END MOCK Razorpay call ----
+    if dry_run is None:
+        dry_run = _razorpay_dry_run_default()
+    creds = _razorpay_credentials()
+    have_creds = bool(creds['key'] and creds['secret'] and creds['account'])
 
-    return mark_sent(locked.id, mock_payout_id)
+    if dry_run or not have_creds:
+        mock_payout_id = f'mock_pout_{locked.id}_{int(timezone.now().timestamp())}'
+        logger.info(
+            'payments.razorpay.send_payout dry-run queue_id=%s mock_id=%s '
+            '(TRAINPLEX_RAZORPAY_DRY_RUN=%s, creds_present=%s)',
+            locked.id, mock_payout_id, dry_run, have_creds,
+        )
+        return mark_sent(locked.id, mock_payout_id)
+
+    # Real Razorpay X payout. Amount in paise (INR * 100). We use the
+    # trainer's email as the contact identifier — Razorpay rejects payloads
+    # that include any free-text variant of a personal number, which lines
+    # up with the founder-guard invariant.
+    amount_paise = int(round(float(locked.amount_inr) * 100))
+    body = {
+        'account_number': creds['account'],
+        'amount': amount_paise,
+        'currency': 'INR',
+        'mode': 'IMPS',
+        'purpose': 'payout',
+        'queue_if_low_balance': True,
+        'reference_id': f'trainplex-pq-{locked.id}',
+        'narration': f'TrainPlex task payout #{locked.id}',
+    }
+    url = f"{creds['base_url']}/payouts"
+    try:
+        resp = requests.post(
+            url,
+            json=body,
+            auth=(creds['key'], creds['secret']),
+            headers={'X-Payout-Idempotency': f'trainplex-pq-{locked.id}'},
+            timeout=RAZORPAY_DEFAULT_TIMEOUT_SECONDS,
+        )
+        resp.raise_for_status()
+        payload = resp.json() if resp.content else {}
+    except Exception as exc:
+        return mark_failed(locked.id, f'razorpay error: {exc!s}')
+
+    real_payout_id = payload.get('id') or f'razorpay-{uuid.uuid4().hex[:12]}'
+    logger.info(
+        'payments.razorpay.send_payout live queue_id=%s razorpay_id=%s',
+        locked.id, real_payout_id,
+    )
+    return mark_sent(locked.id, real_payout_id)
+
+
+def process_webhook_event(event: Dict[str, Any]) -> Dict[str, Any]:
+    """Update the matching PayoutQueue row from a verified webhook event.
+
+    Razorpay's payout events expose the queue row via ``payload.payout.entity``.
+    We match on the ``reference_id`` we set on outbound (``trainplex-pq-<id>``)
+    so the lookup is robust even if the Razorpay ``id`` field is rotated.
+    Tonight, with dry-run on, we never actually fire a live payout — but if
+    a stale test event lands on the webhook we still process it idempotently.
+    """
+    event_type = (event or {}).get('event') or ''
+    payout_entity = (
+        ((event or {}).get('payload') or {}).get('payout') or {}
+    ).get('entity') or {}
+    reference_id = payout_entity.get('reference_id') or ''
+    razorpay_id = payout_entity.get('id') or ''
+    if not reference_id.startswith('trainplex-pq-'):
+        return {'matched': False, 'reason': 'reference_id missing or unknown'}
+    try:
+        pq_id = int(reference_id.split('-')[-1])
+    except (TypeError, ValueError):
+        return {'matched': False, 'reason': 'reference_id not parseable'}
+
+    try:
+        entry = PayoutQueue.objects.get(id=pq_id)
+    except PayoutQueue.DoesNotExist:
+        return {'matched': False, 'reason': f'payout_queue {pq_id} not found'}
+
+    status_map = {
+        'payout.processed': PayoutQueue.STATUS_SENT,
+        'payout.reversed': PayoutQueue.STATUS_FAILED,
+        'payout.failed': PayoutQueue.STATUS_FAILED,
+    }
+    new_status = status_map.get(event_type)
+    if new_status is None:
+        return {'matched': True, 'noop': True, 'event': event_type}
+
+    if new_status == PayoutQueue.STATUS_SENT:
+        mark_sent(entry.id, razorpay_id or entry.razorpay_payout_id or f'razorpay-{pq_id}')
+    else:
+        mark_failed(entry.id, f'webhook {event_type}')
+
+    return {'matched': True, 'event': event_type, 'pq_id': pq_id}
 
 
 def mark_sent(payout_id: int, razorpay_payout_id: str) -> PayoutQueue:

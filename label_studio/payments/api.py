@@ -25,7 +25,9 @@ admin lookup against another trainer's wallet returns 403 not 200).
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 from datetime import datetime
 from decimal import Decimal
 from math import ceil
@@ -33,7 +35,7 @@ from typing import Any, Dict
 
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -344,3 +346,70 @@ class AdminPaymentStatusAPI(APIView):
             },
             status=200,
         )
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/payments/razorpay-webhook  (no-auth, signed)
+# ---------------------------------------------------------------------------
+
+
+class RazorpayWebhookAPI(APIView):
+    """Webhook receiver for Razorpay X payout events.
+
+    Wave-19 W2-MOCK-REAL. Razorpay signs every webhook with HMAC-SHA256
+    over the raw body using the shared secret in ``RAZORPAY_WEBHOOK_SECRET``.
+    We verify in constant time, refuse 400 on any mismatch, then dispatch
+    to :func:`razorpay_handler.process_webhook_event` which translates
+    ``payout.processed`` / ``payout.reversed`` / ``payout.failed`` into the
+    matching ``PayoutQueue`` row update.
+
+    Auth model: ``permission_classes = (AllowAny,)`` because Razorpay is a
+    public-internet POST source. The signature header IS the auth. We
+    intentionally never log the raw body to avoid leaking PII; only the
+    parsed event type + matched queue id surface in logs.
+    """
+
+    permission_classes = (AllowAny,)
+    authentication_classes: tuple = ()
+
+    @extend_schema(
+        tags=['Payments'],
+        summary='Razorpay X payout webhook receiver',
+        description=(
+            'Signed by Razorpay via X-Razorpay-Signature. Verified with '
+            'HMAC-SHA256 over the raw body using the env-only '
+            'RAZORPAY_WEBHOOK_SECRET. 400 on invalid signature, 200 on '
+            'verified event with idempotent processing.'
+        ),
+    )
+    def post(self, request, *args, **kwargs):
+        secret = (os.getenv('RAZORPAY_WEBHOOK_SECRET') or '').strip()
+        signature = request.META.get('HTTP_X_RAZORPAY_SIGNATURE', '') or ''
+        # request.body is already raw bytes per DRF semantics.
+        raw_body = request.body.decode('utf-8') if request.body else ''
+
+        if not secret:
+            # Misconfigured — refuse rather than silently 200. The founder
+            # sets the secret once Razorpay returns the value from the
+            # Razorpay X webhook setup screen.
+            logger.warning(
+                'payments.razorpay.webhook misconfig: RAZORPAY_WEBHOOK_SECRET empty'
+            )
+            return Response(
+                {'error': 'webhook secret not configured'}, status=503,
+            )
+
+        if not razorpay_handler.verify_webhook_signature(
+            body=raw_body, signature=signature, secret=secret,
+        ):
+            logger.warning('payments.razorpay.webhook invalid signature')
+            return Response({'error': 'invalid signature'}, status=400)
+
+        try:
+            event = json.loads(raw_body) if raw_body else {}
+        except json.JSONDecodeError:
+            return Response({'error': 'invalid json'}, status=400)
+
+        result = razorpay_handler.process_webhook_event(event)
+        logger.info('payments.razorpay.webhook processed result=%s', result)
+        return Response({'ok': True, 'result': result}, status=200)
