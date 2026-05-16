@@ -53,6 +53,15 @@ from tasks.api_batch import (
     TrainerBatchAPI,
     TrainerBatchClaimAPI,
     TrainerBatchRefreshAPI,
+    TrainerTaskSkipAPI,
+)
+# WAVE-19 W2-URLS (2026-05-16): wire Wave-1 view modules.
+from core.views_admin_projects import ProjectWizardAPI as _W19ProjectWizardAPI
+from reports.views_pdf import (
+    FounderWeeklyPDFView as _W19FounderWeeklyPDFView,
+    LeaderboardPDFView as _W19LeaderboardPDFView,
+    CohortsPDFView as _W19CohortsPDFView,
+    ProjectROIPDFView as _W19ProjectROIPDFView,
 )
 from users.api_profile import (
     TrainerLoginHistoryAPI,
@@ -128,6 +137,38 @@ urlpatterns = [
     # /api/v1/admin/reports/leaderboard[.csv]
     # /api/v1/admin/reports/cohorts
     # /api/v1/admin/reports/project-roi[/<id>[.pdf]]
+    # WAVE-19 W2-URLS (2026-05-16): Wave-1 view modules routed atomically.
+    # Placed BEFORE include('reports.urls') so Wave-1 implementations win.
+    path(
+        'api/v1/admin/reports/founder-weekly.pdf',
+        _W19FounderWeeklyPDFView.as_view(),
+        name='w19-reports-founder-weekly-pdf',
+    ),
+    path(
+        'api/v1/admin/reports/leaderboard.pdf',
+        _W19LeaderboardPDFView.as_view(),
+        name='w19-reports-leaderboard-pdf',
+    ),
+    path(
+        'api/v1/admin/reports/cohorts.pdf',
+        _W19CohortsPDFView.as_view(),
+        name='w19-reports-cohorts-pdf',
+    ),
+    path(
+        'api/v1/admin/reports/project-roi/<int:pk>.pdf',
+        _W19ProjectROIPDFView.as_view(),
+        name='w19-reports-project-roi-pdf',
+    ),
+    path(
+        'api/v1/admin/projects/wizard',
+        _W19ProjectWizardAPI.as_view(),
+        name='w19-admin-project-wizard',
+    ),
+    path(
+        'api/v1/trainer/task/<int:task_id>/skip',
+        TrainerTaskSkipAPI.as_view(),
+        name='trainer-task-skip',
+    ),
     re_path(r'^', include('reports.urls')),
     re_path(r'version/', views.version_page, name='version'),  # html page
     re_path(r'api/version/', views.version_page, name='api-version'),  # json response

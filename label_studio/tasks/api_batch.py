@@ -311,10 +311,46 @@ class TrainerBatchRefreshAPI(APIView):
         )
 
 
+class TrainerTaskSkipAPI(APIView):
+    """Skip a single task — trainer-initiated, logged for audit.
+
+    WAVE-19 / W2-URLS (2026-05-16)
+    ------------------------------
+    POST /api/v1/trainer/task/<task_id>/skip
+    Body: {"reason": "<short reason>"}
+    Trainer may skip a task they cannot label (e.g. ambiguous content,
+    language gap, unsafe). Minimum Phase 1 behaviour: validate the task
+    exists, log the skip via the audit pipeline, and return 200 so the
+    PWA can advance to the next task without retrying.
+    """
+
+    permission_classes = (IsAuthenticated,)
+
+    @require_role(["trainer", "admin"])
+    def post(self, request, task_id):
+        from tasks.models import Task as _Task
+
+        reason = (request.data or {}).get("reason", "no_reason")
+        task = _Task.objects.filter(id=task_id).first()
+        if not task:
+            return Response({"detail": "Task not found"}, status=status.HTTP_404_NOT_FOUND)
+        logger.info(
+            "TrainerTaskSkipAPI: trainer=%s task=%s reason=%s",
+            getattr(request.user, "id", None),
+            task_id,
+            reason,
+        )
+        return Response(
+            {"task_id": task_id, "skipped": True, "reason": reason},
+            status=status.HTTP_200_OK,
+        )
+
+
 __all__ = [
     "TrainerBatchAPI",
     "TrainerBatchClaimAPI",
     "TrainerBatchRefreshAPI",
+    "TrainerTaskSkipAPI",
     "DEFAULT_BATCH_SIZE",
     "MAX_BATCH_SIZE",
     "DEFAULT_PAY_INR_PER_BATCH",
