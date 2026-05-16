@@ -8,9 +8,9 @@ Running outside the uwsgi master avoids the fork-double-start problem.
 Schedule (all IST):
   daily_report          08:00 daily       core.services.daily_report_email.send_daily_report
   weekly_report         Mon 09:00         reports.services.founder_weekly.build_founder_weekly_snapshot (+ log; sender TODO)
-  monthly_report        1st 09:00         TODO — reports/services/monthly_summary.py does not exist yet
-  payout_flush          every 30 min      TODO — payments/services/payout_flush.py does not exist yet
-  review_timeout_sweep  every 60 min      TODO — peer_review/services/timeout_sweep.py does not exist yet
+  monthly_report        1st 09:00         reports.services.monthly_summary.run
+  payout_flush          every 30 min      payments.services.payout_flush.run
+  review_timeout_sweep  every 60 min      peer_review.services.timeout_sweep.run
   quality_alert_scan    every 15 min      core.services.quality_anomaly_detector.flag_* (composite scan)
 
 Dry-run guard
@@ -127,38 +127,45 @@ def job_weekly_report() -> None:
 
 
 def job_monthly_report() -> None:
-    """1st of month 09:00 IST — monthly summary. NOT YET IMPLEMENTED."""
+    """1st of month 09:00 IST — monthly summary via reports.services.monthly_summary.run."""
     name = 'monthly_report'
-    logger.warning(
-        '[cron] %s fired but reports/services/monthly_summary.py does not exist. '
-        'TODO: create monthly_summary.run() before disabling this stub.',
-        name,
-    )
-    _stamp(name, 'skipped-not-implemented')
+    logger.info('[cron] %s firing dry_run=%s', name, _dry_run())
+    try:
+        from reports.services import monthly_summary
+        result = monthly_summary.run(dry_run=_dry_run())
+        logger.info('[cron] %s ok: %s', name, result)
+        _stamp(name, f'ok submissions={result.get("submissions")} revenue={result.get("revenue_inr")}')
+    except Exception as exc:
+        logger.exception('[cron] %s FAILED: %s', name, exc)
+        _stamp(name, f'error {exc!r}')
 
 
 def job_payout_flush() -> None:
-    """Every 30 min — payout flush. NOT YET IMPLEMENTED."""
+    """Every 30 min — payout flush via payments.services.payout_flush.run."""
     name = 'payout_flush'
-    logger.warning(
-        '[cron] %s fired but payments/services/payout_flush.py does not exist. '
-        'TODO: create payout_flush.run() — should walk payments.services.wallet '
-        'and trigger payments.services.payout_router for pending balances.',
-        name,
-    )
-    _stamp(name, 'skipped-not-implemented')
+    logger.info('[cron] %s firing dry_run=%s', name, _dry_run())
+    try:
+        from payments.services import payout_flush
+        result = payout_flush.run(dry_run=_dry_run())
+        logger.info('[cron] %s ok: %s', name, result)
+        _stamp(name, f'ok queued={result.get("queued")} processed={result.get("processed")}')
+    except Exception as exc:
+        logger.exception('[cron] %s FAILED: %s', name, exc)
+        _stamp(name, f'error {exc!r}')
 
 
 def job_review_timeout_sweep() -> None:
-    """Every 60 min — peer review timeout sweep. NOT YET IMPLEMENTED."""
+    """Every 60 min — peer review timeout sweep via peer_review.services.timeout_sweep.run."""
     name = 'review_timeout_sweep'
-    logger.warning(
-        '[cron] %s fired but peer_review/services/timeout_sweep.py does not exist. '
-        'TODO: create timeout_sweep.run() — should walk peer_review.models '
-        'for assignments past their deadline and route via reviewer_assigner.',
-        name,
-    )
-    _stamp(name, 'skipped-not-implemented')
+    logger.info('[cron] %s firing dry_run=%s', name, _dry_run())
+    try:
+        from peer_review.services import timeout_sweep
+        result = timeout_sweep.run(dry_run=_dry_run())
+        logger.info('[cron] %s ok: %s', name, result)
+        _stamp(name, f'ok stale={result.get("stale")} expired={result.get("auto_decided")}')
+    except Exception as exc:
+        logger.exception('[cron] %s FAILED: %s', name, exc)
+        _stamp(name, f'error {exc!r}')
 
 
 def job_quality_alert_scan() -> None:
