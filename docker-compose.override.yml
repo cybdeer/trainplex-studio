@@ -20,6 +20,7 @@ services:
       # TrainPlex WAVE-19 Phase 2 real-data wiring — replaces MOCK data in 7 endpoints.
       - /root/trainplex-studio/label_studio/core/views_dashboard.py:/label-studio/label_studio/core/views_dashboard.py:ro
       - /root/trainplex-studio/label_studio/core/views_heatmap.py:/label-studio/label_studio/core/views_heatmap.py:ro
+      - /root/trainplex-studio/label_studio/core/views_search.py:/label-studio/label_studio/core/views_search.py:ro
       - /root/trainplex-studio/label_studio/core/services/bulk_assign.py:/label-studio/label_studio/core/services/bulk_assign.py:ro
       - /root/trainplex-studio/label_studio/reports/services/founder_weekly.py:/label-studio/label_studio/reports/services/founder_weekly.py:ro
       - /root/trainplex-studio/label_studio/reports/services/leaderboard.py:/label-studio/label_studio/reports/services/leaderboard.py:ro
@@ -118,6 +119,7 @@ services:
       - /root/trainplex-studio/label_studio/core/settings/base.py:/label-studio/label_studio/core/settings/base.py:ro
       - /root/trainplex-studio/label_studio/core/views_dashboard.py:/label-studio/label_studio/core/views_dashboard.py:ro
       - /root/trainplex-studio/label_studio/core/views_heatmap.py:/label-studio/label_studio/core/views_heatmap.py:ro
+      - /root/trainplex-studio/label_studio/core/views_search.py:/label-studio/label_studio/core/views_search.py:ro
       - /root/trainplex-studio/label_studio/core/services/bulk_assign.py:/label-studio/label_studio/core/services/bulk_assign.py:ro
       - /root/trainplex-studio/label_studio/reports/services/founder_weekly.py:/label-studio/label_studio/reports/services/founder_weekly.py:ro
       - /root/trainplex-studio/label_studio/reports/services/leaderboard.py:/label-studio/label_studio/reports/services/leaderboard.py:ro

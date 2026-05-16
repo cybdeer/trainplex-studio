@@ -1,11 +1,11 @@
-"""Security headers middleware (Phase 1 Step 12.2 — Wave 19 W1-SEC update).
+"""Security headers middleware (Phase 1 Step 12.2 - Wave 19 W1-SEC update).
 
 Sets a small set of defence-in-depth response headers. SINGLE-SOURCE policy:
 
 - HSTS / X-Content-Type-Options / Referrer-Policy / Permissions-Policy are
   emitted by the host nginx snippet ``/etc/nginx/snippets/trainplex-security-headers.conf``
   so every ``/label-studio/*`` location inherits them without duplication.
-  This middleware no longer sets them — when both layers added the same
+  This middleware no longer sets them - when both layers added the same
   header the response carried two copies (Codex CRITICAL-7).
 - ``X-Frame-Options: DENY`` IS still set here because nginx intentionally
   leaves it to the app/location: the Label Studio labelling editor needs
@@ -27,7 +27,7 @@ class SecurityHeadersMiddleware:
     produced by every other middleware/view.
     """
 
-    X_FRAME_OPTIONS = \x27DENY\x27
+    X_FRAME_OPTIONS = 'DENY'
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -45,8 +45,8 @@ class SecurityHeadersMiddleware:
         are owned by the host nginx snippet (single-source). Setting them
         here too produced duplicate headers in production responses.
         """
-        response.setdefault(\x27X-Frame-Options\x27, cls.X_FRAME_OPTIONS)
+        response.setdefault('X-Frame-Options', cls.X_FRAME_OPTIONS)
         return response
 
 
-__all__ = [\x27SecurityHeadersMiddleware\x27]
+__all__ = ['SecurityHeadersMiddleware']
