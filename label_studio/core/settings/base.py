@@ -275,6 +275,12 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'core.middleware.XApiKeySupportMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # TrainPlex Step 3.3 unified-auth bridge — validates TrainPlex JWT in
+    # Authorization: Bearer header and overrides request.user AFTER Django's
+    # AuthenticationMiddleware (which would otherwise overwrite us with a
+    # SimpleLazyObject pointing at AnonymousUser via the session backend).
+    # No-op when TRAINPLEX_JWT_SECRET unset or header missing.
+    'core.trainplex_auth.trainplex_jwt.TrainPlexJWTAuthMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'core.middleware.CommonMiddlewareAppendSlashWithoutRedirect',  # instead of 'CommonMiddleware'
     'django_user_agents.middleware.UserAgentMiddleware',
@@ -311,6 +317,9 @@ TRAINPLEX_DAILY_REPORT_HOUR_IST = int(
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        # TrainPlex Step 3.3 unified-auth bridge — must come first so a
+        # valid TrainPlex JWT short-circuits Token + Session auth.
+        'core.trainplex_auth.trainplex_jwt_drf.TrainPlexJWTAuthentication',
         'jwt_auth.auth.TokenAuthenticationPhaseout',
         'rest_framework.authentication.SessionAuthentication',
     ),
@@ -984,3 +993,9 @@ FSM_INITIALIZATION_TRANSITION_NAME = 'fsm.utils._get_initialization_transition_n
 # Used for async migrations. In LSE this is set to a real queue name, including here so we
 # can use settings.SERVICE_QUEUE_NAME in async migrations in LSO
 SERVICE_QUEUE_NAME = get_env('SERVICE_QUEUE_NAME', 'default')
+
+# Founder personal mobile guard. Used by ``core.services.founder_guard``
+# to detect / scrub the founder's personal mobile in any outbound text.
+# The actual digits live only in the production ``.env`` (which is
+# git-ignored); when unset the guard becomes a no-op.
+TRAINPLEX_FOUNDER_MOBILE_GUARD = os.getenv("TRAINPLEX_FOUNDER_MOBILE_GUARD", "")
