@@ -1,0 +1,11 @@
+# Regenerable / heavy intermediates
+remotion/node_modules/
+remotion/public/clips/
+remotion/out/
+work/norm/
+work/render/
+work/transcripts/*.wav
+work/stills/
+work/frames/
+work/audio/*.wav
+__pycache__/
