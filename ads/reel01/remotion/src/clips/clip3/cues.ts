@@ -100,7 +100,7 @@ export const TICK_AT = UPI.endFrame;
 // ─── Disclaimer (legal) ─────────────────────────────────────────────────────────────────────
 export const DISC_IN_FRAMES = 5;
 export const DISC_OUT_FRAMES = 5;
-/** Fully legible one frame before the plate starts to open (covers every frame the figure shows). */
+/** Fully legible (in by DISC_IN + 4) before the plate starts to open, so it covers every frame the figure shows. */
 export const DISC_IN = PLATE_IN - DISC_IN_FRAMES - 1;
 /** Held through the BANK / UPI beat and cleared exactly when the LEARN MORE block arrives; never earlier than figure-off + 1 s. */
 export const DISC_GONE = Math.max(TO_NEECHE.startFrame, PLATE_GONE + FPS + DISC_OUT_FRAMES);
