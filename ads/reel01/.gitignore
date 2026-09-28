@@ -9,3 +9,5 @@ work/stills/
 work/frames/
 work/audio/*.wav
 __pycache__/
+# agent scratch helpers
+remotion/.*.mjs

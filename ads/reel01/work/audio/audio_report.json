@@ -1,0 +1,545 @@
+{
+ "generated_utc": "2026-09-28T21:37:22+00:00",
+ "script": "work/audio_mix.py",
+ "ffmpeg": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+ "meter": "ffmpeg ebur128=peak=true+sample (summary = 0.1 resolution; 'precise' = filter metadata)",
+ "timeline": {
+  "fs": 48000,
+  "fps": 30,
+  "clips": [
+   {
+    "clip": 1,
+    "frames": 229,
+    "expected_samples": 366400,
+    "file_samples": 366400,
+    "padded(+)/trimmed(-)": 0
+   },
+   {
+    "clip": 2,
+    "frames": 277,
+    "expected_samples": 443200,
+    "file_samples": 443200,
+    "padded(+)/trimmed(-)": 0
+   },
+   {
+    "clip": 3,
+    "frames": 235,
+    "expected_samples": 376000,
+    "file_samples": 376000,
+    "padded(+)/trimmed(-)": 0
+   }
+  ],
+  "end_screen_frames": 105,
+  "end_screen_samples": 168000,
+  "total_frames": 846,
+  "total_samples": 1353600,
+  "total_seconds": 28.2,
+  "clip_start_samples": [
+   0,
+   366400,
+   809600
+  ],
+  "end_screen_start_s": 24.7
+ },
+ "voice_processing": {
+  "hpf": {
+   "type": "Butterworth high-pass",
+   "fc_hz": 80.0,
+   "order": 2,
+   "slope_db_per_oct": 12,
+   "implementation": "causal (minimum-phase) scipy sosfilt per clip, steady-state initial conditions"
+  },
+  "clip_loudness_target_lufs": -16.0,
+  "join_fades": {
+   "ms": 5.0,
+   "samples": 240,
+   "shape": "raised cosine",
+   "where": "fade-in at the first and fade-out at the last 5 ms of every clip; samples stay in place (no timing shift, no overlap)",
+   "cut_points_samples": [
+    0,
+    366400,
+    809600,
+    1185600
+   ]
+  },
+  "clips": [
+   {
+    "clip": 1,
+    "source": "work/norm/clip1.wav",
+    "before": {
+     "I_lufs": -14.4,
+     "LRA_lu": 4.1,
+     "sample_peak_dbfs": -0.4,
+     "true_peak_dbtp": -0.4,
+     "precise": {
+      "I_lufs": -14.352,
+      "LRA_lu": 4.11,
+      "true_peak_dbtp": -0.418,
+      "sample_peak_dbfs": -0.418
+     },
+     "I_lufs_internal_meter": -10.217
+    },
+    "after_hpf_I_lufs": -14.371,
+    "sibilance": {
+     "ltas_ratio_db": -16.87,
+     "svr_p99_db": -17.65,
+     "svr_max_db": -14.31,
+     "burst_rel_i_db": -11.1,
+     "sibilant_frames_pct_of_speech": 7.5,
+     "sib_band_p99_dbfs": -28.81,
+     "sib_band_max_dbfs": -25.47,
+     "loud_vowel_ref_p95_dbfs": -11.16,
+     "loudest_bursts": [
+      {
+       "t_local_s": 2.29,
+       "band_5_10k_dbfs": -25.5,
+       "band_1_4k_dbfs": -40.4
+      },
+      {
+       "t_local_s": 2.42,
+       "band_5_10k_dbfs": -27.5,
+       "band_1_4k_dbfs": -28.3
+      },
+      {
+       "t_local_s": 0.46,
+       "band_5_10k_dbfs": -27.8,
+       "band_1_4k_dbfs": -43.2
+      },
+      {
+       "t_local_s": 6.28,
+       "band_5_10k_dbfs": -29.6,
+       "band_1_4k_dbfs": -36.6
+      },
+      {
+       "t_local_s": 5.0,
+       "band_5_10k_dbfs": -30.4,
+       "band_1_4k_dbfs": -48.5
+      }
+     ],
+     "flags": {
+      "ltas_ratio_db": false,
+      "svr_p99_db": false,
+      "burst_rel_i_db": false
+     },
+     "harsh": false
+    },
+    "deess": {
+     "applied": false
+    },
+    "gain_db": -1.629,
+    "after": {
+     "I_lufs": -16.0,
+     "LRA_lu": 4.1,
+     "sample_peak_dbfs": -1.6,
+     "true_peak_dbtp": -1.6,
+     "precise": {
+      "I_lufs": -16.0,
+      "LRA_lu": 4.14,
+      "true_peak_dbtp": -1.598,
+      "sample_peak_dbfs": -1.629
+     },
+     "I_lufs_internal_meter": -11.855
+    }
+   },
+   {
+    "clip": 2,
+    "source": "work/norm/clip2.wav",
+    "before": {
+     "I_lufs": -16.5,
+     "LRA_lu": 2.2,
+     "sample_peak_dbfs": -1.3,
+     "true_peak_dbtp": -1.3,
+     "precise": {
+      "I_lufs": -16.452,
+      "LRA_lu": 2.21,
+      "true_peak_dbtp": -1.31,
+      "sample_peak_dbfs": -1.32
+     },
+     "I_lufs_internal_meter": -13.124
+    },
+    "after_hpf_I_lufs": -16.491,
+    "sibilance": {
+     "ltas_ratio_db": -12.12,
+     "svr_p99_db": -16.51,
+     "svr_max_db": -14.22,
+     "burst_rel_i_db": -10.29,
+     "sibilant_frames_pct_of_speech": 16.4,
+     "sib_band_p99_dbfs": -29.07,
+     "sib_band_max_dbfs": -26.78,
+     "loud_vowel_ref_p95_dbfs": -12.56,
+     "loudest_bursts": [
+      {
+       "t_local_s": 6.32,
+       "band_5_10k_dbfs": -26.8,
+       "band_1_4k_dbfs": -56.4
+      },
+      {
+       "t_local_s": 1.04,
+       "band_5_10k_dbfs": -28.1,
+       "band_1_4k_dbfs": -32.6
+      },
+      {
+       "t_local_s": 2.73,
+       "band_5_10k_dbfs": -28.4,
+       "band_1_4k_dbfs": -50.5
+      },
+      {
+       "t_local_s": 5.74,
+       "band_5_10k_dbfs": -28.9,
+       "band_1_4k_dbfs": -41.2
+      },
+      {
+       "t_local_s": 4.9,
+       "band_5_10k_dbfs": -29.1,
+       "band_1_4k_dbfs": -38.4
+      }
+     ],
+     "flags": {
+      "ltas_ratio_db": false,
+      "svr_p99_db": false,
+      "burst_rel_i_db": false
+     },
+     "harsh": false
+    },
+    "deess": {
+     "applied": false
+    },
+    "gain_db": 0.491,
+    "after": {
+     "I_lufs": -16.0,
+     "LRA_lu": 2.2,
+     "sample_peak_dbfs": -0.3,
+     "true_peak_dbtp": -0.3,
+     "precise": {
+      "I_lufs": -16.0,
+      "LRA_lu": 2.19,
+      "true_peak_dbtp": -0.327,
+      "sample_peak_dbfs": -0.346
+     },
+     "I_lufs_internal_meter": -12.655
+    }
+   },
+   {
+    "clip": 3,
+    "source": "work/norm/clip3.wav",
+    "before": {
+     "I_lufs": -18.1,
+     "LRA_lu": 1.4,
+     "sample_peak_dbfs": -4.5,
+     "true_peak_dbtp": -4.5,
+     "precise": {
+      "I_lufs": -18.06,
+      "LRA_lu": 1.37,
+      "true_peak_dbtp": -4.554,
+      "sample_peak_dbfs": -4.554
+     },
+     "I_lufs_internal_meter": -15.364
+    },
+    "after_hpf_I_lufs": -18.2,
+    "sibilance": {
+     "ltas_ratio_db": -6.55,
+     "svr_p99_db": -9.53,
+     "svr_max_db": -7.54,
+     "burst_rel_i_db": -5.02,
+     "sibilant_frames_pct_of_speech": 11.4,
+     "sib_band_p99_dbfs": -25.21,
+     "sib_band_max_dbfs": -23.22,
+     "loud_vowel_ref_p95_dbfs": -15.68,
+     "loudest_bursts": [
+      {
+       "t_local_s": 3.48,
+       "band_5_10k_dbfs": -23.2,
+       "band_1_4k_dbfs": -48.0
+      },
+      {
+       "t_local_s": 3.65,
+       "band_5_10k_dbfs": -24.0,
+       "band_1_4k_dbfs": -46.3
+      },
+      {
+       "t_local_s": 0.37,
+       "band_5_10k_dbfs": -24.8,
+       "band_1_4k_dbfs": -48.1
+      },
+      {
+       "t_local_s": 1.29,
+       "band_5_10k_dbfs": -25.3,
+       "band_1_4k_dbfs": -21.5
+      },
+      {
+       "t_local_s": 5.65,
+       "band_5_10k_dbfs": -25.8,
+       "band_1_4k_dbfs": -33.4
+      }
+     ],
+     "flags": {
+      "ltas_ratio_db": true,
+      "svr_p99_db": true,
+      "burst_rel_i_db": true
+     },
+     "harsh": true
+    },
+    "deess": {
+     "applied": true,
+     "threshold_dbfs_5ms_rms": -29.68,
+     "max_gain_reduction_db": 4.0,
+     "pct_time_gr_over_1db": 3.79,
+     "pct_time_gr_over_0_1db": 5.61
+    },
+    "sibilance_after_deess": {
+     "ltas_ratio_db": -8.19,
+     "svr_p99_db": -12.68,
+     "svr_max_db": -10.34,
+     "burst_rel_i_db": -7.75,
+     "sibilant_frames_pct_of_speech": 11.2,
+     "sib_band_p99_dbfs": -28.35,
+     "sib_band_max_dbfs": -26.02,
+     "loud_vowel_ref_p95_dbfs": -15.68,
+     "loudest_bursts": [
+      {
+       "t_local_s": 1.29,
+       "band_5_10k_dbfs": -26.0,
+       "band_1_4k_dbfs": -21.5
+      },
+      {
+       "t_local_s": 3.48,
+       "band_5_10k_dbfs": -26.9,
+       "band_1_4k_dbfs": -48.1
+      },
+      {
+       "t_local_s": 3.65,
+       "band_5_10k_dbfs": -27.5,
+       "band_1_4k_dbfs": -46.5
+      },
+      {
+       "t_local_s": 5.65,
+       "band_5_10k_dbfs": -28.2,
+       "band_1_4k_dbfs": -33.7
+      },
+      {
+       "t_local_s": 0.37,
+       "band_5_10k_dbfs": -28.3,
+       "band_1_4k_dbfs": -48.2
+      }
+     ],
+     "flags": {
+      "ltas_ratio_db": true,
+      "svr_p99_db": false,
+      "burst_rel_i_db": false
+     },
+     "harsh": false
+    },
+    "after_deess_I_lufs": -18.268,
+    "gain_db": 2.268,
+    "after": {
+     "I_lufs": -16.0,
+     "LRA_lu": 1.4,
+     "sample_peak_dbfs": -1.3,
+     "true_peak_dbtp": -1.2,
+     "precise": {
+      "I_lufs": -16.001,
+      "LRA_lu": 1.42,
+      "true_peak_dbtp": -1.23,
+      "sample_peak_dbfs": -1.26
+     },
+     "I_lufs_internal_meter": -13.224
+    }
+   }
+  ],
+  "concatenated_pre_master_I_lufs_internal": -12.55
+ },
+ "deess": {
+  "method": "10 ms frames of the mono mid signal; speech-active frames = within 30 dB of the clip's 95th-percentile frame level; bands = 4th-order Butterworth 5–10 kHz (sibilance) and 1–4 kHz (presence), zero-phase",
+  "indicators": {
+   "ltas_ratio_db": "long-term energy 5–10 kHz / 1–4 kHz (speech-active frames)",
+   "svr_p99_db": "99th-pct 5–10 kHz frame level minus 95th-pct broadband frame level (esses vs loud vowels)",
+   "burst_rel_i_db": "loudest 10 ms 5–10 kHz burst minus the clip's integrated loudness"
+  },
+  "limits": {
+   "ltas_ratio_db": -10.0,
+   "svr_p99_db": -12.0,
+   "burst_rel_i_db": -7.0
+  },
+  "rule": "de-ess a clip if >= 2 of the 3 indicators exceed their limit",
+  "settings_if_applied": {
+   "split_hz": 5000.0,
+   "threshold": "loud-vowel p95 level -14.0 dB",
+   "ratio": 3.0,
+   "max_gain_reduction_db": 4.0
+  },
+  "decision": {
+   "clip1": "untouched",
+   "clip2": "untouched",
+   "clip3": "DE-ESSED"
+  }
+ },
+ "mastering": {
+  "target_lufs": -14.0,
+  "target_true_peak_dbtp": -1.5,
+  "limiter": {
+   "type": "look-ahead true-peak limiter, 4x oversampled detection, stereo-linked",
+   "lookahead_attack_ms": 3.0,
+   "release_ms": 100.0
+  },
+  "loudnorm_linear_check": {
+   "pass1_input_i": -16.09,
+   "pass1_input_tp": -0.33,
+   "pass2_normalization_type": "dynamic",
+   "note": "loudnorm falls back to 'dynamic' when the static gain would exceed TP; that is why a static gain + true-peak limiter is used instead"
+  }
+ },
+ "music": {
+  "status": "absent — skipped",
+  "path": "assets/music.mp3",
+  "would_apply": {
+   "fader_db": {
+    "bed": -20.0,
+    "ducked": -26.0,
+    "end_screen": -14.0
+   },
+   "reference": "music normalised to the speech loudness (0 LU) before the fader",
+   "duck_attack_s": 0.15,
+   "duck_release_s": 0.3,
+   "end_rise_from_s": 24.7,
+   "fade_out_s": 0.5
+  }
+ },
+ "sfx": {
+  "status": "absent — skipped",
+  "dir": "assets/sfx",
+  "cue_source": "built-in join/slab whooshes",
+  "cues_that_would_play": [
+   {
+    "sfx": "whoosh",
+    "frame": 0,
+    "note": "clip 1 slab entrance (clip1 local frame 0)"
+   },
+   {
+    "sfx": "whoosh",
+    "frame": 229,
+    "note": "join clip1 -> clip2 (229/30 s)"
+   },
+   {
+    "sfx": "whoosh",
+    "frame": 236,
+    "note": "clip 2 slab entrance (clip2 local frame ~7)"
+   },
+   {
+    "sfx": "whoosh",
+    "frame": 506,
+    "note": "join clip2 -> clip3 (506/30 s)"
+   }
+  ],
+  "level_rule": "loudest 100 ms window = voice LUFS - 12.0 dB (spec >= 10)"
+ },
+ "outputs": {
+  "voice_master": {
+   "path": "work/audio/voice_master.wav",
+   "note": "voice only (nomusic track)",
+   "sha256": "50888c8f8b4a400c555b979f3b7546e272c480136992a8c03df06abf7e3644e1",
+   "stream": {
+    "codec_name": "pcm_s24le",
+    "sample_rate": "48000",
+    "channels": 2,
+    "bits_per_sample": 24,
+    "duration_ts": 1353600,
+    "duration": "28.200000"
+   },
+   "measured": {
+    "I_lufs": -14.0,
+    "LRA_lu": 3.4,
+    "sample_peak_dbfs": -1.6,
+    "true_peak_dbtp": -1.6,
+    "precise": {
+     "I_lufs": -13.989,
+     "LRA_lu": 3.36,
+     "true_peak_dbtp": -1.598,
+     "sample_peak_dbfs": -1.608
+    }
+   },
+   "internal_true_peak_dbtp_4x": -1.6,
+   "limiter": {
+    "ceiling_dbtp": -1.6,
+    "max_gain_reduction_db": 3.74,
+    "pct_time_gr_over_0_5db": 8.651,
+    "pct_time_gr_over_1db": 3.715,
+    "pct_time_gr_over_0_1db": 20.506,
+    "makeup_gain_db": 2.469,
+    "internal_iterations": 5
+   },
+   "mastering_attempts": [
+    {
+     "attempt": 1,
+     "limiter_ceiling_dbtp": -1.6,
+     "internal_lufs_aim": -14.0,
+     "ffmpeg_I": -17.515,
+     "ffmpeg_TP": -1.777
+    },
+    {
+     "attempt": 2,
+     "limiter_ceiling_dbtp": -1.6,
+     "internal_lufs_aim": -10.485,
+     "ffmpeg_I": -13.872,
+     "ffmpeg_TP": -1.598
+    },
+    {
+     "attempt": 3,
+     "limiter_ceiling_dbtp": -1.6,
+     "internal_lufs_aim": -10.613,
+     "ffmpeg_I": -13.989,
+     "ffmpeg_TP": -1.598,
+     "aac_roundtrip": {
+      "I_lufs": -14.016,
+      "true_peak_dbtp": -1.463,
+      "summary": {
+       "I_lufs": -14.0,
+       "LRA_lu": 3.3,
+       "true_peak_dbtp": -1.5
+      }
+     }
+    }
+   ]
+  },
+  "music_master": {
+   "path": "work/audio/music_master.wav",
+   "note": "No music and no SFX present -> music_master.wav is the voice master (bit-identical).",
+   "sha256": "50888c8f8b4a400c555b979f3b7546e272c480136992a8c03df06abf7e3644e1",
+   "stream": {
+    "codec_name": "pcm_s24le",
+    "sample_rate": "48000",
+    "channels": 2,
+    "bits_per_sample": 24,
+    "duration_ts": 1353600,
+    "duration": "28.200000"
+   },
+   "measured": {
+    "I_lufs": -14.0,
+    "LRA_lu": 3.4,
+    "sample_peak_dbfs": -1.6,
+    "true_peak_dbtp": -1.6,
+    "precise": {
+     "I_lufs": -13.989,
+     "LRA_lu": 3.36,
+     "true_peak_dbtp": -1.598,
+     "sample_peak_dbfs": -1.608
+    }
+   },
+   "internal_true_peak_dbtp_4x": -1.6,
+   "limiter": {
+    "ceiling_dbtp": -1.6,
+    "max_gain_reduction_db": 3.74,
+    "pct_time_gr_over_0_5db": 8.651,
+    "pct_time_gr_over_1db": 3.715,
+    "pct_time_gr_over_0_1db": 20.506,
+    "makeup_gain_db": 2.469,
+    "internal_iterations": 5
+   },
+   "mastering_attempts": [
+    {
+     "note": "no music/SFX: identical to voice master"
+    }
+   ],
+   "identical_to_voice_master": true
+  }
+ }
+}
