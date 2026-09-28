@@ -22,3 +22,4 @@ work/qa/g/
 work/qa/view/
 work/qa/crops/
 work/qa/*.log
+work/qa/build/
