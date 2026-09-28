@@ -1,8 +1,9 @@
 import {Config} from '@remotion/cli/config';
 
 // 1080x1920 @ 30 fps, H.264 High, yuv420p, CRF 18 (see STEP 8 of the brief).
-Config.setVideoImageFormat('jpeg');
-Config.setJpegQuality(95);
+// PNG frames -> true limited-range yuv420p (JPEG frames made FFmpeg emit full-range yuvj420p).
+Config.setVideoImageFormat('png');
+Config.setColorSpace('bt709');
 Config.setCodec('h264');
 Config.setCrf(18);
 Config.setPixelFormat('yuv420p');

@@ -45,7 +45,7 @@ def main():
     if "--skip-render" not in sys.argv:
         run(["npx", "remotion", "render", "src/index.ts", "Reel01", RENDER, "--muted",
              "--codec=h264", "--crf=18", "--pixel-format=yuv420p", "--concurrency=4",
-             "--x264-preset=slow"], cwd=REM)
+             "--x264-preset=slow", "--image-format=png", "--color-space=bt709"], cwd=REM)
 
     report = {"deliverables": {}}
     for name, master in (("TrainPlex_Reel01_9x16.mp4", "music_master.wav"),
