@@ -30,10 +30,10 @@ Signal chain
              round-trip check makes sure the encoded file still measures <= -1.0 dBTP.
 
 Why not ffmpeg `loudnorm` two-pass linear?  To bring these clips to -14 LUFS the static gain pushes clip-2
-peaks to ~+1 dBTP.  In that case loudnorm cannot stay linear and silently switches to its dynamic (AGC)
+peaks to ~+1.7 dBTP.  In that case loudnorm cannot stay linear and silently switches to its dynamic (AGC)
 mode, which pumps speech.  (The script re-checks this every run and records loudnorm's own verdict in the
 report.)  Its first-pass meter also disagrees with ebur128 by up to 0.4 LU on these short clips.
-So: static gain + a transparent true-peak limiter that only touches the few loudest peaks.
+So: static gain + a peak-only true-peak limiter (its gain-reduction statistics are in the report).
 
 Usage
   python3 work/audio_mix.py [--music PATH] [--sfx-dir DIR] [--cues JSON] [--skip-aac-check] [--out-dir DIR]

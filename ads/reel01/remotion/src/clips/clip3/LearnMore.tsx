@@ -7,16 +7,20 @@ const clamp = {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'} as const;
 
 const LABEL_SIZE = 54;
 const LABEL_H = 78;
-const ARROW_W = 120;
-const ARROW_H = 70;
-const BOUNCE_AMP = 12;
+const ARROW_W = 108;
+const ARROW_H = 96;
+const BOUNCE_AMP = 10;
+// Bounce bottom lands exactly on the block's bottom edge (1478); the shaft top is tucked behind
+// the label, so the arrow slides out from under it.
+const ARROW_REST_TOP = LM_BLOCK.y2 - BOUNCE_AMP - ARROW_H;
+const TUCK = LM_BLOCK.y1 + LABEL_H - ARROW_REST_TOP;
 const OUTLINE = 6; // navy outline so the orange arrow reads on any background
 
 /** Solid flat down-arrow (shaft + head), orange with a thin navy outline. */
 const DownArrow: React.FC = () => {
   const o = OUTLINE / 2;
-  const shaftW = 42;
-  const headH = 40;
+  const shaftW = 40;
+  const headH = 46;
   const cx = ARROW_W / 2;
   const pts = [
     [cx - shaftW / 2, o],
@@ -52,7 +56,7 @@ export const LearnMore: React.FC = () => {
 
   const arrowIn = spring({frame: frame - LM_IN - 3, fps, config: {...SPRING_FIRM, overshootClamping: true}, durationInFrames: 7});
   const arrowOpacity = interpolate(frame, [LM_IN + 3, LM_IN + 6], [0, 1], clamp);
-  const arrowDrop = (1 - arrowIn) * -34;
+  const arrowDrop = (1 - arrowIn) * -(ARROW_H - TUCK);
 
   // Exactly BOUNCE_COUNT bounces (down-and-back), then rest.
   const t = frame - BOUNCE_START;
@@ -62,10 +66,22 @@ export const LearnMore: React.FC = () => {
   const pt = frame - PULSE_AT;
   const pulse = pt >= 0 && pt <= 8 ? 1 + 0.07 * Math.sin((Math.PI * pt) / 8) : 1;
 
-  const arrowRestTop = LM_BLOCK.y2 - BOUNCE_AMP - ARROW_H; // bounce bottom lands exactly on 1478
 
   return (
     <>
+      <div
+        style={{
+          position: 'absolute',
+          left: 540 - ARROW_W / 2,
+          top: ARROW_REST_TOP,
+          width: ARROW_W,
+          height: ARROW_H,
+          opacity: arrowOpacity,
+          transform: `translateY(${arrowDrop + bounce}px)`,
+        }}
+      >
+        <DownArrow />
+      </div>
       <div
         style={{
           position: 'absolute',
@@ -97,19 +113,6 @@ export const LearnMore: React.FC = () => {
         >
           LEARN MORE
         </div>
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          left: 540 - ARROW_W / 2,
-          top: arrowRestTop,
-          width: ARROW_W,
-          height: ARROW_H,
-          opacity: arrowOpacity,
-          transform: `translateY(${arrowDrop + bounce}px)`,
-        }}
-      >
-        <DownArrow />
       </div>
     </>
   );

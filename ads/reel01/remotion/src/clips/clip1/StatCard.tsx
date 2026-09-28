@@ -17,8 +17,8 @@ const SLAM_FONT = 140; // "₹0" slams up to this once the count lands
 /** Front face: flat phone icon + orange clock + "4 HRS". */
 const HoursFace: React.FC<{frame: number; fps: number}> = ({frame, fps}) => {
   // no opacity fades (flat, opaque graphics): the icon scales up, the text row rises out of a mask
-  const icon = spring({frame: frame - CARD.inAt, fps, config: SPRING_OVERSHOOT});
-  const row = Math.min(1, spring({frame: frame - (CARD.inAt + 2), fps, config: SPRING}));
+  const icon = spring({frame: frame - CARD.inAt + 1, fps, config: SPRING_OVERSHOOT});
+  const row = Math.min(1, spring({frame: frame - (CARD.inAt + 1), fps, config: SPRING}));
   const ROW_H = 64;
   return (
     <div
@@ -107,8 +107,9 @@ export const StatCard: React.FC = () => {
   const {fps} = useVideoConfig();
   if (frame < CARD.inAt || frame >= CARD.outAt + CARD.outFrames) return null;
 
-  // entrance: opaque pop 0.3 → 1 on the cue frame (overshoot peaks ≈ 1.14 → still inside x ≤ 1020)
-  const pop = spring({frame: frame - CARD.inAt, fps, config: SPRING});
+  // entrance: opaque pop 0.3 → 1 (overshoot peaks ≈ 1.14 → still inside x ≤ 1020). The spring is
+  // phase-led by 2 frames so it is already moving fast on the cue frame (springs start at rest).
+  const pop = spring({frame: frame - CARD.inAt + 2, fps, config: SPRING});
   const scaleIn = interpolate(pop, [0, 1], [0.3, 1]);
 
   // flip: front turns away 0 → 80°, faces swap exactly on "Zero!" (back already readable at -65°,

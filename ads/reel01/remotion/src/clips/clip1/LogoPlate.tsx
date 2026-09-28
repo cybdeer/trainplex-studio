@@ -22,7 +22,8 @@ export const LogoPlate: React.FC = () => {
     ...clamp,
     easing: Easing.bezier(0.16, 1, 0.3, 1),
   });
-  const logoIn = spring({frame: frame - (LOGO.inAt + 1), fps, config: SPRING_FIRM});
+  // phase-led 2 frames so the pop is already moving when the logo first shows (springs start at rest)
+  const logoIn = spring({frame: frame - (LOGO.inAt + 1) + 2, fps, config: SPRING_FIRM});
   const barIn = interpolate(frame, [LOGO.inAt + 2, LOGO.inAt + 7], [0, 1], {
     ...clamp,
     easing: Easing.bezier(0.16, 1, 0.3, 1),
