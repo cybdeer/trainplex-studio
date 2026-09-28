@@ -1,0 +1,929 @@
+{
+ "strings": [
+  {
+   "text": "भाई,",
+   "run": "भाई",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni092D",
+    "uni093E",
+    "uni0907",
+    "uni0930094D"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "करना",
+   "run": "करना",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0915",
+    "uni0930",
+    "uni0928",
+    "uni093E"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "बंद",
+   "run": "बंद",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni092C",
+    "uni0902",
+    "uni0926"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "कर!",
+   "run": "कर",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0915",
+    "uni0930"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "रोज़",
+   "run": "रोज़",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0930",
+    "uni094B",
+    "uni095B"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "चार",
+   "run": "चार",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni091A",
+    "uni093E",
+    "uni0930"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "घंटे",
+   "run": "घंटे",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0918",
+    "uni0902",
+    "uni091F",
+    "uni0947"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "देखता",
+   "run": "देखता",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0926",
+    "uni0947",
+    "uni0916",
+    "uni0924",
+    "uni093E"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "है —",
+   "run": "है",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0939",
+    "uni0948"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "बदले",
+   "run": "बदले",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni092C",
+    "uni0926",
+    "uni0932",
+    "uni0947"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "में",
+   "run": "में",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni092E",
+    "uni09470902"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "मिला",
+   "run": "मिला",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni093F.05",
+    "uni092E",
+    "uni0932",
+    "uni093E"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "क्या?",
+   "run": "क्या",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0915094D",
+    "uni092F",
+    "uni093E"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "वही",
+   "run": "वही",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0935",
+    "uni0939",
+    "uni0940"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "पे",
+   "run": "पे",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni092A",
+    "uni0947"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "दे।",
+   "run": "दे।",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0926",
+    "uni0947",
+    "uni0964"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "कंपनियों",
+   "run": "कंपनियों",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0915",
+    "uni0902",
+    "uni092A",
+    "uni093F.04",
+    "uni0928",
+    "uni092F",
+    "uni093E",
+    "uni09470902"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "के",
+   "run": "के",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0915",
+    "uni0947"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "छोटे-छोटे",
+   "run": "छोटे",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni091B",
+    "uni094B",
+    "uni091F",
+    "uni0947"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "छोटे-छोटे",
+   "run": "छोटे",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni091B",
+    "uni094B",
+    "uni091F",
+    "uni0947"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "कर,",
+   "run": "कर",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0915",
+    "uni0930"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "खींच,",
+   "run": "खींच",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0916",
+    "uni09400902",
+    "uni091A"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "कर।",
+   "run": "कर।",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0915",
+    "uni0930",
+    "uni0964"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "सब",
+   "run": "सब",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0938",
+    "uni092C"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "से,",
+   "run": "से",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0938",
+    "uni0947"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "कोई",
+   "run": "कोई",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0915",
+    "uni094B",
+    "uni0907",
+    "uni0930094D"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "नहीं,",
+   "run": "नहीं",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0928",
+    "uni0939",
+    "uni09400902"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "भी",
+   "run": "भी",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni092D",
+    "uni0940"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "free।",
+   "run": "।",
+   "weight": 900,
+   "script": "None",
+   "glyphs": [
+    "uni0964"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "हों",
+   "run": "हों",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0939",
+    "uni093E",
+    "uni09470902"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "तो",
+   "run": "तो",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0924",
+    "uni094B"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "पाँच",
+   "run": "पाँच",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni092A",
+    "uni093E",
+    "uni0901",
+    "uni091A"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "सौ",
+   "run": "सौ",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0938",
+    "uni094C"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "से",
+   "run": "से",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0938",
+    "uni0947"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "छह",
+   "run": "छह",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni091B",
+    "uni0939"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "तक।",
+   "run": "तक।",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0924",
+    "uni0915",
+    "uni0964"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "पैसा",
+   "run": "पैसा",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni092A",
+    "uni0948",
+    "uni0938",
+    "uni093E"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "सीधे",
+   "run": "सीधे",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0938",
+    "uni0940",
+    "uni0927",
+    "uni0947"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "या",
+   "run": "या",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni092F",
+    "uni093E"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "में।",
+   "run": "में।",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni092E",
+    "uni09470902",
+    "uni0964"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "नीचे",
+   "run": "नीचे",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0928",
+    "uni0940",
+    "uni091A",
+    "uni0947"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "दबा",
+   "run": "दबा",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0926",
+    "uni092C",
+    "uni093E"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "और",
+   "run": "और",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0914",
+    "uni0930"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "अभी",
+   "run": "अभी",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0905",
+    "uni092D",
+    "uni0940"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "बंद कर!",
+   "run": "बंद",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni092C",
+    "uni0902",
+    "uni0926"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "बंद कर!",
+   "run": "कर",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0915",
+    "uni0930"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "PHONE से",
+   "run": "से",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni0938",
+    "uni0947"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "4 घंटे में तक*",
+   "run": "घंटे",
+   "weight": 700,
+   "script": "Deva",
+   "glyphs": [
+    "uni0918",
+    "uni0902",
+    "uni091F",
+    "uni0947"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "4 घंटे में तक*",
+   "run": "में",
+   "weight": 700,
+   "script": "Deva",
+   "glyphs": [
+    "uni092E",
+    "uni09470902"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "4 घंटे में तक*",
+   "run": "तक",
+   "weight": 700,
+   "script": "Deva",
+   "glyphs": [
+    "uni0924",
+    "uni0915"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "*कमाई task availability और approval पर निर्भर है",
+   "run": "कमाई",
+   "weight": 600,
+   "script": "Deva",
+   "glyphs": [
+    "uni0915",
+    "uni092E",
+    "uni093E",
+    "uni0907",
+    "uni0930094D"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "*कमाई task availability और approval पर निर्भर है",
+   "run": "और",
+   "weight": 600,
+   "script": "Deva",
+   "glyphs": [
+    "uni0914",
+    "uni0930"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "*कमाई task availability और approval पर निर्भर है",
+   "run": "पर",
+   "weight": 600,
+   "script": "Deva",
+   "glyphs": [
+    "uni092A",
+    "uni0930"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "*कमाई task availability और approval पर निर्भर है",
+   "run": "निर्भर",
+   "weight": 600,
+   "script": "Deva",
+   "glyphs": [
+    "uni093F.04",
+    "uni0928",
+    "uni092D",
+    "uni0930094D",
+    "uni0930"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "*कमाई task availability और approval पर निर्भर है",
+   "run": "है",
+   "weight": 600,
+   "script": "Deva",
+   "glyphs": [
+    "uni0939",
+    "uni0948"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "AI TRAINER बनें",
+   "run": "बनें",
+   "weight": 900,
+   "script": "Deva",
+   "glyphs": [
+    "uni092C",
+    "uni0928",
+    "uni09470902"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "घर बैठे · Phone से · Paid tasks",
+   "run": "घर",
+   "weight": 700,
+   "script": "Deva",
+   "glyphs": [
+    "uni0918",
+    "uni0930"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "घर बैठे · Phone से · Paid tasks",
+   "run": "बैठे",
+   "weight": 700,
+   "script": "Deva",
+   "glyphs": [
+    "uni092C",
+    "uni0948",
+    "uni0920",
+    "uni0947"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  },
+  {
+   "text": "घर बैठे · Phone से · Paid tasks",
+   "run": "से",
+   "weight": 700,
+   "script": "Deva",
+   "glyphs": [
+    "uni0938",
+    "uni0947"
+   ],
+   "missing_codepoints": [],
+   "notdef": 0,
+   "dotted_circles": 0,
+   "ok": true
+  }
+ ],
+ "fonts": {
+  "600": {
+   "file": "noto-sans-devanagari-devanagari-600-normal.woff2",
+   "glyphs": 769,
+   "has_25CC": true,
+   "has_20B9": true
+  },
+  "700": {
+   "file": "noto-sans-devanagari-devanagari-700-normal.woff2",
+   "glyphs": 769,
+   "has_25CC": true,
+   "has_20B9": true
+  },
+  "800": {
+   "file": "noto-sans-devanagari-devanagari-800-normal.woff2",
+   "glyphs": 769,
+   "has_25CC": true,
+   "has_20B9": true
+  },
+  "900": {
+   "file": "noto-sans-devanagari-devanagari-900-normal.woff2",
+   "glyphs": 769,
+   "has_25CC": true,
+   "has_20B9": true
+  }
+ },
+ "inter_missing": {
+  "600": [
+   "U+2192 →"
+  ],
+  "700": [
+   "U+2192 →"
+  ],
+  "800": [
+   "U+2192 →"
+  ],
+  "900": [
+   "U+2192 →"
+  ]
+ },
+ "problem_count": 0
+}

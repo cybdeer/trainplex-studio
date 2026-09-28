@@ -1,0 +1,29 @@
+# Regenerable / heavy intermediates
+remotion/node_modules/
+remotion/public/clips/
+remotion/out/
+work/norm/
+work/render/
+work/transcripts/*.wav
+work/stills/
+work/frames/
+work/audio/*.wav
+__pycache__/
+# agent scratch helpers
+remotion/.*.mjs
+remotion/.remotion/
+.remotion/
+work/audio/*.mp4
+work/audio/.mux_*.json
+# QA agent renders (regenerable)
+work/qa/es/
+work/qa/stills/
+work/qa/g/
+work/qa/view/
+work/qa/crops/
+work/qa/*.log
+work/qa/build/
+# every QA render sub-folder is regenerable
+work/qa/*/
+!work/qa/remotion_qa/
+!work/qa/parts/

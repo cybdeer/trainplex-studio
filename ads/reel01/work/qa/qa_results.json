@@ -1,0 +1,1486 @@
+{
+ "generated_by": "Agent 13 (Brand/QA checker) — measurement only; nothing under remotion/src or output/ was modified",
+ "inputs": {
+  "graphics_render": "work/qa/g/f000-f845.png (Reel01Graphics, full reel, every frame)",
+  "isolation_renders": "work/qa/iso/{Cap1,Cap2,Cap3,EndScreenFG} (work/qa/remotion_qa/index.tsx — real components, backgrounds hidden via CSS for EndScreenFG)",
+  "cue_dump": "work/qa/cues_dump.json (timing/camera/face values evaluated from remotion/src with esbuild)"
+ },
+ "checks": {
+  "1_devanagari_shaping": {
+   "verdict": "PASS",
+   "evidence": "HarfBuzz shaping of all 59 Devanagari runs with the shipped Noto Sans Devanagari woff2 subsets: 0 problems (0 .notdef, 0 dotted-circle, 0 missing code points); visual 1:1 crops of all 26 caption chunks + slab/badge/plate/disclaimer/end-screen text show correct conjuncts (क्या, छोटे-छोटे, निर्भर reph, बनें, पाँच chandrabindu, रोज़ nukta).",
+   "sheets": [
+    "work/qa/view/deva_sheet_0.png",
+    "work/qa/view/deva_sheet_1.png",
+    "work/qa/view/deva_sheet_2.png",
+    "work/qa/view/deva_sheet_3.png",
+    "work/qa/view/deva_sheet_4.png",
+    "work/qa/view/deva_sheet_5.png"
+   ],
+   "minor": "'FREE।' (clip 2 chunk 7): the Devanagari danda after the Inter caps shows a visibly wider gap than after Devanagari words (font side-bearing) — cosmetic."
+  },
+  "2_brand_spelling": {
+   "verdict": "PASS",
+   "evidence": "No Trainplex/Train Plex/Trainflix/TRAINPLEX string in remotion/src or captions.json; rendered caption reads 'TrainPlex पे दे।' (KEEP_CASE stops the highlight upper-casing); only lowercase use is the URL 'trainplex.info/register'. The logo ARTWORK wordmark reads 'Train Plex' (real logo, not our text)."
+  },
+  "3_safe_zone": {
+   "verdict": "PASS",
+   "evidence": "Settled graphics (all clip frames without edge motion) span x 60-1020, y 232-1477 (clip1 60-1017/232-1413, clip2 60-1020/236-1415, clip3 60-1015/240-1477); end-screen text/logo/chips/arrows (EndScreenFG, lf>=57) x 71-1012, y 252-1464; nothing in rows 228-231. Clip-1 hook slab band is full-bleed by design (x 0-1080, y 262-498) with its text/icon inside x 95-975, y 311-455.",
+   "motion_only_exceedances_global_frames": {
+    "clip1:left": [
+     [
+      0,
+      0
+     ]
+    ],
+    "clip1:left+right": [
+     [
+      1,
+      53
+     ]
+    ],
+    "clip1:right": [
+     [
+      54,
+      55
+     ],
+     [
+      182,
+      185
+     ]
+    ],
+    "clip2:left": [
+     [
+      232,
+      234
+     ]
+    ],
+    "clip2:right": [
+     [
+      302,
+      305
+     ],
+     [
+      342,
+      345
+     ],
+     [
+      371,
+      374
+     ],
+     [
+      423,
+      427
+     ]
+    ],
+    "clip2:left+right": [
+     [
+      418,
+      422
+     ]
+    ],
+    "clip3:right": [
+     [
+      607,
+      607
+     ],
+     [
+      610,
+      613
+     ],
+     [
+      665,
+      666
+     ]
+    ],
+    "clip3:left+right": [
+     [
+      608,
+      609
+     ]
+    ]
+   },
+   "motion_explained": {
+    "0-55": "clip1 hook slab: full-bleed band (by design); text leaves the zone only on entry g0-2 and exit g52-55",
+    "182-185": "clip1 4HRS/₹0 card exit right",
+    "232-234": "clip2 AI TRAINER TASKS slab entrance from left",
+    "302-305, 342-345, 371-374": "clip2 task chips entering from the right",
+    "418-427": "clip2 slab + chips exit",
+    "607-613": "clip3 BANK/UPI card entrance (+ ₹ plate exit left at 608-609)",
+    "665-666": "clip3 BANK/UPI card exit right"
+   }
+  },
+  "4_face_clearance": {
+   "verdict": "PASS",
+   "evidence": "729 clip frames (all, minus join-flash/wipe) with camera zoom/shake applied to the Haar eyes/mouth rects: 0 overlapping frames; min clearance eyes 11.0 px (g201-202 clip1 logo plate), mouth 10.0 px (g333-335 clip2 chips). Independent OpenCV eye-cascade cross-check (1489 eye detections): 3 frames (g309, g312, g313) where the detector's (oversized) eye box corner touches the 'Voice Recording' chip by 12-39 px; visual zoom (work/qa/view/eye_chip_zoom.png) shows the chip corner on the cheekbone ~35 px below the outer eye corner, not on the eye.",
+   "per_clip": {
+    "1": {
+     "frames_checked": 228,
+     "min_eyes_clear_px": 11.0,
+     "min_mouth_clear_px": 131.0,
+     "violating_frames": []
+    },
+    "2": {
+     "frames_checked": 273,
+     "min_eyes_clear_px": 12.0,
+     "min_mouth_clear_px": 10.0,
+     "violating_frames": []
+    },
+    "3": {
+     "frames_checked": 228,
+     "min_eyes_clear_px": 15.0,
+     "min_mouth_clear_px": 126.0,
+     "violating_frames": []
+    }
+   },
+   "eye_cascade_cross_check": {
+    "1": {
+     "eye_detections": 483,
+     "min_clearance_px": 35.0,
+     "worst": {
+      "g": 201,
+      "local": 201,
+      "eye_screen": [
+       515,
+       590.0,
+       627,
+       702.0
+      ]
+     },
+     "detected_eyes_outside_band": 250
+    },
+    "2": {
+     "eye_detections": 549,
+     "min_clearance_px": 0.0,
+     "worst": {
+      "g": 309,
+      "local": 80,
+      "eye_screen": [
+       594,
+       576,
+       722,
+       704
+      ]
+     },
+     "detected_eyes_outside_band": 318
+    },
+    "3": {
+     "eye_detections": 457,
+     "min_clearance_px": 14.0,
+     "worst": {
+      "g": 600,
+      "local": 94,
+      "eye_screen": [
+       382.1,
+       562.3,
+       540.0,
+       720.2
+      ]
+     },
+     "detected_eyes_outside_band": 139
+    }
+   },
+   "tightest": "clip2 chips (x>=716, y>=702) vs eyes band (y2<=691) and mouth band (x2<=706): 10-12 px margins"
+  },
+  "5_caption_sync": {
+   "verdict": "PASS",
+   "evidence": "All 26 chunks first visible (captions-only render) at word-start -1 frame (clip3 chunk0 +1 at the clip start); tolerance ±2 met. Acoustic spot-check of 13 post-pause words: 12 within ±1.2 frames; 'और' (clip3) captions.json start 6.66 s vs strong voiced onset 6.78 s (-3.4 f, weak pre-voicing from 6.48 s — ambiguous).",
+   "chunks": [
+    {
+     "clip": 1,
+     "chunk": 0,
+     "text": "भाई, SCROLL",
+     "first_word_start": 4,
+     "code_appear": 2,
+     "first_visible_rendered": 3,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 23,
+     "last_visible_rendered": 20,
+     "exit": "swap"
+    },
+    {
+     "clip": 1,
+     "chunk": 1,
+     "text": "करना बंद कर!",
+     "first_word_start": 23,
+     "code_appear": 21,
+     "first_visible_rendered": 22,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 49,
+     "last_visible_rendered": 58,
+     "exit": "swap"
+    },
+    {
+     "clip": 1,
+     "chunk": 2,
+     "text": "रोज़ चार घंटे",
+     "first_word_start": 61,
+     "code_appear": 59,
+     "first_visible_rendered": 60,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 85,
+     "last_visible_rendered": 82,
+     "exit": "swap"
+    },
+    {
+     "clip": 1,
+     "chunk": 3,
+     "text": "reels देखता है —",
+     "first_word_start": 85,
+     "code_appear": 83,
+     "first_visible_rendered": 84,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 107,
+     "last_visible_rendered": 109,
+     "exit": "swap"
+    },
+    {
+     "clip": 1,
+     "chunk": 4,
+     "text": "बदले में मिला क्या?",
+     "first_word_start": 112,
+     "code_appear": 110,
+     "first_visible_rendered": 111,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 136,
+     "last_visible_rendered": 143,
+     "exit": "swap"
+    },
+    {
+     "clip": 1,
+     "chunk": 5,
+     "text": "ZERO!",
+     "first_word_start": 146,
+     "code_appear": 144,
+     "first_visible_rendered": 145,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 157,
+     "last_visible_rendered": 166,
+     "exit": "fade"
+    },
+    {
+     "clip": 1,
+     "chunk": 6,
+     "text": "वही चार घंटे",
+     "first_word_start": 180,
+     "code_appear": 178,
+     "first_visible_rendered": 179,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 201,
+     "last_visible_rendered": 198,
+     "exit": "swap"
+    },
+    {
+     "clip": 1,
+     "chunk": 7,
+     "text": "TrainPlex पे दे।",
+     "first_word_start": 201,
+     "code_appear": 199,
+     "first_visible_rendered": 200,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 224,
+     "last_visible_rendered": 228,
+     "exit": "clip-end"
+    },
+    {
+     "clip": 2,
+     "chunk": 0,
+     "text": "AI कंपनियों के",
+     "first_word_start": 2,
+     "code_appear": 0,
+     "first_visible_rendered": 1,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 28,
+     "last_visible_rendered": 25,
+     "exit": "swap"
+    },
+    {
+     "clip": 2,
+     "chunk": 1,
+     "text": "छोटे-छोटे TASKS —",
+     "first_word_start": 28,
+     "code_appear": 26,
+     "first_visible_rendered": 27,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 61,
+     "last_visible_rendered": 70,
+     "exit": "swap"
+    },
+    {
+     "clip": 2,
+     "chunk": 2,
+     "text": "VOICE RECORD कर,",
+     "first_word_start": 73,
+     "code_appear": 71,
+     "first_visible_rendered": 72,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 101,
+     "last_visible_rendered": 110,
+     "exit": "swap"
+    },
+    {
+     "clip": 2,
+     "chunk": 3,
+     "text": "PHOTOS खींच,",
+     "first_word_start": 113,
+     "code_appear": 111,
+     "first_visible_rendered": 112,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 131,
+     "last_visible_rendered": 139,
+     "exit": "swap"
+    },
+    {
+     "clip": 2,
+     "chunk": 4,
+     "text": "TEXT check कर।",
+     "first_word_start": 142,
+     "code_appear": 140,
+     "first_visible_rendered": 141,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 162,
+     "last_visible_rendered": 171,
+     "exit": "fade"
+    },
+    {
+     "clip": 2,
+     "chunk": 5,
+     "text": "सब phone से,",
+     "first_word_start": 188,
+     "code_appear": 186,
+     "first_visible_rendered": 187,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 209,
+     "last_visible_rendered": 217,
+     "exit": "swap"
+    },
+    {
+     "clip": 2,
+     "chunk": 6,
+     "text": "कोई FEES नहीं,",
+     "first_word_start": 220,
+     "code_appear": 218,
+     "first_visible_rendered": 219,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 242,
+     "last_visible_rendered": 248,
+     "exit": "swap"
+    },
+    {
+     "clip": 2,
+     "chunk": 7,
+     "text": "training भी FREE।",
+     "first_word_start": 251,
+     "code_appear": 249,
+     "first_visible_rendered": 250,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 270,
+     "last_visible_rendered": 276,
+     "exit": "clip-end"
+    },
+    {
+     "clip": 3,
+     "chunk": 0,
+     "text": "TASKS available हों तो",
+     "first_word_start": 0,
+     "code_appear": 0,
+     "first_visible_rendered": 1,
+     "offset_frames": 1,
+     "in_sync_pm2": true,
+     "last_word_end": 35,
+     "last_visible_rendered": 32,
+     "exit": "swap"
+    },
+    {
+     "clip": 3,
+     "chunk": 1,
+     "text": "चार घंटे में",
+     "first_word_start": 35,
+     "code_appear": 33,
+     "first_visible_rendered": 34,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 55,
+     "last_visible_rendered": 52,
+     "exit": "swap"
+    },
+    {
+     "clip": 3,
+     "chunk": 2,
+     "text": "पाँच सौ से",
+     "first_word_start": 55,
+     "code_appear": 53,
+     "first_visible_rendered": 54,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 72,
+     "last_visible_rendered": 69,
+     "exit": "swap"
+    },
+    {
+     "clip": 3,
+     "chunk": 3,
+     "text": "छह सौ तक।",
+     "first_word_start": 72,
+     "code_appear": 70,
+     "first_visible_rendered": 71,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 89,
+     "last_visible_rendered": 96,
+     "exit": "swap"
+    },
+    {
+     "clip": 3,
+     "chunk": 4,
+     "text": "पैसा सीधे BANK",
+     "first_word_start": 99,
+     "code_appear": 97,
+     "first_visible_rendered": 98,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 125,
+     "last_visible_rendered": 122,
+     "exit": "swap"
+    },
+    {
+     "clip": 3,
+     "chunk": 5,
+     "text": "या UPI में।",
+     "first_word_start": 125,
+     "code_appear": 123,
+     "first_visible_rendered": 124,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 151,
+     "last_visible_rendered": 157,
+     "exit": "swap"
+    },
+    {
+     "clip": 3,
+     "chunk": 6,
+     "text": "तो नीचे",
+     "first_word_start": 160,
+     "code_appear": 158,
+     "first_visible_rendered": 159,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 170,
+     "last_visible_rendered": 167,
+     "exit": "swap"
+    },
+    {
+     "clip": 3,
+     "chunk": 7,
+     "text": "LEARN MORE दबा",
+     "first_word_start": 170,
+     "code_appear": 168,
+     "first_visible_rendered": 169,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 191,
+     "last_visible_rendered": 197,
+     "exit": "swap"
+    },
+    {
+     "clip": 3,
+     "chunk": 8,
+     "text": "और अभी",
+     "first_word_start": 200,
+     "code_appear": 198,
+     "first_visible_rendered": 199,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 213,
+     "last_visible_rendered": 210,
+     "exit": "swap"
+    },
+    {
+     "clip": 3,
+     "chunk": 9,
+     "text": "REGISTER कर!",
+     "first_word_start": 213,
+     "code_appear": 211,
+     "first_visible_rendered": 212,
+     "offset_frames": -1,
+     "in_sync_pm2": true,
+     "last_word_end": 232,
+     "last_visible_rendered": 234,
+     "exit": "clip-end"
+    }
+   ],
+   "audio_spot_checks": [
+    {
+     "clip": 1,
+     "word": "रोज़",
+     "caption_start_s": 2.03,
+     "caption_start_frame": 61,
+     "onset_s": 2.05,
+     "onset_frame": 61.5,
+     "diff_frames": -0.5,
+     "gap_floor_db": -45.4,
+     "word_peak_db": -4.7
+    },
+    {
+     "clip": 1,
+     "word": "बदले",
+     "caption_start_s": 3.73,
+     "caption_start_frame": 112,
+     "onset_s": 3.75,
+     "onset_frame": 112.5,
+     "diff_frames": -0.5,
+     "gap_floor_db": -41.8,
+     "word_peak_db": -11.6
+    },
+    {
+     "clip": 1,
+     "word": "Zero!",
+     "caption_start_s": 4.85,
+     "caption_start_frame": 146,
+     "onset_s": 4.865,
+     "onset_frame": 146.0,
+     "diff_frames": 0.0,
+     "gap_floor_db": -50.1,
+     "word_peak_db": -7.2
+    },
+    {
+     "clip": 1,
+     "word": "वही",
+     "caption_start_s": 5.99,
+     "caption_start_frame": 180,
+     "onset_s": 6.01,
+     "onset_frame": 180.3,
+     "diff_frames": -0.3,
+     "gap_floor_db": -48.4,
+     "word_peak_db": -7.4
+    },
+    {
+     "clip": 2,
+     "word": "voice",
+     "caption_start_s": 2.44,
+     "caption_start_frame": 73,
+     "onset_s": 2.46,
+     "onset_frame": 73.8,
+     "diff_frames": -0.8,
+     "gap_floor_db": -68.7,
+     "word_peak_db": -6.8
+    },
+    {
+     "clip": 2,
+     "word": "photos",
+     "caption_start_s": 3.78,
+     "caption_start_frame": 113,
+     "onset_s": 3.725,
+     "onset_frame": 111.8,
+     "diff_frames": 1.2,
+     "gap_floor_db": -68.5,
+     "word_peak_db": -8.0
+    },
+    {
+     "clip": 2,
+     "word": "text",
+     "caption_start_s": 4.72,
+     "caption_start_frame": 142,
+     "onset_s": 4.74,
+     "onset_frame": 142.2,
+     "diff_frames": -0.2,
+     "gap_floor_db": -67.9,
+     "word_peak_db": -8.8
+    },
+    {
+     "clip": 2,
+     "word": "सब",
+     "caption_start_s": 6.27,
+     "caption_start_frame": 188,
+     "onset_s": 6.23,
+     "onset_frame": 186.9,
+     "diff_frames": 1.1,
+     "gap_floor_db": -68.8,
+     "word_peak_db": -6.1
+    },
+    {
+     "clip": 2,
+     "word": "कोई",
+     "caption_start_s": 7.33,
+     "caption_start_frame": 220,
+     "onset_s": 7.32,
+     "onset_frame": 219.6,
+     "diff_frames": 0.4,
+     "gap_floor_db": -68.8,
+     "word_peak_db": -5.1
+    },
+    {
+     "clip": 2,
+     "word": "training",
+     "caption_start_s": 8.38,
+     "caption_start_frame": 251,
+     "onset_s": 8.4,
+     "onset_frame": 252.0,
+     "diff_frames": -1.0,
+     "gap_floor_db": -67.9,
+     "word_peak_db": -10.9
+    },
+    {
+     "clip": 3,
+     "word": "पैसा",
+     "caption_start_s": 3.31,
+     "caption_start_frame": 99,
+     "onset_s": 3.335,
+     "onset_frame": 100.0,
+     "diff_frames": -1.0,
+     "gap_floor_db": -46.7,
+     "word_peak_db": -12.2
+    },
+    {
+     "clip": 3,
+     "word": "तो",
+     "caption_start_s": 5.34,
+     "caption_start_frame": 160,
+     "onset_s": 5.365,
+     "onset_frame": 161.0,
+     "diff_frames": -1.0,
+     "gap_floor_db": -43.9,
+     "word_peak_db": -10.7
+    },
+    {
+     "clip": 3,
+     "word": "और",
+     "caption_start_s": 6.66,
+     "caption_start_frame": 200,
+     "onset_s": 6.78,
+     "onset_frame": 203.4,
+     "diff_frames": -3.4,
+     "gap_floor_db": -36.6,
+     "word_peak_db": -12.5
+    }
+   ],
+   "issue_1_frame_caption_blink": {
+    "frames_global": [
+     21,
+     59,
+     83,
+     110,
+     144,
+     199,
+     255,
+     300,
+     340,
+     369,
+     447,
+     478,
+     539,
+     559,
+     576,
+     603,
+     629,
+     664,
+     674,
+     704,
+     717
+    ],
+    "cause": "remotion/src/captions/Captions.tsx ChunkView: fadeIn = interpolate(frame - appear, [0, 6], [0, 1]) is 0 on the appear frame, while chunks.ts 'swap' sets the previous chunk's hideEnd = next.appear -> no caption at all for 1 frame at every hard swap",
+    "fix": "remotion/src/captions/chunks.ts swap branch: c.fadeStart = next.appear + 1; c.hideEnd = next.appear + 1 (outgoing chunk covers the incoming chunk's 0-opacity frame; sync unchanged)"
+   }
+  },
+  "6_disclaimer": {
+   "verdict": "PASS",
+   "evidence": "Figure (orange ₹ on navy plate) visible clip3 local [55, 103] (drawn from 54 at 50 % opacity); disclaimer strip fully visible local [50, 155] (g556-661) -> covers every figure frame and holds 1.73 s after the figure leaves. White 600 30 px on 70 % navy: text block 32 px tall, box [226, 1428, 857, 1460]; contrast on the delivered MP4 >= 8.86:1 (vs 95th-pct brightest strip background), mean >= 11.02:1.",
+   "note": "30 px on a 1920 px frame (~1.6 % of height) is legible but small; consider 34-36 px if the legal team wants more margin."
+  },
+  "7_logo_unaltered": {
+   "verdict": "PASS",
+   "evidence": "transparent PNG vs source (at source scale): SSIM 0.99822, MAD 0.645/255, ink aspect 0.8971 vs 0.8982. Rendered vs PNG resampled to same geometry: end screen SSIM 0.998 (MAD 0.65), clip1 plate SSIM 0.965 (diff = edge resampling only), watermark SSIM 0.9941; ink-box aspect identical to reference (0.8957/0.8952), best alignment shift 0 px.",
+   "rendered": {
+    "endscreen_fg_lf104": {
+     "box": [
+      330,
+      240,
+      750,
+      706
+     ],
+     "logo_width_px": 420,
+     "scale_vs_png": 0.4872,
+     "effective_scale_vs_300px_source": 1.949,
+     "mad": 0.65,
+     "p99": 10.9,
+     "max": 23.8,
+     "ssim": 0.998,
+     "best_shift_mad": [
+      0.65,
+      0,
+      0
+     ],
+     "alpha_in_plate": 220,
+     "ink_box_rendered": [
+      12,
+      12,
+      407,
+      453
+     ],
+     "ink_box_reference": [
+      12,
+      12,
+      407,
+      453
+     ],
+     "ink_aspect_rendered": 0.8957,
+     "ink_aspect_reference": 0.8957
+    },
+    "endscreen_full_g845": {
+     "box": [
+      330,
+      240,
+      750,
+      706
+     ],
+     "logo_width_px": 420,
+     "scale_vs_png": 0.4872,
+     "effective_scale_vs_300px_source": 1.949,
+     "mad": 0.71,
+     "p99": 11.0,
+     "max": 24.0,
+     "ssim": 0.9971,
+     "best_shift_mad": [
+      0.71,
+      0,
+      0
+     ],
+     "alpha_in_plate": 255,
+     "ink_box_rendered": [
+      12,
+      12,
+      407,
+      453
+     ],
+     "ink_box_reference": [
+      12,
+      12,
+      407,
+      453
+     ],
+     "ink_aspect_rendered": 0.8957,
+     "ink_aspect_reference": 0.8957
+    },
+    "clip1_plate_g220": {
+     "box": [
+      407,
+      246,
+      673,
+      540
+     ],
+     "logo_width_px": 265,
+     "scale_vs_png": 0.3074,
+     "effective_scale_vs_300px_source": 1.23,
+     "mad": 3.17,
+     "p99": 59.7,
+     "max": 118.5,
+     "ssim": 0.965,
+     "best_shift_mad": [
+      3.02,
+      1,
+      0
+     ],
+     "alpha_in_plate": 255,
+     "ink_box_rendered": [
+      9,
+      8,
+      258,
+      286
+     ],
+     "ink_box_reference": [
+      8,
+      8,
+      258,
+      286
+     ],
+     "ink_aspect_rendered": 0.8957,
+     "ink_aspect_reference": 0.8993
+    },
+    "watermark_g135": {
+     "box": [
+      68,
+      248,
+      268,
+      470
+     ],
+     "logo_width_px": 200,
+     "scale_vs_png": 0.232,
+     "effective_scale_vs_300px_source": 0.928,
+     "mad": 1.68,
+     "p99": 19.3,
+     "max": 39.0,
+     "ssim": 0.9941,
+     "best_shift_mad": [
+      1.68,
+      0,
+      0
+     ],
+     "alpha_in_plate": 217,
+     "ink_box_rendered": [
+      6,
+      6,
+      194,
+      216
+     ],
+     "ink_box_reference": [
+      6,
+      6,
+      194,
+      216
+     ],
+     "ink_aspect_rendered": 0.8952,
+     "ink_aspect_reference": 0.8952
+    },
+    "watermark_g640": {
+     "box": [
+      68,
+      248,
+      268,
+      470
+     ],
+     "logo_width_px": 200,
+     "scale_vs_png": 0.232,
+     "effective_scale_vs_300px_source": 0.928,
+     "mad": 1.68,
+     "p99": 19.3,
+     "max": 39.0,
+     "ssim": 0.9941,
+     "best_shift_mad": [
+      1.68,
+      0,
+      0
+     ],
+     "alpha_in_plate": 217,
+     "ink_box_rendered": [
+      6,
+      6,
+      194,
+      216
+     ],
+     "ink_box_reference": [
+      6,
+      6,
+      194,
+      216
+     ],
+     "ink_aspect_rendered": 0.8952,
+     "ink_aspect_reference": 0.8952
+    }
+   },
+   "transparent_vs_source": {
+    "offset_in_4x_space": [
+     170,
+     120
+    ],
+    "at_4x": {
+     "mad": 0.081,
+     "p99": 3.0,
+     "max": 8.0,
+     "ssim": 0.99865
+    },
+    "at_source_scale_300px": {
+     "mad": 0.645,
+     "p99": 12.41,
+     "max": 28.0,
+     "ssim": 0.99822
+    },
+    "ink_aspect_source": 0.8982,
+    "ink_aspect_transparent": 0.8971,
+    "ink_box_source": [
+     49,
+     36,
+     252,
+     262
+    ],
+    "ink_box_transparent": [
+     25,
+     26,
+     836,
+     930
+    ]
+   },
+   "notes": [
+    "source logo is only 300x300 px: the end-screen logo (420 px) is a ~1.95x upscale of the source pixels (soft edges)",
+    "logo artwork orange is #FE5015, not brand #FF6B35 (artwork, excluded from the palette check)"
+   ]
+  },
+  "8_brand_colours": {
+   "verdict": "PASS",
+   "evidence": "251,963,834 interior fully-opaque graphics pixels (all 846 frames, logos excluded, 3x3-uniform = anti-aliasing excluded): 99.88 % within RGB 6 of the 5 brand hexes (#FAF7F2, #1A1A5E, #FF6B35, #FFFFFF; #E8E3DA only as 2 px borders / 8 % grid = #F9F5F0, d=3). 68 off-palette colours (294,619 px) occur ONLY in transition frames [228, 230, 231, 505, 507, 508, 560, 563, 564, 565, 754, 755, 756, 757, 758, 759, 760, 766, 767, 768, 769, 770, 771, 772, 779, 785, 791, 802, 803, 804, 805, 806]: join flash (228-231, 505-508), clip3 figure/sub-line fade-in (560, 563-565), end-screen headline/sub/chip/Learn-more fade-ins (754-806). Semi-transparent fills are brand hex at reduced opacity: progress track cream 40 %, disclaimer strip navy 70 %, watermark plate+logo 85 %. Delivered MP4 keeps brand colours within 3.3 RGB (cream 249,244,241; navy 25,25,94; orange 255,107,52).",
+   "off_palette_top": [
+    {
+     "hex": "#FFBCA4",
+     "px": 96612,
+     "nearest": "border #E8E3DA",
+     "rgb_dist": 70.47,
+     "frames": [
+      [
+       228,
+       228
+      ],
+      [
+       505,
+       505
+      ]
+     ],
+     "where_first": [
+      0,
+      221,
+      686,
+      1378,
+      228
+     ]
+    },
+    {
+     "hex": "#525183",
+     "px": 17160,
+     "nearest": "navy #1A1A5E",
+     "rgb_dist": 86.78,
+     "frames": [
+      [
+       759,
+       759
+      ],
+      [
+       771,
+       771
+      ]
+     ],
+     "where_first": [
+      337,
+      766,
+      861,
+      842,
+      759
+     ]
+    },
+    {
+     "hex": "#363570",
+     "px": 17156,
+     "nearest": "navy #1A1A5E",
+     "rgb_dist": 42.86,
+     "frames": [
+      [
+       760,
+       760
+      ],
+      [
+       772,
+       772
+      ]
+     ],
+     "where_first": [
+      337,
+      763,
+      861,
+      839,
+      760
+     ]
+    },
+    {
+     "hex": "#A5A3B9",
+     "px": 17074,
+     "nearest": "border #E8E3DA",
+     "rgb_dist": 98.36,
+     "frames": [
+      [
+       756,
+       756
+      ],
+      [
+       768,
+       768
+      ]
+     ],
+     "where_first": [
+      337,
+      799,
+      861,
+      875,
+      756
+     ]
+    },
+    {
+     "hex": "#C1BECC",
+     "px": 16901,
+     "nearest": "border #E8E3DA",
+     "rgb_dist": 55.55,
+     "frames": [
+      [
+       755,
+       755
+      ],
+      [
+       767,
+       767
+      ]
+     ],
+     "where_first": [
+      337,
+      815,
+      861,
+      891,
+      755
+     ]
+    },
+    {
+     "hex": "#DDDADE",
+     "px": 16884,
+     "nearest": "border #E8E3DA",
+     "rgb_dist": 14.76,
+     "frames": [
+      [
+       754,
+       754
+      ],
+      [
+       766,
+       766
+      ]
+     ],
+     "where_first": [
+      337,
+      828,
+      861,
+      904,
+      754
+     ]
+    },
+    {
+     "hex": "#8987A7",
+     "px": 16600,
+     "nearest": "border #E8E3DA",
+     "rgb_dist": 141.74,
+     "frames": [
+      [
+       757,
+       757
+      ],
+      [
+       769,
+       769
+      ]
+     ],
+     "where_first": [
+      337,
+      784,
+      861,
+      860,
+      757
+     ]
+    },
+    {
+     "hex": "#6E6C95",
+     "px": 16488,
+     "nearest": "navy #1A1A5E",
+     "rgb_dist": 129.63,
+     "frames": [
+      [
+       758,
+       758
+      ],
+      [
+       770,
+       770
+      ]
+     ],
+     "where_first": [
+      337,
+      773,
+      861,
+      849,
+      758
+     ]
+    },
+    {
+     "hex": "#9797B6",
+     "px": 16278,
+     "nearest": "border #E8E3DA",
+     "rgb_dist": 116.76,
+     "frames": [
+      [
+       228,
+       228
+      ],
+      [
+       505,
+       505
+      ]
+     ],
+     "where_first": [
+      189,
+      1293,
+      887,
+      1389,
+      228
+     ]
+    },
+    {
+     "hex": "#8D4249",
+     "px": 8965,
+     "nearest": "orange #FF6B35",
+     "rgb_dist": 122.79,
+     "frames": [
+      [
+       560,
+       560
+      ],
+      [
+       804,
+       804
+      ]
+     ],
+     "where_first": [
+      464,
+      350,
+      622,
+      452,
+      560
+     ]
+    },
+    {
+     "hex": "#FF8559",
+     "px": 6450,
+     "nearest": "orange #FF6B35",
+     "rgb_dist": 44.41,
+     "frames": [
+      [
+       231,
+       231
+      ],
+      [
+       508,
+       508
+      ]
+     ],
+     "where_first": [
+      0,
+      221,
+      336,
+      227,
+      231
+     ]
+    },
+    {
+     "hex": "#FFB59A",
+     "px": 6432,
+     "nearest": "border #E8E3DA",
+     "rgb_dist": 82.1,
+     "frames": [
+      [
+       230,
+       230
+      ],
+      [
+       507,
+       507
+      ]
+     ],
+     "where_first": [
+      0,
+      221,
+      334,
+      227,
+      230
+     ]
+    },
+    {
+     "hex": "#FE7C4C",
+     "px": 2894,
+     "nearest": "orange #FF6B35",
+     "rgb_dist": 28.62,
+     "frames": [
+      [
+       760,
+       760
+      ]
+     ],
+     "where_first": [
+      224,
+      777,
+      310,
+      839,
+      760
+     ]
+    },
+    {
+     "hex": "#FD8E64",
+     "px": 2703,
+     "nearest": "orange #FF6B35",
+     "rgb_dist": 58.63,
+     "frames": [
+      [
+       759,
+       759
+      ]
+     ],
+     "where_first": [
+      224,
+      780,
+      310,
+      842,
+      759
+     ]
+    },
+    {
+     "hex": "#FBC1AA",
+     "px": 2702,
+     "nearest": "border #E8E3DA",
+     "rgb_dist": 61.81,
+     "frames": [
+      [
+       756,
+       756
+      ]
+     ],
+     "where_first": [
+      224,
+      813,
+      310,
+      875,
+      756
+     ]
+    },
+    {
+     "hex": "#FBD3C2",
+     "px": 2627,
+     "nearest": "border #E8E3DA",
+     "rgb_dist": 34.54,
+     "frames": [
+      [
+       755,
+       755
+      ]
+     ],
+     "where_first": [
+      224,
+      829,
+      310,
+      891,
+      755
+     ]
+    },
+    {
+     "hex": "#FD9F7B",
+     "px": 2621,
+     "nearest": "orange #FF6B35",
+     "rgb_dist": 87.22,
+     "frames": [
+      [
+       758,
+       758
+      ]
+     ],
+     "where_first": [
+      224,
+      787,
+      310,
+      849,
+      758
+     ]
+    },
+    {
+     "hex": "#FAE4D9",
+     "px": 2606,
+     "nearest": "border #E8E3DA",
+     "rgb_dist": 18.06,
+     "frames": [
+      [
+       754,
+       754
+      ]
+     ],
+     "where_first": [
+      224,
+      842,
+      310,
+      904,
+      754
+     ]
+    },
+    {
+     "hex": "#FCB092",
+     "px": 2588,
+     "nearest": "border #E8E3DA",
+     "rgb_dist": 90.47,
+     "frames": [
+      [
+       757,
+       757
+      ]
+     ],
+     "where_first": [
+      224,
+      798,
+      310,
+      860,
+      757
+     ]
+    },
+    {
+     "hex": "#FD9973",
+     "px": 2369,
+     "nearest": "orange #FF6B35",
+     "rgb_dist": 77.23,
+     "frames": [
+      [
+       779,
+       779
+      ],
+      [
+       785,
+       785
+      ],
+      [
+       791,
+       791
+      ]
+     ],
+     "where_first": [
+      291,
+      1026,
+      434,
+      1054,
+      779
+     ]
+    }
+   ]
+  }
+ },
+ "delivery": {
+  "verdict": "PASS",
+  "evidence": "1080x1920, 30/1 CFR (846 packets, one duration), H.264 High L5.0, yuv420p tv bt709, AAC LC 48 kHz stereo, faststart (ftyp, moov, free, mdat), 28.200 s video+audio, -14.0 LUFS, TP -1.5 dBTP, LRA 3.4 LU. AAC average 170 kbps = 194 kbps over the voice (0-24.7 s) + digital silence on the 3.5 s end screen.",
+  "both_mp4s_byte_identical": true,
+  "music_asset_present": false,
+  "cover": {
+   "size": [
+    1080,
+    1920
+   ],
+   "format": "JPEG",
+   "mode": "RGB",
+   "navy_px_in_slab_band_y250_520": 136739,
+   "navy_band_columns_covered": 1080
+  },
+  "files": {
+   "TrainPlex_Reel01_9x16.mp4": {
+    "md5": "ba8924ab457221b4bae6a6f93afd4380",
+    "size_bytes": 18208438,
+    "video": {
+     "codec_name": "h264",
+     "profile": "High",
+     "level": 50,
+     "width": 1080,
+     "height": 1920,
+     "pix_fmt": "yuv420p",
+     "color_range": "tv",
+     "color_space": "bt709",
+     "color_transfer": "bt709",
+     "color_primaries": "bt709",
+     "r_frame_rate": "30/1",
+     "avg_frame_rate": "30/1",
+     "nb_frames": "846",
+     "duration": "28.200000",
+     "bit_rate": "4985913"
+    },
+    "video_packet_durations": [
+     "0.033333"
+    ],
+    "cfr": true,
+    "audio": {
+     "codec_name": "aac",
+     "profile": "LC",
+     "sample_rate": "48000",
+     "channels": 2,
+     "channel_layout": "stereo",
+     "bit_rate": "170334",
+     "duration": "28.200000",
+     "duration_ts": 1353600
+    },
+    "format_duration": "28.200000",
+    "top_level_atoms": [
+     "ftyp",
+     "moov",
+     "free",
+     "mdat"
+    ],
+    "faststart": true,
+    "loudness": {
+     "I_lufs": -14.0,
+     "LRA_lu": 3.4,
+     "true_peak_dbtp": -1.5
+    },
+    "silence_starts_s_(<-60dB,>=0.5s)": [
+     24.6992
+    ]
+   },
+   "TrainPlex_Reel01_9x16_nomusic.mp4": {
+    "md5": "ba8924ab457221b4bae6a6f93afd4380",
+    "size_bytes": 18208438,
+    "video": {
+     "codec_name": "h264",
+     "profile": "High",
+     "level": 50,
+     "width": 1080,
+     "height": 1920,
+     "pix_fmt": "yuv420p",
+     "color_range": "tv",
+     "color_space": "bt709",
+     "color_transfer": "bt709",
+     "color_primaries": "bt709",
+     "r_frame_rate": "30/1",
+     "avg_frame_rate": "30/1",
+     "nb_frames": "846",
+     "duration": "28.200000",
+     "bit_rate": "4985913"
+    },
+    "video_packet_durations": [
+     "0.033333"
+    ],
+    "cfr": true,
+    "audio": {
+     "codec_name": "aac",
+     "profile": "LC",
+     "sample_rate": "48000",
+     "channels": 2,
+     "channel_layout": "stereo",
+     "bit_rate": "170334",
+     "duration": "28.200000",
+     "duration_ts": 1353600
+    },
+    "format_duration": "28.200000",
+    "top_level_atoms": [
+     "ftyp",
+     "moov",
+     "free",
+     "mdat"
+    ],
+    "faststart": true,
+    "loudness": {
+     "I_lufs": -14.0,
+     "LRA_lu": 3.4,
+     "true_peak_dbtp": -1.5
+    },
+    "silence_starts_s_(<-60dB,>=0.5s)": [
+     24.6992
+    ]
+   }
+  }
+ }
+}
