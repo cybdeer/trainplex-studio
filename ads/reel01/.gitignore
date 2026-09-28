@@ -15,3 +15,10 @@ remotion/.remotion/
 .remotion/
 work/audio/*.mp4
 work/audio/.mux_*.json
+# QA agent renders (regenerable)
+work/qa/es/
+work/qa/stills/
+work/qa/g/
+work/qa/view/
+work/qa/crops/
+work/qa/*.log
