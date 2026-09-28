@@ -3,7 +3,9 @@ import {Img, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion
 import {COLORS, FONT_STACK, LOGO_ASPECT, LOGO_FILE, SLAB_ROTATION_DEG, SPRING} from '../brand';
 
 /** Spring 0 -> 1 starting at `delay` (frames). Snappy brand defaults. */
-export const useSpringIn = (delay = 0, config: Partial<typeof SPRING> = SPRING, durationInFrames?: number) => {
+export type SpringConfig = {damping: number; stiffness: number; mass: number};
+
+export const useSpringIn = (delay = 0, config: Partial<SpringConfig> = SPRING, durationInFrames?: number) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   return spring({frame: frame - delay, fps, config, durationInFrames});

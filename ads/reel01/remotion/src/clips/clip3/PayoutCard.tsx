@@ -1,12 +1,13 @@
 import {Check, Landmark} from 'lucide-react';
 import React from 'react';
 import {Easing, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
-import {COLORS, FONT_STACK, SLAB_ROTATION_DEG, SPRING, SPRING_FIRM, SPRING_OVERSHOOT} from '../../brand';
+import {COLORS, FONT_STACK, SLAB_ROTATION_DEG, SPRING_FIRM, SPRING_OVERSHOOT} from '../../brand';
 import {BANK_HI, CARD, CARD_GONE, CARD_IN, CARD_OUT, TICK_AT, TICK_SIZE, UPI_HI} from './cues';
 
 const clamp = {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'} as const;
 
 const TEXT_SIZE = 84;
+const CARD_SLIDE = {damping: 24, stiffness: 200, mass: 1};
 const ICON_SIZE = 116;
 const UNDERLINE_H = 8;
 
@@ -44,7 +45,9 @@ export const PayoutCard: React.FC = () => {
   const w = CARD.x2 - CARD.x1;
   const h = CARD.y2 - CARD.y1;
 
-  const enter = spring({frame: frame - CARD_IN, fps, config: SPRING});
+  // Long travel (≈ 820 px): a lightly-damped spring would overshoot ~150 px into the watermark,
+  // so the slide uses a firmer damping (ζ ≈ 0.85, < 1 % overshoot) — still a snappy ~8-frame settle.
+  const enter = spring({frame: frame - CARD_IN, fps, config: CARD_SLIDE});
   const enterX = (1 - enter) * (1080 - CARD.x1 + 40);
   const exitX = interpolate(frame, [CARD_OUT, CARD_GONE - 1], [0, 1080 - CARD.x1 + 80], {
     ...clamp,

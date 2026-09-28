@@ -128,7 +128,9 @@ export const PLATE = {x1: 140, x2: 940, y1: plateY.top, y2: plateY.bottom};
 // Tick badge overhangs the card's top-right corner by half its size, so the card top keeps ≥ 32 px headroom.
 export const TICK_SIZE = 64;
 const cardY = fitAboveEyes(CARD_IN, CARD_GONE, 520, 200, TOP_LIMIT + TICK_SIZE / 2);
-export const CARD = {x1: 290, x2: 960, y1: cardY.top, y2: cardY.bottom};
+// x ≥ 300 keeps a 40 px gap to the watermark box (x ≤ 260), so the watermark can stay up; the
+// card is then centred on his face (face centre x ≈ 620).
+export const CARD = {x1: 300, x2: 968, y1: cardY.top, y2: cardY.bottom};
 
 export const DISC_STRIP = {y1: 1416, y2: 1470};
 export const LM_BLOCK = {y1: 1310, y2: 1478};

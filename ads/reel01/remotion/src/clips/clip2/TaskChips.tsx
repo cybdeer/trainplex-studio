@@ -4,7 +4,7 @@ import {Camera, FileText, LucideIcon, Mic} from 'lucide-react';
 import {COLORS, FONT_STACK, SPRING, SPRING_FIRM, SPRING_OVERSHOOT} from '../../brand';
 import {SquareBullet, WhiteCard} from '../../components/primitives';
 import {CHIP_EXIT_STAGGER, CUE, EXIT_FRAMES, LEAD} from './cues';
-import {CHIP, chipTop, exitFrom, springFrom} from './layout';
+import {CHIP, chipTop, exitFrom, settleFrom, springFrom} from './layout';
 
 type Task = {cue: number; icon: LucideIcon; lines: [string, string]};
 
@@ -26,8 +26,9 @@ const Chip: React.FC<{task: Task; index: number}> = ({task, index}) => {
   const outAt = CHIPS_OUT + index * CHIP_EXIT_STAGGER;
   if (frame < inAt || frame >= outAt + EXIT_FRAMES) return null;
 
-  // Firm spring, clamped at rest: the chip must never overshoot leftwards towards his mouth.
-  const enter = Math.min(1, springFrom(frame, fps, inAt, SPRING_FIRM));
+  // Firm spring, stopped dead at rest: never overshoots left towards his mouth, never rebounds
+  // right past the safe-zone edge.
+  const enter = Math.min(1, settleFrom(frame, fps, inAt, SPRING_FIRM));
   const exit = exitFrom(frame, outAt, EXIT_FRAMES);
   const x = interpolate(enter, [0, 1], [TRAVEL, 0]) + exit * TRAVEL;
 

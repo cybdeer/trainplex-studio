@@ -34,7 +34,7 @@ export const chipTop = (i: number) => CHIP.top + i * (CHIP.height + CHIP.gap);
 // ONE group rotated -4° about its top-left corner (so all edges stay parallel and the row gaps
 // stay even): row 1 = PHONE से + ₹0 FEES, row 2 = FREE TRAINING indented to the right.
 // Geometry (checked against faceAt(2, 185–277): mouth x ≤ 689, y ≤ 959):
-//   row-1 top edge crosses x = 689 at y ≈ 968; lowest point (row-2 bottom-left) ≈ y 1178.
+//   row-1 top edge crosses x = 689 at y ≈ 972; settled span y ≈ 964–1177 (≤ 1182 at pop peak).
 export const BADGE = {
   fontSize: 64,
   padY: 11, // badge height = 64 + 2·11 = 86 px (tighter than the primitive's default 98 px)
@@ -42,7 +42,7 @@ export const BADGE = {
   gap: 20, // between PHONE से and ₹0 FEES
   rowGap: 12,
   groupX: 120,
-  groupY: 1009,
+  groupY: 1013,
   row2Indent: 220,
 } as const;
 
@@ -50,6 +50,18 @@ export const BADGE = {
 type SpringConfig = {damping: number; stiffness: number; mass: number};
 export const springFrom = (frame: number, fps: number, start: number, config: SpringConfig = SPRING) =>
   spring({frame: frame - start, fps, config});
+
+/**
+ * Spring that is latched once it first reaches 1: it may overshoot, but it never swings back
+ * below its rest pose afterwards (keeps sliding elements from rebounding out of the safe zone).
+ */
+export const settleFrom = (frame: number, fps: number, start: number, config: SpringConfig = SPRING) => {
+  const s = springFrom(frame, fps, start, config);
+  for (let f = start; f <= frame; f++) {
+    if (springFrom(f, fps, start, config) >= 1) return Math.max(1, s);
+  }
+  return s;
+};
 
 /** Ease-in 0 → 1 over `dur` frames from `start` — used for snappy exits. */
 export const exitFrom = (frame: number, start: number, dur: number) =>
