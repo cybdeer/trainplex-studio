@@ -17,8 +17,8 @@ const SLAM_FONT = 140; // "₹0" slams up to this once the count lands
 /** Front face: flat phone icon + orange clock + "4 HRS". */
 const HoursFace: React.FC<{frame: number; fps: number}> = ({frame, fps}) => {
   // no opacity fades (flat, opaque graphics): the icon scales up, the text row rises out of a mask
-  const icon = spring({frame: frame - (CARD.inAt + 1), fps, config: SPRING_OVERSHOOT});
-  const row = Math.min(1, spring({frame: frame - (CARD.inAt + 3), fps, config: SPRING}));
+  const icon = spring({frame: frame - CARD.inAt, fps, config: SPRING_OVERSHOOT});
+  const row = Math.min(1, spring({frame: frame - (CARD.inAt + 2), fps, config: SPRING}));
   const ROW_H = 64;
   return (
     <div
@@ -121,10 +121,10 @@ export const StatCard: React.FC = () => {
     ? interpolate(frame, [b, c], [-65, 0], {...clamp, easing: Easing.out(Easing.cubic)})
     : interpolate(frame, [a, b], [0, 80], {...clamp, easing: Easing.in(Easing.quad)});
 
-  // snappy exit to the right with a small anticipation (back-in)
+  // snappy exit to the right (accelerating, visible travel on every frame)
   const pOut = interpolate(frame, [CARD.outAt, CARD.outAt + CARD.outFrames], [0, 1], {
     ...clamp,
-    easing: Easing.in(Easing.back(1.4)),
+    easing: Easing.in(Easing.quad),
   });
   const exitX = pOut * (1080 - x1 + 40);
 

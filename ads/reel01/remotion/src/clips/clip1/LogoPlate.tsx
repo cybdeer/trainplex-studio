@@ -1,6 +1,6 @@
 import React from 'react';
-import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
-import {COLORS, SPRING_FIRM, SPRING_OVERSHOOT} from '../../brand';
+import {AbsoluteFill, Easing, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {COLORS, SPRING_FIRM} from '../../brand';
 import {Logo} from '../../components/primitives';
 import {LOGO, LOGO_PLATE, LOGO_WIDTH} from './cues';
 
@@ -16,9 +16,17 @@ export const LogoPlate: React.FC = () => {
   const {fps} = useVideoConfig();
   if (frame < LOGO.inAt) return null;
 
-  const plateIn = spring({frame: frame - LOGO.inAt, fps, config: SPRING_OVERSHOOT});
-  const barIn = spring({frame: frame - (LOGO.inAt + 3), fps, config: SPRING_FIRM});
-  const logoIn = spring({frame: frame - (LOGO.inAt + 2), fps, config: SPRING_FIRM});
+  // plate snaps open (expo-out, already ~70 % wide on the cue frame), then the logo pops inside it
+  // (opaque scale pop — its spring overshoot stays within the plate padding), then the bar draws.
+  const plateIn = interpolate(frame, [LOGO.inAt - 1, LOGO.inAt + 4], [0, 1], {
+    ...clamp,
+    easing: Easing.bezier(0.16, 1, 0.3, 1),
+  });
+  const logoIn = spring({frame: frame - (LOGO.inAt + 1), fps, config: SPRING_FIRM});
+  const barIn = interpolate(frame, [LOGO.inAt + 2, LOGO.inAt + 7], [0, 1], {
+    ...clamp,
+    easing: Easing.bezier(0.16, 1, 0.3, 1),
+  });
 
   const left = 540 - LOGO_PLATE.width / 2;
   const top = LOGO.top;
@@ -48,7 +56,7 @@ export const LogoPlate: React.FC = () => {
           width: LOGO_PLATE.width,
           height: LOGO.bar,
           backgroundColor: COLORS.orange,
-          transform: `scaleX(${Math.min(1, barIn)})`,
+          transform: `scaleX(${barIn})`,
           transformOrigin: '50% 50%',
         }}
       />
@@ -58,8 +66,8 @@ export const LogoPlate: React.FC = () => {
           position: 'absolute',
           left: 540 - LOGO_WIDTH / 2,
           top: top + LOGO.padY,
-          opacity: interpolate(frame, [LOGO.inAt + 2, LOGO.inAt + 5], [0, 1], clamp),
-          transform: `scale(${interpolate(logoIn, [0, 1], [0.72, 1])})`,
+          visibility: frame >= LOGO.inAt + 1 ? 'visible' : 'hidden',
+          transform: `scale(${interpolate(logoIn, [0, 1], [0.5, 1])})`,
           transformOrigin: '50% 50%',
         }}
       >

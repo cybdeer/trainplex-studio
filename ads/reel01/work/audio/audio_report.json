@@ -1,5 +1,5 @@
 {
- "generated_utc": "2026-09-28T21:37:22+00:00",
+ "generated_utc": "2026-09-28T21:39:36+00:00",
  "script": "work/audio_mix.py",
  "ffmpeg": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
  "meter": "ffmpeg ebur128=peak=true+sample (summary = 0.1 resolution; 'precise' = filter metadata)",
@@ -77,7 +77,7 @@
       "true_peak_dbtp": -0.418,
       "sample_peak_dbfs": -0.418
      },
-     "I_lufs_internal_meter": -10.217
+     "I_lufs_internal_meter": -14.346
     },
     "after_hpf_I_lufs": -14.371,
     "sibilance": {
@@ -138,7 +138,7 @@
       "true_peak_dbtp": -1.598,
       "sample_peak_dbfs": -1.629
      },
-     "I_lufs_internal_meter": -11.855
+     "I_lufs_internal_meter": -15.996
     }
    },
    {
@@ -155,7 +155,7 @@
       "true_peak_dbtp": -1.31,
       "sample_peak_dbfs": -1.32
      },
-     "I_lufs_internal_meter": -13.124
+     "I_lufs_internal_meter": -16.447
     },
     "after_hpf_I_lufs": -16.491,
     "sibilance": {
@@ -216,7 +216,7 @@
       "true_peak_dbtp": -0.327,
       "sample_peak_dbfs": -0.346
      },
-     "I_lufs_internal_meter": -12.655
+     "I_lufs_internal_meter": -15.995
     }
    },
    {
@@ -233,7 +233,7 @@
       "true_peak_dbtp": -4.554,
       "sample_peak_dbfs": -4.554
      },
-     "I_lufs_internal_meter": -15.364
+     "I_lufs_internal_meter": -18.055
     },
     "after_hpf_I_lufs": -18.2,
     "sibilance": {
@@ -342,11 +342,11 @@
       "true_peak_dbtp": -1.23,
       "sample_peak_dbfs": -1.26
      },
-     "I_lufs_internal_meter": -13.224
+     "I_lufs_internal_meter": -15.996
     }
    }
   ],
-  "concatenated_pre_master_I_lufs_internal": -12.55
+  "concatenated_pre_master_I_lufs_internal": -16.06
  },
  "deess": {
   "method": "10 ms frames of the mono mid signal; speech-active frames = within 30 dB of the clip's 95th-percentile frame level; bands = 4th-order Butterworth 5–10 kHz (sibilance) and 1–4 kHz (presence), zero-phase",
@@ -436,7 +436,7 @@
   "voice_master": {
    "path": "work/audio/voice_master.wav",
    "note": "voice only (nomusic track)",
-   "sha256": "50888c8f8b4a400c555b979f3b7546e272c480136992a8c03df06abf7e3644e1",
+   "sha256": "74211c1fa05e0a2c97440aa8712c7b6c73757ced4e8b20daa920ac908f12ebb6",
    "stream": {
     "codec_name": "pcm_s24le",
     "sample_rate": "48000",
@@ -451,7 +451,7 @@
     "sample_peak_dbfs": -1.6,
     "true_peak_dbtp": -1.6,
     "precise": {
-     "I_lufs": -13.989,
+     "I_lufs": -14.009,
      "LRA_lu": 3.36,
      "true_peak_dbtp": -1.598,
      "sample_peak_dbfs": -1.608
@@ -460,40 +460,26 @@
    "internal_true_peak_dbtp_4x": -1.6,
    "limiter": {
     "ceiling_dbtp": -1.6,
-    "max_gain_reduction_db": 3.74,
-    "pct_time_gr_over_0_5db": 8.651,
-    "pct_time_gr_over_1db": 3.715,
-    "pct_time_gr_over_0_1db": 20.506,
-    "makeup_gain_db": 2.469,
-    "internal_iterations": 5
+    "max_gain_reduction_db": 3.71,
+    "pct_time_gr_over_0_5db": 8.49,
+    "pct_time_gr_over_1db": 3.632,
+    "pct_time_gr_over_0_1db": 20.349,
+    "makeup_gain_db": 2.445,
+    "internal_iterations": 4
    },
    "mastering_attempts": [
     {
      "attempt": 1,
      "limiter_ceiling_dbtp": -1.6,
      "internal_lufs_aim": -14.0,
-     "ffmpeg_I": -17.515,
-     "ffmpeg_TP": -1.777
-    },
-    {
-     "attempt": 2,
-     "limiter_ceiling_dbtp": -1.6,
-     "internal_lufs_aim": -10.485,
-     "ffmpeg_I": -13.872,
-     "ffmpeg_TP": -1.598
-    },
-    {
-     "attempt": 3,
-     "limiter_ceiling_dbtp": -1.6,
-     "internal_lufs_aim": -10.613,
-     "ffmpeg_I": -13.989,
+     "ffmpeg_I": -14.009,
      "ffmpeg_TP": -1.598,
      "aac_roundtrip": {
-      "I_lufs": -14.016,
+      "I_lufs": -14.033,
       "true_peak_dbtp": -1.463,
       "summary": {
        "I_lufs": -14.0,
-       "LRA_lu": 3.3,
+       "LRA_lu": 3.4,
        "true_peak_dbtp": -1.5
       }
      }
@@ -503,7 +489,7 @@
   "music_master": {
    "path": "work/audio/music_master.wav",
    "note": "No music and no SFX present -> music_master.wav is the voice master (bit-identical).",
-   "sha256": "50888c8f8b4a400c555b979f3b7546e272c480136992a8c03df06abf7e3644e1",
+   "sha256": "74211c1fa05e0a2c97440aa8712c7b6c73757ced4e8b20daa920ac908f12ebb6",
    "stream": {
     "codec_name": "pcm_s24le",
     "sample_rate": "48000",
@@ -518,7 +504,7 @@
     "sample_peak_dbfs": -1.6,
     "true_peak_dbtp": -1.6,
     "precise": {
-     "I_lufs": -13.989,
+     "I_lufs": -14.009,
      "LRA_lu": 3.36,
      "true_peak_dbtp": -1.598,
      "sample_peak_dbfs": -1.608
@@ -527,12 +513,12 @@
    "internal_true_peak_dbtp_4x": -1.6,
    "limiter": {
     "ceiling_dbtp": -1.6,
-    "max_gain_reduction_db": 3.74,
-    "pct_time_gr_over_0_5db": 8.651,
-    "pct_time_gr_over_1db": 3.715,
-    "pct_time_gr_over_0_1db": 20.506,
-    "makeup_gain_db": 2.469,
-    "internal_iterations": 5
+    "max_gain_reduction_db": 3.71,
+    "pct_time_gr_over_0_5db": 8.49,
+    "pct_time_gr_over_1db": 3.632,
+    "pct_time_gr_over_0_1db": 20.349,
+    "makeup_gain_db": 2.445,
+    "internal_iterations": 4
    },
    "mastering_attempts": [
     {

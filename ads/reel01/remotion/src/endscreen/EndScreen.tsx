@@ -42,6 +42,10 @@ import {
 /** Local frame on which the CTA bar lands (for the audio/SFX log). */
 export const CTA_LAND_FRAME = 57; // = T.cta (50) + CTA_SLIDE_FRAMES (7) — keep in sync with geometry.ts
 
+if (CTA_LAND_FRAME !== T.cta + CTA_SLIDE_FRAMES) {
+  throw new Error('EndScreen: CTA_LAND_FRAME out of sync with geometry.ts (T.cta + CTA_SLIDE_FRAMES)');
+}
+
 const clamp01 = {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'} as const;
 
 // ─── Background: cream + faint 44 px grid ────────────────────────────────────────────────

@@ -11,3 +11,7 @@ work/audio/*.wav
 __pycache__/
 # agent scratch helpers
 remotion/.*.mjs
+remotion/.remotion/
+.remotion/
+work/audio/*.mp4
+work/audio/.mux_*.json

@@ -29,7 +29,7 @@ export const HookSlab: React.FC = () => {
   });
   const pOut = interpolate(frame, [SLAB.outStart, SLAB_OUT_END], [0, 1], {
     ...clamp,
-    easing: Easing.bezier(0.7, 0, 0.84, 0),
+    easing: Easing.in(Easing.cubic),
   });
   const slabX = (pIn - 1) * TRAVEL + pOut * TRAVEL;
 
