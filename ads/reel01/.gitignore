@@ -23,3 +23,5 @@ work/qa/view/
 work/qa/crops/
 work/qa/*.log
 work/qa/build/
+# every QA render sub-folder is regenerable
+work/qa/*/
