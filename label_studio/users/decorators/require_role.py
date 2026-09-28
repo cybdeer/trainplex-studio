@@ -33,7 +33,6 @@ from functools import wraps
 
 from rest_framework.exceptions import PermissionDenied
 
-
 # --------------------------------------------------------------------------
 # Trainer batch allowlist (tonight only)
 # --------------------------------------------------------------------------
