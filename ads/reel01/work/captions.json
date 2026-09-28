@@ -565,7 +565,7 @@
   "end": 7.46,
   "clip": 3,
   "highlight": true,
-  "chunk": 8
+  "chunk": 9
  },
  {
   "word": "कर!",
@@ -573,6 +573,6 @@
   "end": 7.72,
   "clip": 3,
   "highlight": false,
-  "chunk": 8
+  "chunk": 9
  }
 ]

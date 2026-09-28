@@ -16,7 +16,7 @@ edit = {c["clip"]: c for c in json.load(open(os.path.join(root, "work", "edit.js
 SCRIPT = {
     1: "भाई, scroll | करना बंद कर! | रोज़ चार घंटे | reels देखता है — | बदले में मिला क्या? | Zero! | वही चार घंटे | TrainPlex पे दे।",
     2: "AI कंपनियों के | छोटे-छोटे tasks — | voice record कर, | photos खींच, | text check कर। | सब phone से, | कोई fees नहीं, | training भी free।",
-    3: "Tasks available हों तो | चार घंटे में | पाँच सौ से | छह सौ तक। | पैसा सीधे Bank | या UPI में। | तो नीचे | Learn more दबा | और अभी register कर!",
+    3: "Tasks available हों तो | चार घंटे में | पाँच सौ से | छह सौ तक। | पैसा सीधे Bank | या UPI में। | तो नीचे | Learn more दबा | और अभी | register कर!",
 }
 # Whisper-word span for each script token, in order. (n) = consume n whisper words;
 # ("split", k, parts) = this token is part k of a whisper word shared by `parts` tokens.
