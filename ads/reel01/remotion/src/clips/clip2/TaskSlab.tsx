@@ -2,7 +2,7 @@ import React from 'react';
 import {interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
 import {COLORS, FONT_STACK, SLAB_ROTATION_DEG, SPRING, SPRING_FIRM} from '../../brand';
 import {CUE, EXIT_FRAMES, LEAD} from './cues';
-import {exitFrom, settleFrom, SLAB, springFrom} from './layout';
+import {exitFrom, settleFrom, SLAB} from './layout';
 
 export const SLAB_IN = Math.max(0, CUE.ai - LEAD);
 export const SLAB_OUT = CUE.sab; // clears together with the chips
@@ -22,7 +22,7 @@ export const TaskSlab: React.FC = () => {
   const x = interpolate(enter, [0, 1, 1.2], [-OFFSCREEN, 0, 24], {extrapolateRight: 'clamp'}) - exit * OFFSCREEN;
 
   // "tasks": underline wipes in left → right, slab gives a small confident punch.
-  const bar = springFrom(frame, fps, CUE.tasks - LEAD, SPRING);
+  const bar = Math.min(1, settleFrom(frame, fps, CUE.tasks - LEAD, SPRING)); // wipe, no rebound
   const punch = interpolate(frame - (CUE.tasks - LEAD), [0, 3, 9], [1, 1.035, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
