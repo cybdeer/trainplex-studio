@@ -14,6 +14,7 @@ const BOUNCE_AMP = 10;
 // the label, so the arrow slides out from under it.
 const ARROW_REST_TOP = LM_BLOCK.y2 - BOUNCE_AMP - ARROW_H;
 const TUCK = LM_BLOCK.y1 + LABEL_H - ARROW_REST_TOP;
+const WINDOW_TOP = LM_BLOCK.y1 + LABEL_H / 2;
 const OUTLINE = 6; // navy outline so the orange arrow reads on any background
 
 /** Solid flat down-arrow (shaft + head), orange with a thin navy outline. */
@@ -66,21 +67,32 @@ export const LearnMore: React.FC = () => {
   const pt = frame - PULSE_AT;
   const pulse = pt >= 0 && pt <= 8 ? 1 + 0.07 * Math.sin((Math.PI * pt) / 8) : 1;
 
-
   return (
     <>
+      {/* clip window: the arrow only exists below the label's mid-line, so it emerges from under it */}
       <div
         style={{
           position: 'absolute',
-          left: 540 - ARROW_W / 2,
-          top: ARROW_REST_TOP,
-          width: ARROW_W,
-          height: ARROW_H,
-          opacity: arrowOpacity,
-          transform: `translateY(${arrowDrop + bounce}px)`,
+          left: 540 - ARROW_W / 2 - OUTLINE,
+          width: ARROW_W + 2 * OUTLINE,
+          top: WINDOW_TOP,
+          height: LM_BLOCK.y2 - WINDOW_TOP,
+          overflow: 'hidden',
         }}
       >
-        <DownArrow />
+        <div
+          style={{
+            position: 'absolute',
+            left: OUTLINE,
+            top: ARROW_REST_TOP - WINDOW_TOP,
+            width: ARROW_W,
+            height: ARROW_H,
+            opacity: arrowOpacity,
+            transform: `translateY(${arrowDrop + bounce}px)`,
+          }}
+        >
+          <DownArrow />
+        </div>
       </div>
       <div
         style={{
