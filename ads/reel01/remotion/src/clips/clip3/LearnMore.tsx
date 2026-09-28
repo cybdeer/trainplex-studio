@@ -121,6 +121,7 @@ export const LearnMore: React.FC = () => {
             whiteSpace: 'nowrap',
             opacity: labelOpacity,
             transform: `scale(${labelScale * pulse})`,
+            transformOrigin: '50% 0%', // grows downward only: never above the block top (1310)
           }}
         >
           LEARN MORE
