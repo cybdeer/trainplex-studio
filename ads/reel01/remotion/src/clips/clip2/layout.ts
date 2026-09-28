@@ -7,7 +7,8 @@ import {SPRING} from '../../brand';
  */
 
 // "AI TRAINER TASKS" navy slab, top band. Eyes never rise above y 490 in this clip (faceAt),
-// so the slab (rotated bbox ≈ y 236–389) sits well clear of them. It covers WATERMARK_BOX.
+// so the slab (rendered bbox ≈ x 64–706, y 241–394 incl. underline) sits well clear of them.
+// It covers WATERMARK_BOX → CLIP2_WATERMARK_BLOCKED.
 export const SLAB = {
   left: 66,
   top: 262,

@@ -56,7 +56,7 @@ export const PerkBadges: React.FC = () => (
         </PopBadge>
         <PopBadge cue={CUE.fees}>₹0 FEES</PopBadge>
       </div>
-      <PopBadge cue={CUE.free}>FREE TRAINING</PopBadge>
+      <PopBadge cue={CUE.training}>FREE TRAINING</PopBadge>
     </div>
   </div>
 );

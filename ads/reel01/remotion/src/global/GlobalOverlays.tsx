@@ -14,6 +14,7 @@ const BLOCKED: FrameInterval[] = [
   ...CLIP3_WATERMARK_BLOCKED.map(([a, b]): FrameInterval => [CLIP_START[3] + a, CLIP_START[3] + b]),
 ];
 const DUCK = 4; // frames
+const WATERMARK_PAD = 8; // px cream plate around the 200 px logo
 
 const duckFactor = (frame: number) => {
   let f = 1;
@@ -39,7 +40,8 @@ export const ProgressBar: React.FC = () => {
 
 /**
  * Small real-logo watermark top-left (x 60, y 240, width 200, 85 %) from 1.0 s to the end screen.
- * It ducks out while a clip graphic occupies its box (slabs/plates), so graphics never clash.
+ * It sits on a small cream plate for legibility and ducks out while a clip graphic occupies its
+ * box (slabs/plates), so graphics never clash.
  */
 export const Watermark: React.FC = () => {
   const frame = useCurrentFrame();
@@ -53,7 +55,17 @@ export const Watermark: React.FC = () => {
   if (duck <= 0) return null;
   return (
     <AbsoluteFill style={{pointerEvents: 'none'}}>
-      <div style={{position: 'absolute', left: 60, top: 240, opacity: opacity * duck}}>
+      {/* Cream plate (sharp corners) keeps the navy wordmark legible over dark hair/backgrounds. */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 60,
+          top: 240,
+          padding: WATERMARK_PAD,
+          backgroundColor: COLORS.cream,
+          opacity: opacity * duck,
+        }}
+      >
         <Logo width={200} />
       </div>
     </AbsoluteFill>

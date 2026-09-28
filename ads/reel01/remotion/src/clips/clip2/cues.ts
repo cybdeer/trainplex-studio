@@ -16,7 +16,7 @@ export const CUE = {
   sab: start('सब'),
   phone: start('phone'),
   fees: start('fees'),
-  training: start('training'),
+  training: start('training'), // FREE TRAINING pops here so it reads for ~1 s before the cut
   free: start('free'),
 } as const;
 
