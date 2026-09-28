@@ -100,5 +100,5 @@ export const LOGO_PLATE = {
 // over the 4 frames around the plate's pop and returns with clip 2.
 export const WATERMARK_BLOCKED: FrameInterval[] = [
   [0, SLAB_OUT_END],
-  [LOGO.inAt + 3, CLIP1_END],
+  [LOGO.inAt, CLIP1_END],
 ];

@@ -25,3 +25,5 @@ work/qa/*.log
 work/qa/build/
 # every QA render sub-folder is regenerable
 work/qa/*/
+!work/qa/remotion_qa/
+!work/qa/parts/

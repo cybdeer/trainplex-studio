@@ -11,7 +11,7 @@
         "avg_frame_rate": "30/1",
         "nb_frames": "846",
         "duration": "28.200000",
-        "bit_rate": "4985913"
+        "bit_rate": "4987801"
       },
       "audio": {
         "codec_name": "aac",
@@ -22,7 +22,7 @@
         "duration": "28.200000"
       },
       "format_duration": "28.200000",
-      "size_bytes": 18208438,
+      "size_bytes": 18215091,
       "faststart": true,
       "integrated_lufs": -14.0,
       "loudness_range_lu": 3.4,
@@ -39,7 +39,7 @@
         "avg_frame_rate": "30/1",
         "nb_frames": "846",
         "duration": "28.200000",
-        "bit_rate": "4985913"
+        "bit_rate": "4987801"
       },
       "audio": {
         "codec_name": "aac",
@@ -50,7 +50,7 @@
         "duration": "28.200000"
       },
       "format_duration": "28.200000",
-      "size_bytes": 18208438,
+      "size_bytes": 18215091,
       "faststart": true,
       "integrated_lufs": -14.0,
       "loudness_range_lu": 3.4,

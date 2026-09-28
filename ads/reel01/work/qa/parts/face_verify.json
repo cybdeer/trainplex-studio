@@ -1,0 +1,88 @@
+{
+ "per_clip": {
+  "1": {
+   "eye_detections": 483,
+   "min_clearance_px": 35.0,
+   "worst": {
+    "g": 201,
+    "local": 201,
+    "eye_screen": [
+     515,
+     590.0,
+     627,
+     702.0
+    ]
+   },
+   "detected_eyes_outside_band": 250
+  },
+  "2": {
+   "eye_detections": 549,
+   "min_clearance_px": 0.0,
+   "worst": {
+    "g": 309,
+    "local": 80,
+    "eye_screen": [
+     594,
+     576,
+     722,
+     704
+    ]
+   },
+   "detected_eyes_outside_band": 318
+  },
+  "3": {
+   "eye_detections": 457,
+   "min_clearance_px": 14.0,
+   "worst": {
+    "g": 600,
+    "local": 94,
+    "eye_screen": [
+     382.1,
+     562.3,
+     540.0,
+     720.2
+    ]
+   },
+   "detected_eyes_outside_band": 139
+  }
+ },
+ "violations": [
+  {
+   "g": 309,
+   "clip": 2,
+   "local": 80,
+   "eye_screen": [
+    594,
+    576,
+    722,
+    704
+   ],
+   "overlap_px": 12
+  },
+  {
+   "g": 312,
+   "clip": 2,
+   "local": 83,
+   "eye_screen": [
+    597,
+    577,
+    725,
+    705
+   ],
+   "overlap_px": 27
+  },
+  {
+   "g": 313,
+   "clip": 2,
+   "local": 84,
+   "eye_screen": [
+    600,
+    576,
+    729,
+    705
+   ],
+   "overlap_px": 39
+  }
+ ],
+ "detections": 1489
+}

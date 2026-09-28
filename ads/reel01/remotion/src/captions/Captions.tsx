@@ -134,7 +134,9 @@ const ChunkView: React.FC<{chunk: Prepared; frame: number; fps: number; bottomY:
 }) => {
   const local = frame - chunk.appear;
   const enter = spring({frame: local, fps, config: SPRING_FIRM, durationInFrames: ENTER_FRAMES});
-  const fadeIn = interpolate(local, [0, ENTER_FRAMES], [0, 1], {
+  // The fade starts one frame early so a chunk is already partly visible on its first frame:
+  // hard swaps never leave a blank caption frame, and the fade still spans 6 frames.
+  const fadeIn = interpolate(local, [-1, ENTER_FRAMES - 1], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
     easing: Easing.out(Easing.quad),

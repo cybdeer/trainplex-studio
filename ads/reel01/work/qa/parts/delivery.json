@@ -1,0 +1,116 @@
+{
+ "TrainPlex_Reel01_9x16.mp4": {
+  "md5": "ba8924ab457221b4bae6a6f93afd4380",
+  "size_bytes": 18208438,
+  "video": {
+   "codec_name": "h264",
+   "profile": "High",
+   "level": 50,
+   "width": 1080,
+   "height": 1920,
+   "pix_fmt": "yuv420p",
+   "color_range": "tv",
+   "color_space": "bt709",
+   "color_transfer": "bt709",
+   "color_primaries": "bt709",
+   "r_frame_rate": "30/1",
+   "avg_frame_rate": "30/1",
+   "nb_frames": "846",
+   "duration": "28.200000",
+   "bit_rate": "4985913"
+  },
+  "video_packet_durations": [
+   "0.033333"
+  ],
+  "cfr": true,
+  "audio": {
+   "codec_name": "aac",
+   "profile": "LC",
+   "sample_rate": "48000",
+   "channels": 2,
+   "channel_layout": "stereo",
+   "bit_rate": "170334",
+   "duration": "28.200000",
+   "duration_ts": 1353600
+  },
+  "format_duration": "28.200000",
+  "top_level_atoms": [
+   "ftyp",
+   "moov",
+   "free",
+   "mdat"
+  ],
+  "faststart": true,
+  "loudness": {
+   "I_lufs": -14.0,
+   "LRA_lu": 3.4,
+   "true_peak_dbtp": -1.5
+  },
+  "silence_starts_s_(<-60dB,>=0.5s)": [
+   24.6992
+  ]
+ },
+ "TrainPlex_Reel01_9x16_nomusic.mp4": {
+  "md5": "ba8924ab457221b4bae6a6f93afd4380",
+  "size_bytes": 18208438,
+  "video": {
+   "codec_name": "h264",
+   "profile": "High",
+   "level": 50,
+   "width": 1080,
+   "height": 1920,
+   "pix_fmt": "yuv420p",
+   "color_range": "tv",
+   "color_space": "bt709",
+   "color_transfer": "bt709",
+   "color_primaries": "bt709",
+   "r_frame_rate": "30/1",
+   "avg_frame_rate": "30/1",
+   "nb_frames": "846",
+   "duration": "28.200000",
+   "bit_rate": "4985913"
+  },
+  "video_packet_durations": [
+   "0.033333"
+  ],
+  "cfr": true,
+  "audio": {
+   "codec_name": "aac",
+   "profile": "LC",
+   "sample_rate": "48000",
+   "channels": 2,
+   "channel_layout": "stereo",
+   "bit_rate": "170334",
+   "duration": "28.200000",
+   "duration_ts": 1353600
+  },
+  "format_duration": "28.200000",
+  "top_level_atoms": [
+   "ftyp",
+   "moov",
+   "free",
+   "mdat"
+  ],
+  "faststart": true,
+  "loudness": {
+   "I_lufs": -14.0,
+   "LRA_lu": 3.4,
+   "true_peak_dbtp": -1.5
+  },
+  "silence_starts_s_(<-60dB,>=0.5s)": [
+   24.6992
+  ]
+ },
+ "mp4s_byte_identical": true,
+ "music_asset_present": false,
+ "cover": {
+  "size": [
+   1080,
+   1920
+  ],
+  "format": "JPEG",
+  "mode": "RGB",
+  "navy_px_in_slab_band_y250_520": 136739,
+  "navy_band_columns_covered": 1080
+ }
+}
