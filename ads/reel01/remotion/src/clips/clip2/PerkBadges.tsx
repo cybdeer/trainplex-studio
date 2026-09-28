@@ -39,24 +39,23 @@ export const PerkBadges: React.FC = () => (
   <div
     style={{
       position: 'absolute',
-      left: BADGE.groupX,
+      left: 0,
+      width: 1080,
       top: BADGE.groupY,
-      transform: `rotate(${SLAB_ROTATION_DEG}deg)`,
-      transformOrigin: '0 0',
       display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'flex-start',
-      gap: BADGE.rowGap,
+      justifyContent: 'center',
+      transform: `rotate(${SLAB_ROTATION_DEG}deg)`,
+      transformOrigin: '540px 0px',
     }}
   >
-    <div style={{display: 'flex', gap: BADGE.gap}}>
-      <PopBadge cue={CUE.phone}>
-        <Smartphone size={Math.round(BADGE.fontSize * 0.84)} color={COLORS.white} strokeWidth={2.75} />
-        <span>PHONE से</span>
-      </PopBadge>
-      <PopBadge cue={CUE.fees}>₹0 FEES</PopBadge>
-    </div>
-    <div style={{display: 'flex', marginLeft: BADGE.row2Indent}}>
+    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: BADGE.rowGap}}>
+      <div style={{display: 'flex', gap: BADGE.gap}}>
+        <PopBadge cue={CUE.phone}>
+          <Smartphone size={Math.round(BADGE.fontSize * 0.84)} color={COLORS.white} strokeWidth={3} />
+          <span>PHONE से</span>
+        </PopBadge>
+        <PopBadge cue={CUE.fees}>₹0 FEES</PopBadge>
+      </div>
       <PopBadge cue={CUE.free}>FREE TRAINING</PopBadge>
     </div>
   </div>

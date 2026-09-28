@@ -31,19 +31,18 @@ export const CHIP = {
 export const chipTop = (i: number) => CHIP.top + i * (CHIP.height + CHIP.gap);
 
 // Perk badges, lower band (between chin/mouth and captions): y 960–1185. The three badges form
-// ONE group rotated -4° about its top-left corner (so all edges stay parallel and the row gaps
-// stay even): row 1 = PHONE से + ₹0 FEES, row 2 = FREE TRAINING indented to the right.
-// Geometry (checked against faceAt(2, 185–277): mouth x ≤ 689, y ≤ 959):
-//   row-1 top edge crosses x = 689 at y ≈ 972; settled span y ≈ 964–1177 (≤ 1182 at pop peak).
+// ONE block rotated -4° about the canvas centre line (x 540, y = groupY), so every edge stays
+// parallel and the row gap stays even: row 1 = PHONE से + ₹0 FEES (centred on x 540),
+// row 2 = FREE TRAINING right-aligned under it (staggered).
+// Checked against faceAt(2, 185–277) (mouth x ≤ 689, y ≤ 959): row-1 top edge crosses x = 689
+// at y ≈ 976; block spans y ≈ 961 (top-right corner) – 1179 (row-2 bottom-left), ≤ 1183 at pop peak.
 export const BADGE = {
   fontSize: 64,
   padY: 11, // badge height = 64 + 2·11 = 86 px (tighter than the primitive's default 98 px)
   padX: 22,
-  gap: 20, // between PHONE से and ₹0 FEES
-  rowGap: 12,
-  groupX: 120,
-  groupY: 1013,
-  row2Indent: 220,
+  gap: 12, // between PHONE से and ₹0 FEES (≈ the 10 px row gap once tilted)
+  rowGap: 10,
+  groupY: 986,
 } as const;
 
 /** Spring 0 → 1 starting at `start` (frames). */
