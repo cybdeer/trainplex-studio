@@ -1,0 +1,96 @@
+{
+  "fps": 30,
+  "end_screen_frames": 105,
+  "clips_total_frames": 701,
+  "total_frames": 806,
+  "total_s": 26.8667,
+  "clips": [
+    {
+      "clip": 1,
+      "src": "clips/clip1.mp4",
+      "trim_start": 0.0,
+      "frames": 235,
+      "note": "RMS onset 0.00 s (whisper first word 0.00); offset 7.75 s (whisper last word end 7.74); pre-roll kept 0.00 s; tail kept 0.08 s; tail event (click/breath) at 7.87 s excluded; source 8.000 s",
+      "measure": {
+        "onset_s": 0.0,
+        "offset_s": 7.75,
+        "whisper_first_start": 0.0,
+        "whisper_last_end": 7.74,
+        "tail_event_s": 7.87,
+        "pre_roll_s": 0.0,
+        "tail_s": 0.083,
+        "source_duration_s": 8.0,
+        "source_width": 720,
+        "source_height": 1280,
+        "source_fps": "24/1",
+        "breath_ok": false
+      },
+      "trim_end": 7.8333,
+      "duration": 7.8333,
+      "probe": {
+        "width": 1080,
+        "height": 1920,
+        "r_frame_rate": "30/1",
+        "nb_read_frames": "235"
+      }
+    },
+    {
+      "clip": 2,
+      "src": "clips/clip2.mp4",
+      "trim_start": 0.0,
+      "frames": 232,
+      "note": "RMS onset 0.17 s (whisper first word 0.00); offset 7.54 s (whisper last word end 7.50); pre-roll kept 0.17 s; tail kept 0.19 s; source 8.000 s",
+      "measure": {
+        "onset_s": 0.17,
+        "offset_s": 7.54,
+        "whisper_first_start": 0.0,
+        "whisper_last_end": 7.5,
+        "tail_event_s": 7.99,
+        "pre_roll_s": 0.17,
+        "tail_s": 0.193,
+        "source_duration_s": 8.0,
+        "source_width": 720,
+        "source_height": 1280,
+        "source_fps": "24/1",
+        "breath_ok": true
+      },
+      "trim_end": 7.7333,
+      "duration": 7.7333,
+      "probe": {
+        "width": 1080,
+        "height": 1920,
+        "r_frame_rate": "30/1",
+        "nb_read_frames": "232"
+      }
+    },
+    {
+      "clip": 3,
+      "src": "clips/clip3.mp4",
+      "trim_start": 0.0,
+      "frames": 234,
+      "note": "RMS onset 0.10 s (whisper first word 0.00); offset 7.65 s (whisper last word end 7.60); pre-roll kept 0.10 s; tail kept 0.15 s; tail event (click/breath) at 7.81 s excluded; source 8.000 s",
+      "measure": {
+        "onset_s": 0.1,
+        "offset_s": 7.65,
+        "whisper_first_start": 0.0,
+        "whisper_last_end": 7.6,
+        "tail_event_s": 7.81,
+        "pre_roll_s": 0.1,
+        "tail_s": 0.15,
+        "source_duration_s": 8.0,
+        "source_width": 720,
+        "source_height": 1280,
+        "source_fps": "24/1",
+        "breath_ok": true
+      },
+      "trim_end": 7.8,
+      "duration": 7.8,
+      "probe": {
+        "width": 1080,
+        "height": 1920,
+        "r_frame_rate": "30/1",
+        "nb_read_frames": "234"
+      }
+    }
+  ]
+}

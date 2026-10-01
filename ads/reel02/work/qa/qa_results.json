@@ -1,0 +1,503 @@
+{
+ "reel": "TrainPlex Reel 02",
+ "total_frames": 806,
+ "duration_s": 26.8667,
+ "all_pass": true,
+ "summary": {
+  "1": "PASS",
+  "2": "PASS",
+  "3": "PASS",
+  "4": "PASS",
+  "5": "PASS",
+  "6": "PASS",
+  "7": "PASS",
+  "8": "PASS",
+  "9": "PASS"
+ },
+ "checks": [
+  {
+   "check": 1,
+   "name": "ffprobe delivery specs (1080x1920, 30 fps, H.264 High, yuv420p, BT.709, 25-30 s)",
+   "result": "PASS",
+   "evidence": {
+    "TrainPlex_Reel02_9x16.mp4": {
+     "codec": "h264",
+     "profile": "High",
+     "size": "1080x1920",
+     "r_frame_rate": "30/1",
+     "avg_frame_rate": "30/1",
+     "frames": 806,
+     "pix_fmt": "yuv420p",
+     "color_space": "bt709",
+     "color_transfer": "bt709",
+     "color_primaries": "bt709",
+     "color_range": "tv",
+     "duration_s": 26.866,
+     "video_duration_s": 26.866,
+     "audio": "aac LC 48000 Hz 2 ch",
+     "aspect": "9:16",
+     "ok": true
+    },
+    "TrainPlex_Reel02_9x16_nomusic.mp4": {
+     "codec": "h264",
+     "profile": "High",
+     "size": "1080x1920",
+     "r_frame_rate": "30/1",
+     "avg_frame_rate": "30/1",
+     "frames": 806,
+     "pix_fmt": "yuv420p",
+     "color_space": "bt709",
+     "color_transfer": "bt709",
+     "color_primaries": "bt709",
+     "color_range": "tv",
+     "duration_s": 26.866,
+     "video_duration_s": 26.866,
+     "audio": "aac LC 48000 Hz 2 ch",
+     "aspect": "9:16",
+     "ok": true
+    }
+   }
+  },
+  {
+   "check": 2,
+   "name": "loudness after AAC: -14 +/- 0.5 LUFS, TP <= -1 dBTP",
+   "result": "PASS",
+   "evidence": {
+    "TrainPlex_Reel02_9x16.mp4": {
+     "I_lufs": -14.0,
+     "LRA_lu": 2.0,
+     "true_peak_dbtp": -1.6,
+     "precise_I_lufs": -14.022,
+     "precise_true_peak_dbtp": -1.577,
+     "ok": true
+    },
+    "TrainPlex_Reel02_9x16_nomusic.mp4": {
+     "I_lufs": -14.0,
+     "LRA_lu": 2.0,
+     "true_peak_dbtp": -1.6,
+     "precise_I_lufs": -14.022,
+     "precise_true_peak_dbtp": -1.577,
+     "ok": true
+    }
+   }
+  },
+  {
+   "check": 3,
+   "name": "captions = exact script; no blank caption frames at chunk swaps",
+   "result": "PASS",
+   "evidence": {
+    "clips": {
+     "1": {
+      "script_match_data": true,
+      "script_match_code_chunks": true,
+      "chunk_block_height_px": {
+       "Hostel में सबसे पूछो —": 116,
+       "POCKET MONEY": 89,
+       "कब खत्म होती है?": 110,
+       "बीस तारीख तक!": 110,
+       "मेरी नहीं होती,": 113,
+       "क्योंकि मैं TrainPlex": 104,
+       "पे काम करती हूँ।": 131
+      },
+      "two_line_chunks": [],
+      "displayed_text_matches_script_case_insensitive": true,
+      "chunks": 7,
+      "hard_swaps": 5,
+      "swaps_with_blank_frame": [],
+      "planned_pause_fade_frames": [
+       [
+        141,
+        143
+       ]
+      ],
+      "unplanned_blank_frames": [],
+      "blank_frames_while_a_word_is_spoken": [],
+      "ok": true
+     },
+     "2": {
+      "script_match_data": true,
+      "script_match_code_chunks": true,
+      "chunk_block_height_px": {
+       "Lecture के बाद,": 113,
+       "PHONE से —": 123,
+       "voice record,": 102,
+       "photos, text check।": 93,
+       "AI कंपनियों के": 93,
+       "छोटे tasks।": 95,
+       "कोई FEES नहीं,": 127,
+       "TRAINING भी FREE।": 94
+      },
+      "two_line_chunks": [],
+      "displayed_text_matches_script_case_insensitive": true,
+      "chunks": 8,
+      "hard_swaps": 6,
+      "swaps_with_blank_frame": [],
+      "planned_pause_fade_frames": [
+       [
+        174,
+        178
+       ]
+      ],
+      "unplanned_blank_frames": [],
+      "blank_frames_while_a_word_is_spoken": [],
+      "ok": true
+     },
+     "3": {
+      "script_match_data": true,
+      "script_match_code_chunks": true,
+      "chunk_block_height_px": {
+       "मैं दिन में": 113,
+       "दो-तीन घंटे काम": 101,
+       "करती हूँ और": 131,
+       "चार सौ से पाँच सौ": 123,
+       "कमा लेती हूँ,": 131,
+       "सीधे BANK या UPI में।": 90,
+       "नीचे LEARN MORE": 97,
+       "दबाओ और अभी": 101,
+       "register करो!": 113
+      },
+      "two_line_chunks": [],
+      "displayed_text_matches_script_case_insensitive": true,
+      "chunks": 9,
+      "hard_swaps": 8,
+      "swaps_with_blank_frame": [],
+      "planned_pause_fade_frames": [],
+      "unplanned_blank_frames": [],
+      "blank_frames_while_a_word_is_spoken": [],
+      "ok": true
+     }
+    }
+   }
+  },
+  {
+   "check": 4,
+   "name": "no overlay pixels inside eye/mouth boxes (Haar + insightface landmarks, camera-mapped)",
+   "result": "PASS",
+   "evidence": {
+    "frames_checked": 689,
+    "violating_frames": [],
+    "violations_sample": [],
+    "min_clearance_px_haar": {
+     "1": {
+      "eyes": 109.2,
+      "mouth": 54.0
+     },
+     "2": {
+      "eyes": 210.5,
+      "mouth": 57.0
+     },
+     "3": {
+      "eyes": 185.0,
+      "mouth": 42.0
+     }
+    },
+    "frames_without_landmark_face": [],
+    "exempt": {
+     "join_flash_frames": [
+      234,
+      235,
+      236,
+      237,
+      466,
+      467,
+      468,
+      469
+     ],
+     "orange_wipe_frames": [
+      697,
+      698,
+      699,
+      700,
+      701,
+      702,
+      703,
+      704
+     ]
+    }
+   }
+  },
+  {
+   "check": 5,
+   "name": "every overlay inside safe zone x 60-1020, y 220-1480",
+   "result": "PASS",
+   "evidence": {
+    "clip_frames_with_pixels_outside": [],
+    "clip_samples": [],
+    "endscreen_fg_frames_outside": [],
+    "endscreen_samples": [],
+    "safe_zone": {
+     "x1": 60,
+     "x2": 1020,
+     "y1": 220,
+     "y2": 1480
+    },
+    "exempt": "progress bar rows 220-228 (full width), join flashes, orange wipe"
+   }
+  },
+  {
+   "check": 6,
+   "name": "disclaimer visible for the whole window the earnings number is shown",
+   "result": "PASS",
+   "evidence": {
+    "figure_frames_pixel": [
+     [
+      62,
+      117
+     ]
+    ],
+    "figure_frames_code": [
+     62,
+     118
+    ],
+    "number_caption_frames": [
+     [
+      62,
+      83
+     ]
+    ],
+    "disclaimer_fully_visible_frames": [
+     [
+      13,
+      229
+     ]
+    ],
+    "frames_number_shown_without_full_disclaimer": [],
+    "disclaimer_in_before_figure_frames": 49,
+    "disclaimer_hold_after_number_s": 3.7,
+    "strip_y": [
+     1416,
+     1470
+    ],
+    "local_frames": "clip 3 local frames (global = local + 467)"
+   }
+  },
+  {
+   "check": 7,
+   "name": "never two logos on screen at once",
+   "result": "PASS",
+   "evidence": {
+    "frames_with_2plus_logos": [],
+    "samples": [],
+    "frames_with_a_logo": {
+     "clip1": [
+      [
+       33,
+       183
+      ],
+      [
+       186,
+       233
+      ]
+     ],
+     "clip2": [
+      [
+       366,
+       465
+      ]
+     ],
+     "clip3": [
+      [
+       470,
+       696
+      ]
+     ],
+     "endscreen": [
+      [
+       704,
+       805
+      ]
+     ]
+    },
+    "method": "connected blobs (>=120 px, alpha>100) of the logo artwork orange #FE5015 +/-14 per frame of Reel02Graphics"
+   }
+  },
+  {
+   "check": 8,
+   "name": "no black/frozen frames at joins; A/V offset <= 1 frame",
+   "result": "PASS",
+   "evidence": {
+    "joins": {
+     "clip1->clip2": {
+      "frames": [
+       227,
+       243
+      ],
+      "mean_luma": [
+       108.9,
+       109.5,
+       110.2,
+       111.4,
+       112.6,
+       112.6,
+       113.5,
+       190.0,
+       245.8,
+       185.5,
+       141.2,
+       117.5,
+       118.4,
+       118.5,
+       117.8,
+       116.6,
+       116.1
+      ],
+      "black_frames": [],
+      "frozen_3plus": [],
+      "ok": true
+     },
+     "clip2->clip3": {
+      "frames": [
+       459,
+       475
+      ],
+      "mean_luma": [
+       118.8,
+       118.9,
+       118.9,
+       118.9,
+       119.0,
+       119.0,
+       119.2,
+       192.7,
+       245.6,
+       183.1,
+       137.5,
+       112.7,
+       113.1,
+       113.1,
+       113.1,
+       113.0,
+       113.4
+      ],
+      "black_frames": [],
+      "frozen_3plus": [],
+      "ok": true
+     },
+     "clip3->endscreen": {
+      "frames": [
+       693,
+       709
+      ],
+      "mean_luma": [
+       112.8,
+       112.8,
+       112.8,
+       112.8,
+       123.1,
+       127.8,
+       137.9,
+       144.0,
+       149.4,
+       169.8,
+       180.3,
+       175.7,
+       164.5,
+       153.2,
+       148.8,
+       149.2,
+       151.5
+      ],
+      "black_frames": [],
+      "frozen_3plus": [],
+      "ok": true
+     }
+    },
+    "blackdetect_segments": [],
+    "freezedetect_starts_s": [
+     "24.866667",
+     "25.066667",
+     "25.3",
+     "25.533333",
+     "25.966667",
+     "26.2"
+    ],
+    "av_offset": {
+     "clip1": {
+      "expected_start_s": 0.0,
+      "lag_ms": 0.0
+     },
+     "clip2": {
+      "expected_start_s": 7.8333,
+      "lag_ms": 0.0
+     },
+     "clip3": {
+      "expected_start_s": 15.5667,
+      "lag_ms": 0.0
+     }
+    },
+    "stream_start_times": {
+     "video": "0.000000",
+     "audio": "0.000000"
+    },
+    "stream_durations": {
+     "video": "26.866000",
+     "audio": "26.866000"
+    }
+   }
+  },
+  {
+   "check": 9,
+   "name": "face-embedding similarity vs char_01_master.png (insightface, 0.45)",
+   "result": "PASS",
+   "evidence": {
+    "reference": "flow/character/char_01_master.png",
+    "threshold": 0.45,
+    "ref_calibration_vs_other_sheets": {
+     "char_02_fullbody.png": 0.776,
+     "char_03_threequarter_left.png": 0.811,
+     "char_04_threequarter_right.png": 0.809,
+     "char_05_profile_left.png": 0.464,
+     "char_06_expressions.png": 0.715
+    },
+    "clips": {
+     "1": {
+      "frames": 235,
+      "faces": 235,
+      "sim_min": 0.493,
+      "sim_p05": 0.528,
+      "sim_median": 0.687,
+      "sim_mean": 0.675,
+      "frames_below_threshold": [],
+      "frames_below_pct": 0.0,
+      "frames_without_face": [],
+      "ok": true
+     },
+     "2": {
+      "frames": 232,
+      "faces": 232,
+      "sim_min": 0.406,
+      "sim_p05": 0.475,
+      "sim_median": 0.662,
+      "sim_mean": 0.648,
+      "frames_below_threshold": [
+       [
+        59,
+        60
+       ],
+       [
+        81,
+        84
+       ]
+      ],
+      "frames_below_pct": 2.6,
+      "frames_without_face": [],
+      "ok": true
+     },
+     "3": {
+      "frames": 234,
+      "faces": 234,
+      "sim_min": 0.477,
+      "sim_p05": 0.544,
+      "sim_median": 0.638,
+      "sim_mean": 0.636,
+      "frames_below_threshold": [],
+      "frames_below_pct": 0.0,
+      "frames_without_face": [],
+      "ok": true
+     }
+    },
+    "rule": "per clip: median similarity >= 0.45 and <= 5 % of frames below 0.45 (every frame scored; single frames dip with blur / mid-blink / mid-word); flagged frames are listed for a manual look"
+   }
+  }
+ ]
+}

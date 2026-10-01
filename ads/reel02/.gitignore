@@ -1,0 +1,40 @@
+# ── Reel 02: regenerable / heavy intermediates ───────────────────────────────
+node_modules/
+remotion/node_modules/
+remotion/public/clips/
+remotion/out/
+remotion/.remotion/
+remotion/.*.mjs
+.remotion/
+__pycache__/
+
+# raw Flow generations and per-take footage (large, regenerable; only picks get promoted)
+flow_raw/
+clips/takes/*
+!clips/takes/.gitkeep
+
+# normalised media, renders, frame dumps, stills
+work/norm/
+work/render/
+work/stills/
+work/frames/
+work/transcripts/*.wav
+work/audio/*.wav
+work/audio/*.mp4
+work/audio/.mux_*.json
+*.frames/
+
+# QA artefacts (renders, crops, views, logs); keep the QA entry + scripts
+work/qa/*/
+!work/qa/remotion_qa/
+work/qa/*.log
+work/qa/cues_dump.json
+
+# Flow reference stills ARE committed: flow/character/*.png and flow/elements/*.png
+!flow/character/*.png
+!flow/elements/*.png
+
+# regenerable previews
+work/preview_stills/
+work/qa_strip.jpg
+
