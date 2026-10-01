@@ -1,0 +1,103 @@
+{
+  "deliverables": {
+    "TrainPlex_Reel01_9x16.mp4": {
+      "video": {
+        "codec_name": "h264",
+        "profile": "High",
+        "width": 1080,
+        "height": 1920,
+        "pix_fmt": "yuv420p",
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "30/1",
+        "nb_frames": "846",
+        "duration": "28.200000",
+        "bit_rate": "4987801"
+      },
+      "audio": {
+        "codec_name": "aac",
+        "profile": "LC",
+        "sample_rate": "48000",
+        "channels": 2,
+        "bit_rate": "170334",
+        "duration": "28.200000"
+      },
+      "format_duration": "28.200000",
+      "size_bytes": 18215091,
+      "faststart": true,
+      "integrated_lufs": -14.0,
+      "loudness_range_lu": 3.4,
+      "true_peak_dbtp": -1.5
+    },
+    "TrainPlex_Reel01_9x16_nomusic.mp4": {
+      "video": {
+        "codec_name": "h264",
+        "profile": "High",
+        "width": 1080,
+        "height": 1920,
+        "pix_fmt": "yuv420p",
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "30/1",
+        "nb_frames": "846",
+        "duration": "28.200000",
+        "bit_rate": "4987801"
+      },
+      "audio": {
+        "codec_name": "aac",
+        "profile": "LC",
+        "sample_rate": "48000",
+        "channels": 2,
+        "bit_rate": "170334",
+        "duration": "28.200000"
+      },
+      "format_duration": "28.200000",
+      "size_bytes": 18215091,
+      "faststart": true,
+      "integrated_lufs": -14.0,
+      "loudness_range_lu": 3.4,
+      "true_peak_dbtp": -1.5
+    }
+  },
+  "cover_frame": 40,
+  "qa_grabs": {
+    "qa_00_50s.png": {
+      "frame": 15,
+      "time_s": 0.5
+    },
+    "qa_02_00s.png": {
+      "frame": 60,
+      "time_s": 2.0
+    },
+    "qa_04_50s.png": {
+      "frame": 135,
+      "time_s": 4.5
+    },
+    "qa_12_00s.png": {
+      "frame": 360,
+      "time_s": 12.0
+    },
+    "qa_15_00s.png": {
+      "frame": 450,
+      "time_s": 15.0
+    },
+    "qa_22_00s.png": {
+      "frame": 660,
+      "time_s": 22.0
+    },
+    "qa_26_00s.png": {
+      "frame": 780,
+      "time_s": 26.0
+    },
+    "qa_endscreen_f012.png": {
+      "frame": 753,
+      "time_s": 25.1
+    },
+    "qa_endscreen_f060.png": {
+      "frame": 801,
+      "time_s": 26.7
+    },
+    "qa_endscreen_f104.png": {
+      "frame": 845,
+      "time_s": 28.167
+    }
+  }
+}

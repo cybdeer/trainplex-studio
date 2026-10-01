@@ -1,0 +1,32 @@
+{
+  "note": "In/out points (seconds, source clip timebase) used by the edit; match the Flow Scenebuilder merge to these. Video is 24 fps in the source; in/out values are on the 30 fps output grid.",
+  "fps_out": 30,
+  "clips": [
+    {
+      "clip": 1,
+      "src": "clips/clip1.mp4",
+      "in_s": 0.0,
+      "out_s": 7.8333,
+      "duration_s": 7.8333,
+      "frames_30fps": 235
+    },
+    {
+      "clip": 2,
+      "src": "clips/clip2.mp4",
+      "in_s": 0.0,
+      "out_s": 7.7333,
+      "duration_s": 7.7333,
+      "frames_30fps": 232
+    },
+    {
+      "clip": 3,
+      "src": "clips/clip3.mp4",
+      "in_s": 0.0,
+      "out_s": 7.8,
+      "duration_s": 7.8,
+      "frames_30fps": 234
+    }
+  ],
+  "end_screen_s": 3.5,
+  "total_s": 26.8667
+}

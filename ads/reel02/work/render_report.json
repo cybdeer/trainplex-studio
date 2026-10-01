@@ -1,0 +1,142 @@
+{
+  "timeline": {
+    "clip_frames": [
+      235,
+      232,
+      234
+    ],
+    "end_screen_start": 701,
+    "end_screen_frames": 105,
+    "total_frames": 806,
+    "total_s": 26.8667
+  },
+  "deliverables": {
+    "TrainPlex_Reel02_9x16.mp4": {
+      "video": {
+        "codec_name": "h264",
+        "profile": "High",
+        "width": 1080,
+        "height": 1920,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_transfer": "bt709",
+        "color_primaries": "bt709",
+        "color_range": "tv",
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "30/1",
+        "nb_frames": "806",
+        "duration": "26.866000",
+        "bit_rate": "5812307"
+      },
+      "audio": {
+        "codec_name": "aac",
+        "profile": "LC",
+        "sample_rate": "48000",
+        "channels": 2,
+        "bit_rate": "169738",
+        "duration": "26.866000"
+      },
+      "format_duration": "26.866000",
+      "size_bytes": 20120971,
+      "faststart": true,
+      "loudness_after_aac": {
+        "I_lufs": -14.0,
+        "LRA_lu": 2.0,
+        "true_peak_dbtp": -1.6,
+        "sample_peak_dbfs": -1.6,
+        "precise": {
+          "I_lufs": -14.022,
+          "LRA_lu": 1.99,
+          "true_peak_dbtp": -1.577,
+          "sample_peak_dbfs": -1.577
+        }
+      },
+      "mux_warnings": []
+    },
+    "TrainPlex_Reel02_9x16_nomusic.mp4": {
+      "video": {
+        "codec_name": "h264",
+        "profile": "High",
+        "width": 1080,
+        "height": 1920,
+        "pix_fmt": "yuv420p",
+        "color_space": "bt709",
+        "color_transfer": "bt709",
+        "color_primaries": "bt709",
+        "color_range": "tv",
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "30/1",
+        "nb_frames": "806",
+        "duration": "26.866000",
+        "bit_rate": "5812307"
+      },
+      "audio": {
+        "codec_name": "aac",
+        "profile": "LC",
+        "sample_rate": "48000",
+        "channels": 2,
+        "bit_rate": "169738",
+        "duration": "26.866000"
+      },
+      "format_duration": "26.866000",
+      "size_bytes": 20120971,
+      "faststart": true,
+      "loudness_after_aac": {
+        "I_lufs": -14.0,
+        "LRA_lu": 2.0,
+        "true_peak_dbtp": -1.6,
+        "sample_peak_dbfs": -1.6,
+        "precise": {
+          "I_lufs": -14.022,
+          "LRA_lu": 1.99,
+          "true_peak_dbtp": -1.577,
+          "sample_peak_dbfs": -1.577
+        }
+      },
+      "mux_warnings": []
+    }
+  },
+  "cover_frame": 82,
+  "qa_grabs": {
+    "qa_00_50s.png": {
+      "frame": 15,
+      "time_s": 0.5
+    },
+    "qa_02_00s.png": {
+      "frame": 60,
+      "time_s": 2.0
+    },
+    "qa_04_50s.png": {
+      "frame": 135,
+      "time_s": 4.5
+    },
+    "qa_12_00s.png": {
+      "frame": 360,
+      "time_s": 12.0
+    },
+    "qa_15_00s.png": {
+      "frame": 450,
+      "time_s": 15.0
+    },
+    "qa_22_00s.png": {
+      "frame": 660,
+      "time_s": 22.0
+    },
+    "qa_26_00s.png": {
+      "frame": 780,
+      "time_s": 26.0
+    },
+    "qa_endscreen_f012.png": {
+      "frame": 713,
+      "time_s": 23.767
+    },
+    "qa_endscreen_f045.png": {
+      "frame": 746,
+      "time_s": 24.867
+    },
+    "qa_endscreen_f104.png": {
+      "frame": 805,
+      "time_s": 26.833
+    }
+  }
+}

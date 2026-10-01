@@ -1,0 +1,26 @@
+{
+  "name": "trainplex-reel02",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TrainPlex Instagram Reel 02 — motion-graphics edit (Remotion)",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render Reel02 ../work/render/reel02_video.mp4",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.529",
+    "@remotion/fonts": "4.0.529",
+    "@remotion/renderer": "4.0.529",
+    "lucide-react": "1.48.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.529"
+  },
+  "devDependencies": {
+    "@fontsource/inter": "5.3.0",
+    "@fontsource/noto-sans-devanagari": "5.3.0",
+    "@types/react": "19.1.8",
+    "typescript": "5.8.3"
+  }
+}

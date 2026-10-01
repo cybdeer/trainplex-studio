@@ -1,0 +1,594 @@
+[
+ {
+  "word": "Hostel",
+  "start": 0.0,
+  "end": 0.41,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 0
+ },
+ {
+  "word": "में",
+  "start": 0.47,
+  "end": 0.76,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 0
+ },
+ {
+  "word": "सबसे",
+  "start": 0.76,
+  "end": 1.1,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 0
+ },
+ {
+  "word": "पूछो —",
+  "start": 1.1,
+  "end": 1.44,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 0
+ },
+ {
+  "word": "pocket",
+  "start": 1.82,
+  "end": 2.1,
+  "clip": 1,
+  "highlight": true,
+  "chunk": 1
+ },
+ {
+  "word": "money",
+  "start": 2.1,
+  "end": 2.24,
+  "clip": 1,
+  "highlight": true,
+  "chunk": 1
+ },
+ {
+  "word": "कब",
+  "start": 2.24,
+  "end": 2.44,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 2
+ },
+ {
+  "word": "खत्म",
+  "start": 2.52,
+  "end": 2.78,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 2
+ },
+ {
+  "word": "होती",
+  "start": 2.78,
+  "end": 2.96,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 2
+ },
+ {
+  "word": "है?",
+  "start": 2.96,
+  "end": 3.14,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 2
+ },
+ {
+  "word": "बीस",
+  "start": 3.52,
+  "end": 3.6,
+  "clip": 1,
+  "highlight": true,
+  "chunk": 3
+ },
+ {
+  "word": "तारीख",
+  "start": 3.86,
+  "end": 4.08,
+  "clip": 1,
+  "highlight": true,
+  "chunk": 3
+ },
+ {
+  "word": "तक!",
+  "start": 4.22,
+  "end": 4.36,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 3
+ },
+ {
+  "word": "मेरी",
+  "start": 4.87,
+  "end": 5.12,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 4
+ },
+ {
+  "word": "नहीं",
+  "start": 5.12,
+  "end": 5.34,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 4
+ },
+ {
+  "word": "होती,",
+  "start": 5.34,
+  "end": 5.54,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 4
+ },
+ {
+  "word": "क्योंकि",
+  "start": 5.86,
+  "end": 6.06,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 5
+ },
+ {
+  "word": "मैं",
+  "start": 6.06,
+  "end": 6.16,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 5
+ },
+ {
+  "word": "TrainPlex",
+  "start": 6.16,
+  "end": 6.6,
+  "clip": 1,
+  "highlight": true,
+  "chunk": 5
+ },
+ {
+  "word": "पे",
+  "start": 6.6,
+  "end": 6.78,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 6
+ },
+ {
+  "word": "काम",
+  "start": 6.78,
+  "end": 6.96,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 6
+ },
+ {
+  "word": "करती",
+  "start": 6.96,
+  "end": 7.28,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 6
+ },
+ {
+  "word": "हूँ।",
+  "start": 7.28,
+  "end": 7.74,
+  "clip": 1,
+  "highlight": false,
+  "chunk": 6
+ },
+ {
+  "word": "Lecture",
+  "start": 0.15,
+  "end": 0.42,
+  "clip": 2,
+  "highlight": false,
+  "chunk": 0
+ },
+ {
+  "word": "के",
+  "start": 0.42,
+  "end": 0.58,
+  "clip": 2,
+  "highlight": false,
+  "chunk": 0
+ },
+ {
+  "word": "बाद,",
+  "start": 0.58,
+  "end": 0.88,
+  "clip": 2,
+  "highlight": false,
+  "chunk": 0
+ },
+ {
+  "word": "phone",
+  "start": 1.09,
+  "end": 1.24,
+  "clip": 2,
+  "highlight": true,
+  "chunk": 1
+ },
+ {
+  "word": "से —",
+  "start": 1.24,
+  "end": 1.7,
+  "clip": 2,
+  "highlight": true,
+  "chunk": 1
+ },
+ {
+  "word": "voice",
+  "start": 1.99,
+  "end": 2.28,
+  "clip": 2,
+  "highlight": false,
+  "chunk": 2
+ },
+ {
+  "word": "record,",
+  "start": 2.28,
+  "end": 2.66,
+  "clip": 2,
+  "highlight": false,
+  "chunk": 2
+ },
+ {
+  "word": "photos,",
+  "start": 2.8,
+  "end": 3.18,
+  "clip": 2,
+  "highlight": false,
+  "chunk": 3
+ },
+ {
+  "word": "text",
+  "start": 3.31,
+  "end": 3.52,
+  "clip": 2,
+  "highlight": false,
+  "chunk": 3
+ },
+ {
+  "word": "check।",
+  "start": 3.6,
+  "end": 3.76,
+  "clip": 2,
+  "highlight": false,
+  "chunk": 3
+ },
+ {
+  "word": "AI",
+  "start": 4.09,
+  "end": 4.36,
+  "clip": 2,
+  "highlight": false,
+  "chunk": 4
+ },
+ {
+  "word": "कंपनियों",
+  "start": 4.36,
+  "end": 4.82,
+  "clip": 2,
+  "highlight": false,
+  "chunk": 4
+ },
+ {
+  "word": "के",
+  "start": 4.82,
+  "end": 4.94,
+  "clip": 2,
+  "highlight": false,
+  "chunk": 4
+ },
+ {
+  "word": "छोटे",
+  "start": 4.94,
+  "end": 5.2,
+  "clip": 2,
+  "highlight": false,
+  "chunk": 5
+ },
+ {
+  "word": "tasks।",
+  "start": 5.2,
+  "end": 5.46,
+  "clip": 2,
+  "highlight": false,
+  "chunk": 5
+ },
+ {
+  "word": "कोई",
+  "start": 6.03,
+  "end": 6.2,
+  "clip": 2,
+  "highlight": true,
+  "chunk": 6
+ },
+ {
+  "word": "fees",
+  "start": 6.2,
+  "end": 6.46,
+  "clip": 2,
+  "highlight": true,
+  "chunk": 6
+ },
+ {
+  "word": "नहीं,",
+  "start": 6.46,
+  "end": 6.68,
+  "clip": 2,
+  "highlight": true,
+  "chunk": 6
+ },
+ {
+  "word": "training",
+  "start": 6.93,
+  "end": 7.2,
+  "clip": 2,
+  "highlight": true,
+  "chunk": 7
+ },
+ {
+  "word": "भी",
+  "start": 7.2,
+  "end": 7.34,
+  "clip": 2,
+  "highlight": true,
+  "chunk": 7
+ },
+ {
+  "word": "free।",
+  "start": 7.43,
+  "end": 7.5,
+  "clip": 2,
+  "highlight": true,
+  "chunk": 7
+ },
+ {
+  "word": "मैं",
+  "start": 0.09,
+  "end": 0.22,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 0
+ },
+ {
+  "word": "दिन",
+  "start": 0.22,
+  "end": 0.46,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 0
+ },
+ {
+  "word": "में",
+  "start": 0.46,
+  "end": 0.58,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 0
+ },
+ {
+  "word": "दो-तीन",
+  "start": 0.58,
+  "end": 0.96,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 1
+ },
+ {
+  "word": "घंटे",
+  "start": 0.96,
+  "end": 1.18,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 1
+ },
+ {
+  "word": "काम",
+  "start": 1.18,
+  "end": 1.42,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 1
+ },
+ {
+  "word": "करती",
+  "start": 1.42,
+  "end": 1.72,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 2
+ },
+ {
+  "word": "हूँ",
+  "start": 1.72,
+  "end": 1.92,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 2
+ },
+ {
+  "word": "और",
+  "start": 2.0,
+  "end": 2.12,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 2
+ },
+ {
+  "word": "चार",
+  "start": 2.12,
+  "end": 2.26,
+  "clip": 3,
+  "highlight": true,
+  "chunk": 3
+ },
+ {
+  "word": "सौ",
+  "start": 2.26,
+  "end": 2.4,
+  "clip": 3,
+  "highlight": true,
+  "chunk": 3
+ },
+ {
+  "word": "से",
+  "start": 2.4,
+  "end": 2.68,
+  "clip": 3,
+  "highlight": true,
+  "chunk": 3
+ },
+ {
+  "word": "पाँच",
+  "start": 2.68,
+  "end": 2.77,
+  "clip": 3,
+  "highlight": true,
+  "chunk": 3
+ },
+ {
+  "word": "सौ",
+  "start": 2.77,
+  "end": 2.86,
+  "clip": 3,
+  "highlight": true,
+  "chunk": 3
+ },
+ {
+  "word": "कमा",
+  "start": 2.86,
+  "end": 3.2,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 4
+ },
+ {
+  "word": "लेती",
+  "start": 3.2,
+  "end": 3.52,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 4
+ },
+ {
+  "word": "हूँ,",
+  "start": 3.52,
+  "end": 3.66,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 4
+ },
+ {
+  "word": "सीधे",
+  "start": 3.8,
+  "end": 3.96,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 5
+ },
+ {
+  "word": "Bank",
+  "start": 3.96,
+  "end": 4.3,
+  "clip": 3,
+  "highlight": true,
+  "chunk": 5
+ },
+ {
+  "word": "या",
+  "start": 4.3,
+  "end": 4.52,
+  "clip": 3,
+  "highlight": true,
+  "chunk": 5
+ },
+ {
+  "word": "UPI",
+  "start": 4.52,
+  "end": 4.92,
+  "clip": 3,
+  "highlight": true,
+  "chunk": 5
+ },
+ {
+  "word": "में।",
+  "start": 4.92,
+  "end": 5.12,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 5
+ },
+ {
+  "word": "नीचे",
+  "start": 5.42,
+  "end": 5.64,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 6
+ },
+ {
+  "word": "Learn",
+  "start": 5.64,
+  "end": 5.94,
+  "clip": 3,
+  "highlight": true,
+  "chunk": 6
+ },
+ {
+  "word": "more",
+  "start": 5.94,
+  "end": 6.1,
+  "clip": 3,
+  "highlight": true,
+  "chunk": 6
+ },
+ {
+  "word": "दबाओ",
+  "start": 6.1,
+  "end": 6.42,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 7
+ },
+ {
+  "word": "और",
+  "start": 6.62,
+  "end": 6.78,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 7
+ },
+ {
+  "word": "अभी",
+  "start": 6.78,
+  "end": 6.98,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 7
+ },
+ {
+  "word": "register",
+  "start": 6.98,
+  "end": 7.29,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 8
+ },
+ {
+  "word": "करो!",
+  "start": 7.35,
+  "end": 7.6,
+  "clip": 3,
+  "highlight": false,
+  "chunk": 8
+ }
+]

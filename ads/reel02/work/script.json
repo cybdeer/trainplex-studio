@@ -1,0 +1,22 @@
+{
+  "reel": "reel02",
+  "title": "TrainPlex Reel 02 — College student",
+  "language": "hi",
+  "note": "Exact script. Whisper is used for timing only; captions must reproduce these strings 1:1. Chunk breaks ('|') are NOT set yet — decide them in align_captions.py after the takes are chosen.",
+  "clips": {
+    "clip1": "Hostel में सबसे पूछो — pocket money कब खत्म होती है? बीस तारीख तक! मेरी नहीं होती, क्योंकि मैं TrainPlex पे काम करती हूँ।",
+    "clip2": "Lecture के बाद, phone से — voice record, photos, text check। AI कंपनियों के छोटे tasks। कोई fees नहीं, training भी free।",
+    "clip3": "मैं दिन में दो-तीन घंटे काम करती हूँ और चार सौ से पाँच सौ कमा लेती हूँ, सीधे Bank या UPI में। नीचे Learn more दबाओ और अभी register करो!"
+  },
+  "highlight_phrases": [
+    "pocket money",
+    "बीस तारीख",
+    "TrainPlex",
+    "phone से",
+    "कोई fees नहीं",
+    "training भी free",
+    "चार सौ से पाँच सौ",
+    "Bank या UPI",
+    "Learn more"
+  ]
+}

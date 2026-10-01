@@ -1,0 +1,50 @@
+{
+  "fps": 30,
+  "clips": [
+    {
+      "clip": 1,
+      "src": "clips/clip1.mp4",
+      "trim_start": 0.0,
+      "frames": 229,
+      "note": "onset 0.15 s (lead-in < 0.15 s of silence, kept); offset 7.56 s; tail after 7.633 s removed",
+      "trim_end": 7.6333,
+      "duration": 7.6333,
+      "probe": {
+        "width": 1080,
+        "height": 1920,
+        "r_frame_rate": "30/1",
+        "nb_read_frames": "229"
+      }
+    },
+    {
+      "clip": 2,
+      "src": "clips/clip2.mp4",
+      "trim_start": 0.2,
+      "frames": 277,
+      "note": "0.27 s leading silence -> trimmed 0.20 s; offset 9.27 s (decay to 9.43 s); 0.57 s trailing silence removed",
+      "trim_end": 9.4333,
+      "duration": 9.2333,
+      "probe": {
+        "width": 1080,
+        "height": 1920,
+        "r_frame_rate": "30/1",
+        "nb_read_frames": "277"
+      }
+    },
+    {
+      "clip": 3,
+      "src": "clips/clip3.mp4",
+      "trim_start": 0.0,
+      "frames": 235,
+      "note": "speech from 0.00 s; 'कर!' ends 7.76 s; cut at 7.833 s removes a clipped syllable/click at 7.92 s",
+      "trim_end": 7.8333,
+      "duration": 7.8333,
+      "probe": {
+        "width": 1080,
+        "height": 1920,
+        "r_frame_rate": "30/1",
+        "nb_read_frames": "235"
+      }
+    }
+  ]
+}

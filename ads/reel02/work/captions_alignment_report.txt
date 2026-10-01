@@ -1,0 +1,74 @@
+clip1  Hostel         <- हॉस्टिल             0.00- 0.41  (end tightened 0.56 -> 0.41)
+clip1  में            <- में                 0.47- 0.76  (start 0.56 -> 0.47: prev word's trailing pause)
+clip1  सबसे           <- सब से               0.76- 1.10
+clip1  पूछो —         <- पूछो                1.10- 1.44
+clip1  pocket         <- पॉकेट               1.82- 2.10  (start tightened 1.44 -> 1.82)
+clip1  money          <- मनी                 2.10- 2.24
+clip1  कब             <- कब                  2.24- 2.44
+clip1  खत्म           <- खतम                 2.52- 2.78  (start tightened 2.44 -> 2.52)
+clip1  होती           <- होती                2.78- 2.96
+clip1  है?            <- है                  2.96- 3.14
+clip1  बीस            <- 20                  3.52- 3.60  (start tightened 3.14 -> 3.52)
+clip1  तारीख          <- तारीक               3.86- 4.08  (start tightened 3.60 -> 3.86)
+clip1  तक!            <- तक                  4.22- 4.36  (start tightened 4.08 -> 4.22)
+clip1  मेरी           <- मेरी                4.87- 5.12  (start tightened 4.36 -> 4.87)
+clip1  नहीं           <- नहीं                5.12- 5.34
+clip1  होती,          <- होती                5.34- 5.54
+clip1  क्योंकि        <- क्योंकि             5.86- 6.06  (start tightened 5.54 -> 5.86)
+clip1  मैं            <- मैं                 6.06- 6.16
+clip1  TrainPlex      <- ट्रेन प्लेक्स       6.16- 6.60
+clip1  पे             <- पे                  6.60- 6.78
+clip1  काम            <- काम                 6.78- 6.96
+clip1  करती           <- करती                6.96- 7.28
+clip1  हूँ।           <- हूँ                 7.28- 7.74
+clip2  Lecture        <- लेक्चर              0.15- 0.42  (start tightened 0.00 -> 0.15)
+clip2  के             <- के                  0.42- 0.58
+clip2  बाद,           <- बाद                 0.58- 0.88
+clip2  phone          <- फोन                 1.09- 1.24  (start tightened 0.88 -> 1.09)
+clip2  से —           <- से सेंड,            1.24- 1.70
+clip2  voice          <- वॉइस                1.99- 2.28  (start tightened 1.70 -> 1.99)
+clip2  record,        <- रिकॉर्ड,            2.28- 2.66
+clip2  photos,        <- फोटोस,              2.80- 3.18  (start tightened 2.68 -> 2.80)
+clip2  text           <- टेक्स               3.31- 3.52  (start tightened 3.18 -> 3.31)
+clip2  check।         <- चेक,                3.60- 3.76  (start tightened 3.52 -> 3.60)
+clip2  AI             <- एयाई                4.09- 4.36  (start tightened 3.80 -> 4.09)
+clip2  कंपनियों       <- कंपीनियों           4.36- 4.82
+clip2  के             <- के                  4.82- 4.94
+clip2  छोटे           <- छोटे                4.94- 5.20
+clip2  tasks।         <- टास्क्स,            5.20- 5.46  (end tightened 5.68 -> 5.46)
+clip2  कोई            <- कोई                 6.03- 6.20  (start 5.68 -> 5.66: prev word's trailing pause)  (start tightened 5.66 -> 6.03)
+clip2  fees           <- फीज                 6.20- 6.46
+clip2  नहीं,          <- नहीं,               6.46- 6.68
+clip2  training       <- ट्रेनिंग            6.93- 7.20  (start tightened 6.68 -> 6.93)
+clip2  भी             <- भी                  7.20- 7.34
+clip2  free।          <- फ्री                7.43- 7.50  (start tightened 7.34 -> 7.43)
+clip3  मैं            <- मैं                 0.09- 0.22  (start tightened 0.00 -> 0.09)
+clip3  दिन            <- दिन                 0.22- 0.46
+clip3  में            <- में                 0.46- 0.58
+clip3  दो-तीन         <- दो तीन              0.58- 0.96
+clip3  घंटे           <- घंटे                0.96- 1.18
+clip3  काम            <- काम                 1.18- 1.42
+clip3  करती           <- करती                1.42- 1.72
+clip3  हूँ            <- हूँ                 1.72- 1.92
+clip3  और             <- और                  2.00- 2.12  (start tightened 1.92 -> 2.00)
+clip3  चार            <- 400                 2.12- 2.26
+clip3  सौ             <- 400                 2.26- 2.40
+clip3  से             <- से                  2.40- 2.68
+clip3  पाँच           <- 500                 2.68- 2.77
+clip3  सौ             <- 500                 2.77- 2.86
+clip3  कमा            <- कमा                 2.86- 3.20
+clip3  लेती           <- लेती                3.20- 3.52
+clip3  हूँ,           <- हूँ                 3.52- 3.66
+clip3  सीधे           <- सीधे                3.80- 3.96  (start tightened 3.66 -> 3.80)
+clip3  Bank           <- बैंक                3.96- 4.30
+clip3  या             <- या                  4.30- 4.52
+clip3  UPI            <- UPI                 4.52- 4.92
+clip3  में।           <- में                 4.92- 5.12
+clip3  नीचे           <- नीचे                5.42- 5.64  (start tightened 5.12 -> 5.42)
+clip3  Learn          <- लर्न                5.64- 5.94
+clip3  more           <- मोर                 5.94- 6.10
+clip3  दबाओ           <- दबाओ                6.10- 6.42
+clip3  और             <- और                  6.62- 6.78  (start tightened 6.42 -> 6.62)
+clip3  अभी            <- अभी                 6.78- 6.98
+clip3  register       <- रेजिस्टर            6.98- 7.29  (end tightened 7.38 -> 7.29)
+clip3  करो!           <- करो                 7.35- 7.60  (start 7.38 -> 7.35: prev word's trailing pause)

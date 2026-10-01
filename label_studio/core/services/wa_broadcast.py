@@ -146,7 +146,7 @@ def _build_founder_digits() -> tuple[str, str]:
     """
 
     raw = os.getenv('TRAINPLEX_FOUNDER_MOBILE_GUARD', '').strip()
-    digits = _FOUNDER_DIGIT_RE.sub('', raw)
+    digits = _guard_digits_only(raw)
     if len(digits) >= 10:
         last_ten = digits[-10:]
         return ('91' + last_ten, last_ten)
