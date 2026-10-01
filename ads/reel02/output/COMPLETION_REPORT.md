@@ -499,4 +499,4 @@ Remotion → H.264 High, 1080x1920, 30/1 fps, yuv420p, bt709/bt709/bt709 (tv ran
 - Commit और PR: **इस रिपोर्ट के बाद** (pending)
 - `flow_raw/` और `clips/takes/*` gitignored हैं। Flow reference PNGs (`flow/character/*.png`, `flow/elements/*.png`) commit होंगी।
 
-PR: <<PR_LINK>>
+PR: https://github.com/cybdeer/trainplex-studio/pull/2 (draft, base develop)
